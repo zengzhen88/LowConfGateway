@@ -5,59 +5,26 @@
 #include <message.h>
 
 
-/*
- * static int32_t RequestMqttMessage(Message *mess, int32_t *size, int32_t count) {
- *     if (mess) {
- *         if (count != 2) {
- *             return -1;
- *         }
- * 
- *         mess->mqtt.topic = (char *) malloc (size[0]);
- *         if (mess->mqtt.topic) {
- *             mess->mqtt.payload = (void *) malloc (size[1]);
- *             if (mess->mqtt.payload) {
- *                 return 0;
- *             }
- *         }
- *     }
- * 
- *     return -1;
- * }
- * 
- * int32_t ReleaseMqttMessage(Message *mess) {
- *     if (mess) {
- *         if (mess->mqtt.topic) {
- *             free(mess->mqtt.topic);
- *         }
- *         if (mess->mqtt.payload) {
- *             free(mess->mqtt.payload);
- *         }
- *     }
- * 
- *     return 0;
- * }
- */
-
-Message *RequestMessage(DataAttr attr, int32_t *size, int32_t count) {
-    /* int32_t status  = -1; */
-    Message *mess   = (Message *) malloc (sizeof(*mess));
+Message *RequestMessage(int32_t size) {
+    Message *mess = (Message *) malloc (sizeof(*mess));
     if (mess) {
-        switch (attr) {
-            case DataAttr_Wifi:
-                {
-                    break;
-                }
-            /*
-             * case DataAttr_MqqtTest:
-             *     {
-             *         status = RequestMqttMessage(mess, size, count);
-             *         if (!status) {
-             *             return mess;
-             *         }
-             *         break;
-             *     }
-             */
-            default:break;
+        if (size > 0) {
+            mess->data = (void *) malloc (size);
+            if (mess->data) {
+                mess->length = 0;
+                mess->size   = size;
+                return mess;
+            }
+            else {
+                free(mess);
+            }
+        }
+        else {
+            /*应该可以允许为0*/
+            mess->size   = 0;
+            mess->length = 0;
+            mess->data   = NULL;
+            return mess;
         }
     }
 
@@ -66,21 +33,7 @@ Message *RequestMessage(DataAttr attr, int32_t *size, int32_t count) {
 
 int32_t ReleaseMessage(Message *mess) {
     if (mess) {
-        switch (mess->attr) {
-            case DataAttr_Wifi:
-                {
-                    break;
-                }
-            /*
-             * case DataAttr_MqqtTest:
-             *     {
-             *         ReleaseMqttMessage(mess);
-             *         break;
-             *     }
-             */
-            default:break;
-        }
-
+        if (mess->size > 0) free(mess->data);
         free(mess);
     }
 

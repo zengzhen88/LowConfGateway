@@ -18,7 +18,8 @@ typedef enum {
 
 typedef int32_t (*WifiPrint)(void *, const char *);
 typedef int32_t (*WifiSigSend)(void *oObj,
-        DataAttr attr, void *data, int32_t millis);
+        DataAttr attr, void *data, 
+        int32_t fillLength, int32_t millis);
 typedef int32_t (*WifiSigRecv)(void *oObj,
         DataAttr attr, void *data, 
         int32_t *fillLength, int32_t millis);

@@ -16,20 +16,115 @@
 #include "esp_system.h"
 #include <mqtt.h>
 #include <wifi.h>
+#include <message.h>
+
+#define QueSize (15)
 
 typedef struct {
     void *wifi;
     void *mqtt;
+
+    QueueHandle_t bufQue[DataAttr_Cnt];
 } Gateway;
 
 int32_t appPrint(void *priv, const char *strings) {
     return printf ("%s", strings);
 }
 
+
+int32_t appSend(void *priv, DataAttr attr, 
+        void *data, int32_t fillLength, int32_t millis) {
+    int status       = ESP_FAIL;
+    Message *message = NULL;
+    TickType_t block = portMAX_DELAY; 
+    Gateway *gateway = (Gateway *)priv;
+
+    switch (millis) {
+        case DataTimeStatus_BLOCK:
+            {
+                block = portMAX_DELAY;
+                break;
+            }
+        case DataTimeStatus_UNBLOCK:
+        default:
+            {
+                block = pdMS_TO_TICKS(millis);
+                break;
+            }
+    }
+
+    message = RequestMessage(fillLength);
+    if (message) {
+        message->attr       = attr;
+        message->length     = fillLength;
+        memcpy(message->data, data, message->length);
+    
+        status = xQueueSend(gateway->bufQue[attr], &message, pdMS_TO_TICKS(block));
+        if (pdPASS == status) {
+            return 0;
+        }
+
+        ReleaseMessage(message);
+    }
+
+
+    return -1;
+}
+
+int32_t appRecv(void *priv, DataAttr attr, 
+        void *data, int32_t *fillLength, int32_t millis) {
+    int32_t status   = -1;
+    Message *message = NULL;
+    TickType_t block = portMAX_DELAY; 
+    Gateway *gateway = (Gateway *)priv;
+
+    switch (millis) {
+        case DataTimeStatus_BLOCK:
+            {
+                block = portMAX_DELAY;
+                break;
+            }
+        case DataTimeStatus_UNBLOCK:
+        default:
+            {
+                block = pdMS_TO_TICKS(millis);
+                break;
+            }
+    }
+
+    status = xQueueReceive(gateway->bufQue[attr], &message, pdMS_TO_TICKS(block));
+    if (pdTRUE == status) {
+        ModuleMessage *smessage = (ModuleMessage *)message->data;
+        printf (">>>>>>>>>>> smessage->attr:%s\n", toEnumString(smessage->attr));
+        printf ("<<<<<<<<<<< smessage->data:%s\n", smessage->helloworld.helloworld);
+        if (*fillLength >= message->length) {
+            //内存足够才送数据
+            memcpy(data, message->data, message->length);
+            *fillLength = message->length;
+        }
+
+        ReleaseMessage(message);
+
+        return 0;
+    }
+
+    return -1;
+}
+
+
 void app_main(void) {
     Gateway *gateway = (Gateway *) malloc (sizeof(*gateway));
     if (gateway) {
         memset(gateway, 0x0, sizeof(*gateway));
+
+        {
+            /*queue*/
+            int32_t index = 0;
+
+            for (index = 0; index < DataAttr_Cnt; index++) {
+                gateway->bufQue[index] = xQueueCreate(QueSize, sizeof(int32_t *));
+            }
+        }
 
         {
             /*wifi*/
@@ -38,6 +133,8 @@ void app_main(void) {
 
             strcpy(config.ssid, "TP-LINK_342B");
             strcpy(config.password, "88888888");
+            config.send = appSend;
+            config.recv = appRecv;
 
             WifiInitLog(gateway, appPrint);
             WifiSetLogLevel(LogWifi_Info);
@@ -59,21 +156,21 @@ void app_main(void) {
             strcpy(config.url, "mqtt://192.168.0.106:1883");
             strcpy(config.hostname, "192.168.0.106");
             config.port = 1883;
+            config.send = appSend;
+            config.recv = appRecv;
 
             gateway->mqtt = MQTTInit(&config);
-
-            MQTTSubscribe(gateway->mqtt, "zengzhen", 1);
         }
 
         {
-            int running = 0;
+            /* int running = 0; */
             while (1) {
-                char buf[128];
+                /* char buf[128]; */
 
                 vTaskDelay(pdMS_TO_TICKS(2000));
 
-                snprintf (buf, sizeof(buf) - 1, "running_%d", running++);
-                MQTTPushlish(gateway->mqtt, buf, strlen(buf), "zengzhen", 1, 0);
+                /* snprintf (buf, sizeof(buf) - 1, "running_%d", running++); */
+                /* MQTTPushlish(gateway->mqtt, buf, strlen(buf), "zengzhen", 1, 0); */
             }
         }
     }

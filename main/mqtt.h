@@ -18,7 +18,8 @@ typedef enum {
 
 typedef int32_t (*MQTTPrint)(void *, const char *);
 typedef int32_t (*MQTTSigSend)(void *oObj,
-        DataAttr attr, void *data, int32_t millis);
+        DataAttr attr, void *data, 
+        int32_t fillLength, int32_t millis);
 typedef int32_t (*MQTTSigRecv)(void *oObj,
         DataAttr attr, void *data,
         int32_t *fillLength, int32_t millis);
@@ -38,9 +39,9 @@ typedef struct {
 } MQTTConfig;
 
 void *MQTTInit(MQTTConfig *config);
-int32_t MQTTPushlish(void *oObj, 
-        const char *data, int32_t len, 
-        const char *topic, int qos, int retain);
-int32_t MQTTSubscribe(void *oObj, const char *topic, int qos);
+// int32_t MQTTPushlish(void *oObj, 
+        // const char *data, int32_t len, 
+        // const char *topic, int qos, int retain);
+// int32_t MQTTSubscribe(void *oObj, const char *topic, int qos);
 
 #endif /* __MQTT_PROJECT_H__ */

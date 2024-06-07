@@ -2,9 +2,20 @@
 #define __COMMON_H__ 
 
 typedef enum {
-    DataAttr_Wifi,
-    DataAttr_Uart,
+    DataAttr_MqttToUart,
+    DataAttr_MqttToWifi,
+    DataAttr_WifiToMqtt,
+    DataAttr_UartToMqtt,
+    DataAttr_Cnt,
 } DataAttr;
+
+typedef enum {
+    ModuleDataAttr_helloworld,
+    ModuleDataAttr_SetWifiConfig,
+    ModuleDataAttr_GetWifiConfig,
+    ModuleDataAttr_Cnt,
+} ModuleDataAttr;
+const char *toEnumString(ModuleDataAttr attr);
 
 typedef enum {
     DataTimeStatus_BLOCK = -1,

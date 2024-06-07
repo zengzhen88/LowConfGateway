@@ -13,6 +13,7 @@
 #include <mqtt.h>
 #include "mqtt_client.h"
 #include <message.h>
+#include "esp_timer.h"
 
 static void *gPriv = NULL;
 static MQTTPrint gPrint;
@@ -78,6 +79,7 @@ typedef struct {
     int32_t isRunning;
 
     esp_mqtt_client_handle_t client;
+    esp_timer_handle_t timer;
 
     MQTTSigSend send;
     MQTTSigRecv recv;
@@ -104,16 +106,68 @@ int32_t MQTTSetLogLevel(LogMQTT level) {
     return 0;
 }
 
+int32_t MQTTMessageRecvHandler(MQTT *mqtt) {
+    if (mqtt->recv) {
+        char recv[128];
+        int32_t length = sizeof(recv);
+        int status = mqtt->recv(gPriv, DataAttr_UartToMqtt, recv, &length, 0);
+        if (!status) {
+            /*AT命令检测*/
+        }
+
+        ModuleMessage message;
+        length = sizeof(message);
+        status = mqtt->recv(gPriv, DataAttr_WifiToMqtt, &message, &length, 0);
+        if (!status) {
+            /*测试*/
+            switch (message.attr) {
+                case ModuleDataAttr_helloworld:
+                    {
+                        status = esp_mqtt_client_subscribe(mqtt->client, 
+                                toEnumString(message.attr), 
+                                1);
+                        if (status) {
+                            LogPrintf(LogMQTT_Info, "failurellllllllllll status:%d\n", status);
+                        }
+                        esp_mqtt_client_publish(mqtt->client, 
+                                toEnumString(message.attr), 
+                                message.helloworld.helloworld, 
+                                strlen(message.helloworld.helloworld), 
+                                1, 0);
+                        break;
+                    }
+                default:break;
+            }
+        }
+    }
+
+    return 0;
+}
+
+int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
+    if (!strncmp(event->topic, "zengzhen", strlen("zengzhen"))) {
+        LogPrintf(LogMQTT_Info, "<DATA>=%.*s\n", event->data_len, event->data);
+        if (mqtt->send) 
+            mqtt->send(gPriv, DataAttr_MqttToWifi, event->data, 
+                    event->data_len, DataTimeStatus_BLOCK);
+    }
+    /* else if (!strcmp(event->topic, "xxx")) { */
+
+    /* } */
+
+    return 0;
+}
+
 void MQTTEventHandler(void *handler_args, esp_event_base_t base,
         int32_t event_id, void *event_data) {
     MQTT *mqtt = (MQTT *)handler_args;
 
-    LogPrintf(LogMQTT_Debug, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "\n", base, event_id);
+    LogPrintf(LogMQTT_Info, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "\n", base, event_id);
 
     /* int msg_id; */
     esp_mqtt_event_handle_t event   = event_data;
 
-    switch ((esp_mqtt_event_id_t)event_id) {
+    switch (/* (esp_mqtt_event_id_t) */event_id) {
         case MQTT_EVENT_CONNECTED:
             {
                 LogPrintf(LogMQTT_Info, "[%s]MQTT_EVENT_CONNECTED\n", mqtt->name);
@@ -132,12 +186,10 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
         case MQTT_EVENT_UNSUBSCRIBED:
             {
                 LogPrintf(LogMQTT_Info, "[%s]MQTT_EVENT_UNSUBSCRIBED\n", mqtt->name);
-                /* ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id); */
                 break;
             }
         case MQTT_EVENT_PUBLISHED:
             {
-                /* LogPrintf(LogMQTT_Info, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id); */
                 LogPrintf(LogMQTT_Info, "[%s]MQTT_EVENT_PUBLISHED\n", mqtt->name);
                 break;
             }
@@ -146,6 +198,9 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
                 LogPrintf(LogMQTT_Info, "[%s]MQTT_EVENT_DATA\n", mqtt->name);
                 LogPrintf(LogMQTT_Info, "TOPIC=%.*s\r\n", event->topic_len, event->topic);
                 LogPrintf(LogMQTT_Info, "DATA=%.*s\r\n", event->data_len, event->data);
+
+                MQTTMessageSendHandler(mqtt, event);
+                /* event中会包含current_data_offset和total_data_len请用户自行拼接碎片消息 */
                 break;
             }
         case MQTT_EVENT_ERROR:
@@ -161,9 +216,7 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
             }
         case MQTT_USER_EVENT:
             {
-                LogPrintf(LogMQTT_Info, "[%s]MQTT_USER_EVENT topic:%s qos:%d\n", 
-                        mqtt->name, event->topic, event->qos);
-                esp_mqtt_client_subscribe(mqtt->client, event->topic, event->qos);
+                MQTTMessageRecvHandler(mqtt);
                 break;
             }
         default:
@@ -174,27 +227,71 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
     }
 }
 
-int32_t MQTTUpdateUserPassword(void *oObj, MQTTConfig *config) {
-    return -1;
+static void timer_cb(void *arg) {
+    MQTT *mqtt = (MQTT *)arg;
+
+    esp_mqtt_event_t event;
+    event.event_id  = MQTT_USER_EVENT;
+    event.topic     = (char *) malloc (strlen("zengtimer") + 1);
+    if (event.topic) {
+        strcpy(event.topic, "zengtimer");
+        event.topic_len = strlen("zengtimer");
+    }
+    else {
+        event.topic_len = 0;
+    }
+
+    esp_mqtt_dispatch_custom_event(mqtt->client, &event);
 }
 
 int32_t MQTTPushlish(void *oObj, const char *data, int32_t len, 
         const char *topic, int qos, int retain) {
     MQTT *pObj = (MQTT *)oObj;
-    return esp_mqtt_client_publish(
-            pObj->client, topic, data, len, qos, retain);
-}
-
-int32_t MQTTSubscribe(void *oObj, const char *topic, int qos) {
-    MQTT *pObj = (MQTT *)oObj;
 
     esp_mqtt_event_t event;
     event.event_id  = MQTT_USER_EVENT;
-    event.topic     = (char *)topic;
-    event.topic_len = strlen(topic);
     event.qos       = qos;
+    event.topic     = (char *) malloc (strlen(topic) + 1);
+    if (event.topic) {
+        strcpy(event.topic, topic);
+        event.topic_len = strlen(topic);
+    }
+    else {
+        event.topic_len = 0;
+    }
+    event.data      = (char *) malloc (len + 1);
+    if (event.data) {
+        memcpy(event.data, data, len);
+        event.data_len = len;
+    }
+    else {
+        event.data_len = 0;
+    }
+
+    //暂时先这样设计
+    /* return esp_mqtt_client_publish( */
+            /* pObj->client, topic, data, len, qos, retain); */
     return esp_mqtt_dispatch_custom_event(pObj->client, &event);
 }
+
+/*
+ * static int32_t MQTTSubscribe(void *oObj, const char *topic, int qos) {
+ *     MQTT *pObj = (MQTT *)oObj;
+ * 
+ *     esp_mqtt_event_t event;
+ *     event.event_id  = MQTT_USER_EVENT;
+ *     event.qos       = qos;
+ *     event.topic     = (char *) malloc (strlen(topic) + 1);
+ *     if (event.topic) {
+ *         strcpy(event.topic, topic);
+ *         event.topic_len = strlen(topic);
+ *     }
+ *     else {
+ *         event.topic_len = 0;
+ *     }
+ *     return esp_mqtt_dispatch_custom_event(pObj->client, &event);
+ * }
+ */
 
 void *MQTTInit(MQTTConfig *config) {
     /* esp_err_t status                = ESP_FAIL;         */
@@ -246,14 +343,27 @@ void *MQTTInit(MQTTConfig *config) {
     mqttConfig.credentials.authentication.password  = mqtt->password;
     mqttConfig.credentials.client_id                = mqtt->clientId;
 
-    LogPrintf(LogMQTT_Info, "uri:%s hostname:%s port:%d username:%s "
-            "password:%s client_id:%s \n",
-            mqttConfig.broker.address.uri,
-            mqttConfig.broker.address.hostname,
-            mqttConfig.broker.address.port,
-            mqttConfig.credentials.username,
-            mqttConfig.credentials.authentication.password,
+    LogPrintf(LogMQTT_Info, "uri:%s \n",
+            mqttConfig.broker.address.uri);
+    LogPrintf(LogMQTT_Info, "hostname:%s \n",
+            mqttConfig.broker.address.hostname);
+    LogPrintf(LogMQTT_Info, "port:%d \n",
+            mqttConfig.broker.address.port);
+    LogPrintf(LogMQTT_Info, "username:%s \n",
+            mqttConfig.credentials.username);
+    LogPrintf(LogMQTT_Info, "password:%s \n",
+            mqttConfig.credentials.authentication.password);
+    LogPrintf(LogMQTT_Info, "client_id:%s \n",
             mqttConfig.credentials.client_id);
+
+    const esp_timer_create_args_t timer_args = {
+        timer_cb,
+        mqtt,
+        ESP_TIMER_TASK,
+        "mqtt_timer",
+        true,
+    };
+    esp_timer_create(&timer_args, &mqtt->timer);
 
     mqtt->client = esp_mqtt_client_init(&mqttConfig);
     ERRP(NULL == mqtt->client, goto ERR5, 1, "mqtt esp_mqtt_client_init failure\n");
@@ -262,6 +372,8 @@ void *MQTTInit(MQTTConfig *config) {
             ESP_EVENT_ANY_ID, MQTTEventHandler, mqtt);
 
     esp_mqtt_client_start(mqtt->client);
+
+    esp_timer_start_periodic(mqtt->timer, 10000);//10ms
 
     return mqtt;
 ERR5:

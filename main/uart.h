@@ -23,7 +23,8 @@ typedef enum {
 
 typedef int32_t (*UARTPrint)(void *, const char *);
 typedef int32_t (*UARTSigSend)(void *oObj,
-        DataAttr attr, void *data, int32_t millis);
+        DataAttr attr, void *data, 
+        int32_t fillLength, int32_t millis);
 typedef int32_t (*UARTSigRecv)(void *oObj,
         DataAttr attr, void *data, 
         int *fillLength, int32_t millis);

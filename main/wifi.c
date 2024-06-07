@@ -13,6 +13,7 @@
 
 #include <wifi.h>
 #include <message.h>
+#include "esp_timer.h"
 
 static void *gPriv = NULL;
 static WifiPrint gPrint;
@@ -82,8 +83,10 @@ typedef struct {
     esp_event_handler_instance_t instanceGotIp;
     esp_event_handler_instance_t instanceGotIpV6;
     wifi_config_t config;
-    WifiMessage message; //保存配置
-    TaskHandle_t wifiTask;
+    ModuleMessageWifiConfig message; //保存配置
+
+    esp_timer_handle_t timer;
+    /* TaskHandle_t wifiTask; */
 
     WifiSigSend send;
     WifiSigRecv recv;
@@ -104,25 +107,33 @@ int32_t WifiSetLogLevel(LogWifi level) {
     return 0;
 }
 
-void WifiResponses(void *args) {
-    Wifi *wifi = (Wifi *)args;
-
-    while (1) {
-        EventBits_t bits = xEventGroupWaitBits(wifi->eventGroup,
-                WIFI_UPDATE_USERPASSWORD,
-                pdFALSE,
-                pdFALSE,
-                portMAX_DELAY);
-
-        if (bits & WIFI_UPDATE_USERPASSWORD) {
-            /*更新账号密码,待更新*/
-            LogPrintf(LogWifi_Info, "update username password\n");
+int32_t WifiEventRecvHandler(Wifi *wifi) {
+    if (wifi->recv) {
+        ModuleMessage message;
+        int32_t length = sizeof(message);
+        int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
+        if (!status) {
+            /*主要是设置Wifi信号*/
+            switch (message.attr) {
+                case ModuleDataAttr_SetWifiConfig:
+                    {
+                        LogPrintf(LogWifi_Info, "SetWifiConfig ssid:%s password:%s\n", 
+                                message.wifiConfig.ssid, 
+                                message.wifiConfig.passwd);
+                        break;
+                    }
+                default:break;
+            }
         }
-        else {
-
-        }
-        vTaskDelay(pdMS_TO_TICKS(500));
     }
+    if (wifi->send) {
+        ModuleMessage message;
+        message.attr = ModuleDataAttr_helloworld;
+        strcpy(message.helloworld.helloworld, "myhelloworld");
+        wifi->send(gPriv, DataAttr_WifiToMqtt, &message, sizeof(message), 0);
+    }
+
+    return 0;
 }
 
 #define EXAMPLE_ESP_MAXIMUM_RETRY  5
@@ -130,23 +141,37 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data) {
     Wifi *wifi = (Wifi *)arg;
 
-    LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d\n", 
+    LogPrintf(LogWifi_Debug, "eventBase:%s eventId:%d\n", 
             event_base, event_id);
 
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        LogPrintf(LogWifi_Info, "wifi esp_wifi_connect retryNum:%" PRIu32 "\n", wifi->retryNum);
-        esp_wifi_connect();
-    }
-    else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        wifi->wifiSok = 0;
-        if (wifi->retryNum < EXAMPLE_ESP_MAXIMUM_RETRY) {
-            esp_wifi_connect();
-            wifi->retryNum++;
-            LogPrintf(LogWifi_Warning, "retry to connect to "
-                    "the AP retryNum:% " PRIu32 "\n", wifi->retryNum);
-        }
+    if (event_base == WIFI_EVENT) {
+        switch (event_id) {
+            case WIFI_EVENT_STA_START:
+                {
+                    LogPrintf(LogWifi_Info, "wifi esp_wifi_connect retryNum:%" PRIu32 "\n", wifi->retryNum);
+                    esp_wifi_connect();
+                    break;
+                }
+            case WIFI_EVENT_STA_DISCONNECTED:
+                {
+                    wifi->wifiSok = 0;
+                    if (wifi->retryNum < EXAMPLE_ESP_MAXIMUM_RETRY) {
+                        esp_wifi_connect();
+                        wifi->retryNum++;
+                        LogPrintf(LogWifi_Warning, "retry to connect to "
+                                "the AP retryNum:% " PRIu32 "\n", wifi->retryNum);
+                    }
 
-        LogPrintf(LogWifi_Error ,"connect to the AP fail retryNum:%" PRIu32 "\n", wifi->retryNum);
+                    LogPrintf(LogWifi_Error ,"connect to the AP fail retryNum:%" PRIu32 "\n", wifi->retryNum);
+                    break;
+                }
+            case WIFI_EVENT_MAX:
+                {
+                    WifiEventRecvHandler(wifi);
+                    break;
+                }
+            default:break;
+        }
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
@@ -154,32 +179,22 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (wifi->send) {
             //report
-            wifi->message.attr      = DataAttr_Wifi;
+            wifi->message.attr      = ModuleDataAttr_GetWifiConfig;
             wifi->message.ip        = event->ip_info.ip.addr;
             wifi->message.netmask   = event->ip_info.netmask.addr;
             wifi->message.gateway   = event->ip_info.gw.addr;
-            wifi->send(gPriv, DataAttr_Wifi, &wifi->message, 40);
+            /* wifi->send(gPriv, DataAttr_Wifi, &wifi->message, 40); */
         }
         wifi->retryNum = 0;
     }
     //暂不考虑IPV6
 }
 
-int32_t WifiUpdateUserPassword(void *oObj, WifiConfig *config) {
-    Wifi *wifi = (Wifi *)oObj;
-
-    if (wifi) {
-        strcpy((char *)wifi->config.sta.ssid, (const char *)config->ssid);
-        strcpy((char *)wifi->config.sta.password, (const char *)config->password);
-        xEventGroupSetBits(wifi->eventGroup, WIFI_UPDATE_USERPASSWORD);
-        return 0;
-    }
-
-    return -1;
+static void timer_cb(void *arg) {
+    esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, NULL, 0, 0);
 }
 
 void *WifiInit(WifiConfig *config) {
-    BaseType_t baseType             = pdFAIL;
     esp_err_t status                = ESP_FAIL;        
     wifi_init_config_t initConfig   = WIFI_INIT_CONFIG_DEFAULT();
 
@@ -245,9 +260,19 @@ void *WifiInit(WifiConfig *config) {
     status = esp_wifi_start();
     ERRP(ESP_OK != status, goto ERR8, 1, "wifi esp_wifi_start sta failure\n");
 
-    baseType = xTaskCreate(WifiResponses, 
-            "WifiResponse", 4096, wifi, 5, &wifi->wifiTask);
-    ERRP(pdPASS != baseType, goto ERR9, 1, "wifi xTaskCreate failure\n");
+    const esp_timer_create_args_t timer_args = {
+        timer_cb,
+        wifi,
+        ESP_TIMER_TASK,
+        "wifi_timer",
+        true,
+    };
+    esp_timer_create(&timer_args, &wifi->timer);
+    esp_timer_start_periodic(wifi->timer, 2000000);//10000);//10ms
+
+    /* baseType = xTaskCreate(WifiResponses,  */
+            /* "WifiResponse", 4096, wifi, 5, &wifi->wifiTask); */
+    /* ERRP(pdPASS != baseType, goto ERR9, 1, "wifi xTaskCreate failure\n"); */
 
     while (!wifi->wifiSok) {
         vTaskDelay(pdMS_TO_TICKS(200));
@@ -256,8 +281,8 @@ void *WifiInit(WifiConfig *config) {
     LogPrintf(LogWifi_Info, "<<<wifi->wifiSok:%d>>>\n", wifi->wifiSok);
 
     return wifi;
-ERR9:
-    esp_wifi_stop();
+/* ERR9: */
+    /* esp_wifi_stop(); */
 ERR8:
     esp_event_handler_unregister(IP_EVENT, IP_EVENT_GOT_IP6, &WifiEventHandler);
 ERR7:

@@ -140,7 +140,8 @@ char *UARTRecvParse(UART *uart, char *recv, int32_t length) {
 
     if (msgvalid) {
         if (uart->send)
-            uart->send(gPriv, DataAttr_Uart, strings, DataTimeStatus_BLOCK);
+            uart->send(gPriv, DataAttr_UartToMqtt, 
+                    strings, strlen(strings), DataTimeStatus_BLOCK);
         return strings;
     }
 
@@ -172,7 +173,7 @@ void UARTSelectTask(void *args) {
         length = uart->bufSize;
         if (uart->recv) {
             status = uart->recv(gPriv, 
-                    DataAttr_Uart, uart->buffer, &length, 1);
+                    DataAttr_MqttToUart, uart->buffer, &length, 1);
             if (!status) {
                 strcat(uart->buffer, "\r\n");
                 LogPrintf(LogUART_Info, "UART AT Send: %s\n", uart->buffer);
