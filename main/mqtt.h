@@ -20,7 +20,8 @@ typedef int32_t (*MQTTPrint)(void *, const char *);
 typedef int32_t (*MQTTSigSend)(void *oObj,
         DataAttr attr, void *data, int32_t millis);
 typedef int32_t (*MQTTSigRecv)(void *oObj,
-        DataAttr attr, void *data, int32_t millis);
+        DataAttr attr, void *data,
+        int32_t *fillLength, int32_t millis);
 
 int32_t MQTTInitLog(void *priv, MQTTPrint print);
 int32_t MQTTSetLogLevel(LogMQTT level);

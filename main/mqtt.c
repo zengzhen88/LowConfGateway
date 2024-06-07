@@ -190,7 +190,7 @@ int32_t MQTTSubscribe(void *oObj, const char *topic, int qos) {
 
     esp_mqtt_event_t event;
     event.event_id  = MQTT_USER_EVENT;
-    event.topic     = topic;
+    event.topic     = (char *)topic;
     event.topic_len = strlen(topic);
     event.qos       = qos;
     return esp_mqtt_dispatch_custom_event(pObj->client, &event);

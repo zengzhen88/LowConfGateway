@@ -140,7 +140,7 @@ char *UARTRecvParse(UART *uart, char *recv, int32_t length) {
 
     if (msgvalid) {
         if (uart->send)
-            uart->send(uart->priv, DataAttr_Uart, strings, DataTimeStatus_BLOCK);
+            uart->send(gPriv, DataAttr_Uart, strings, DataTimeStatus_BLOCK);
         return strings;
     }
 
@@ -148,7 +148,6 @@ char *UARTRecvParse(UART *uart, char *recv, int32_t length) {
 }
 
 void UARTSelectTask(void *args) {
-    int fd          = -1;
     int length      = -1;
     int status      = -1;
     char *sbuffer   = NULL;
@@ -172,7 +171,7 @@ void UARTSelectTask(void *args) {
 
         length = uart->bufSize;
         if (uart->recv) {
-            status = uart->recv(uart->priv, 
+            status = uart->recv(gPriv, 
                     DataAttr_Uart, uart->buffer, &length, 1);
             if (!status) {
                 strcat(uart->buffer, "\r\n");
@@ -241,7 +240,7 @@ void *UARTInit(UARTConfig *config) {
     uart_param_config(config->uartIndex, &uart_config);
 
     baseType = xTaskCreate(UARTSelectTask, 
-            "uartSelectTask", 4096, uart, 5, &wifi->uartTask);
+            "uartSelectTask", 4096, uart, 5, &uart->uartTask);
     ERRP(pdPASS != baseType, goto ERR04, 1, "uart xTaskCreate failure\n");
 
     return uart;
