@@ -16,6 +16,7 @@ typedef enum {
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;
 const char *toEnumString(ModuleDataAttr attr);
+ModuleDataAttr toStringEnum(const char *strings);
 
 typedef enum {
     DataTimeStatus_BLOCK = -1,

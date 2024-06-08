@@ -94,9 +94,6 @@ int32_t appRecv(void *priv, DataAttr attr,
 
     status = xQueueReceive(gateway->bufQue[attr], &message, pdMS_TO_TICKS(block));
     if (pdTRUE == status) {
-        ModuleMessage *smessage = (ModuleMessage *)message->data;
-        printf (">>>>>>>>>>> smessage->attr:%s\n", toEnumString(smessage->attr));
-        printf ("<<<<<<<<<<< smessage->data:%s\n", smessage->helloworld.helloworld);
         if (*fillLength >= message->length) {
             //内存足够才送数据
             memcpy(data, message->data, message->length);
@@ -153,8 +150,8 @@ void app_main(void) {
             strcpy(config.name, "Pushlish");
             strcpy(config.username, "admin");
             strcpy(config.password, "123456");
-            strcpy(config.url, "mqtt://192.168.0.106:1883");
-            strcpy(config.hostname, "192.168.0.106");
+            strcpy(config.url, "mqtt://192.168.0.107:1883");
+            strcpy(config.hostname, "192.168.0.107");
             config.port = 1883;
             config.send = appSend;
             config.recv = appRecv;

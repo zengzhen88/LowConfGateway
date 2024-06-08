@@ -83,7 +83,7 @@ typedef struct {
     esp_event_handler_instance_t instanceGotIp;
     esp_event_handler_instance_t instanceGotIpV6;
     wifi_config_t config;
-    ModuleMessageWifiConfig message; //保存配置
+    ModuleMessage message; //保存配置
 
     esp_timer_handle_t timer;
     /* TaskHandle_t wifiTask; */
@@ -113,24 +113,24 @@ int32_t WifiEventRecvHandler(Wifi *wifi) {
         int32_t length = sizeof(message);
         int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
         if (!status) {
+            LogPrintf(LogWifi_Info, "start test recv getWifiConfig\n");
             /*主要是设置Wifi信号*/
             switch (message.attr) {
-                case ModuleDataAttr_SetWifiConfig:
+                case ModuleDataAttr_GetWifiConfig:
                     {
                         LogPrintf(LogWifi_Info, "SetWifiConfig ssid:%s password:%s\n", 
-                                message.wifiConfig.ssid, 
-                                message.wifiConfig.passwd);
+                                wifi->message.wifiConfig.ssid, 
+                                wifi->message.wifiConfig.passwd);
+                        if (wifi->send) {
+                            LogPrintf(LogWifi_Info, "start test ack getWifiConfig\n");
+                            wifi->send(gPriv, DataAttr_WifiToMqtt, 
+                                    &wifi->message, sizeof(wifi->message), 0);
+                        }
                         break;
                     }
                 default:break;
             }
         }
-    }
-    if (wifi->send) {
-        ModuleMessage message;
-        message.attr = ModuleDataAttr_helloworld;
-        strcpy(message.helloworld.helloworld, "myhelloworld");
-        wifi->send(gPriv, DataAttr_WifiToMqtt, &message, sizeof(message), 0);
     }
 
     return 0;
@@ -179,10 +179,10 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (wifi->send) {
             //report
-            wifi->message.attr      = ModuleDataAttr_GetWifiConfig;
-            wifi->message.ip        = event->ip_info.ip.addr;
-            wifi->message.netmask   = event->ip_info.netmask.addr;
-            wifi->message.gateway   = event->ip_info.gw.addr;
+            wifi->message.wifiConfig.attr      = ModuleDataAttr_GetWifiConfig;
+            wifi->message.wifiConfig.ip        = event->ip_info.ip.addr;
+            wifi->message.wifiConfig.netmask   = event->ip_info.netmask.addr;
+            wifi->message.wifiConfig.gateway   = event->ip_info.gw.addr;
             /* wifi->send(gPriv, DataAttr_Wifi, &wifi->message, 40); */
         }
         wifi->retryNum = 0;
@@ -212,6 +212,9 @@ void *WifiInit(WifiConfig *config) {
 
     wifi->send  = config->send;
     wifi->recv  = config->recv;
+
+    strcpy(wifi->message.wifiConfig.ssid, config->ssid);
+    strcpy(wifi->message.wifiConfig.passwd, config->password);
 
     wifi->eventGroup = xEventGroupCreate();
     ERRP(NULL == wifi->eventGroup, goto ERR0, 1, "wifi xEventGroupCreate failure\n");
@@ -268,7 +271,7 @@ void *WifiInit(WifiConfig *config) {
         true,
     };
     esp_timer_create(&timer_args, &wifi->timer);
-    esp_timer_start_periodic(wifi->timer, 2000000);//10000);//10ms
+    esp_timer_start_periodic(wifi->timer, 1000000);//10ms
 
     /* baseType = xTaskCreate(WifiResponses,  */
             /* "WifiResponse", 4096, wifi, 5, &wifi->wifiTask); */

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <common.h>
+#include <string.h>
 
 const char *toEnumString(ModuleDataAttr attr) {
     switch (attr) {
@@ -12,4 +13,18 @@ const char *toEnumString(ModuleDataAttr attr) {
             return "GetWifiConfig";
         default:return "Invalid";
     }
+}
+
+ModuleDataAttr toStringEnum(const char *strings) {
+    if (!strcmp(strings, "GetWifiConfig")) {
+        return ModuleDataAttr_GetWifiConfig;
+    }
+    else if (!strcmp(strings, "SetWifiConfig")) {
+        return ModuleDataAttr_SetWifiConfig;
+    }
+    else {
+
+    }
+
+    return ModuleDataAttr_Cnt;
 }
