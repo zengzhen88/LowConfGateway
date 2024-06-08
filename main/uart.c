@@ -25,7 +25,7 @@ static LogUART gLevel = LogUART_Info;
 static int UARTLogPrintf(LogUART level,
         const char *file, const char *func,
         int line, const char *format, ...) {
-    char logBuf[128];
+    char logBuf[256];
     va_list args;
     int funcLine        = 0;
 

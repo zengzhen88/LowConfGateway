@@ -29,7 +29,7 @@ static LogWifi gLevel = LogWifi_Info;
 static int WifiLogPrintf(LogWifi level,
         const char *file, const char *func,
         int line, const char *format, ...) {
-    char logBuf[128];
+    char logBuf[256];
     va_list args;
     int funcLine        = 0;
 

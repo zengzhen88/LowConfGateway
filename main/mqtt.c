@@ -5,6 +5,7 @@
 #include "esp_system.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "esp_wifi.h"
 #include "nvs_flash.h"
 
 #include "lwip/err.h"
@@ -14,11 +15,14 @@
 #include "mqtt_client.h"
 #include <message.h>
 #include "esp_timer.h"
+#include "bson/bson.h"
+#include "cJSON.h"
 
 static void *gPriv = NULL;
 static MQTTPrint gPrint;
 static LogMQTT gLevel = LogMQTT_Info;
 
+#define USE_BSON
 
 /*************************************************/
 /**************LogPrintf**************************/
@@ -29,7 +33,7 @@ static LogMQTT gLevel = LogMQTT_Info;
 static int MQTTLogPrintf(LogMQTT level,
         const char *file, const char *func,
         int line, const char *format, ...) {
-    char logBuf[128];
+    char logBuf[256];
     va_list args;
     int funcLine        = 0;
 
@@ -107,6 +111,52 @@ int32_t MQTTSetLogLevel(LogMQTT level) {
     return 0;
 }
 
+int32_t MQTTMessageRecvGetWifiConfig(MQTT *mqtt, ModuleMessage *message) {
+    cJSON *root = NULL;
+    cJSON *sub  = NULL;
+
+    root = cJSON_CreateArray();
+    if (root) {
+        sub = cJSON_CreateObject();
+        if (sub) {
+            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetWifiConfig));
+            cJSON_AddStringToObject(sub, "ssid", message->wifiConfig.ssid);
+            cJSON_AddStringToObject(sub, "passwd", message->wifiConfig.passwd);
+            cJSON_AddNumberToObject(sub, "ip", message->wifiConfig.ip); 
+            cJSON_AddNumberToObject(sub, "netmask", message->wifiConfig.netmask); 
+            cJSON_AddNumberToObject(sub, "gateway", message->wifiConfig.gateway); 
+            cJSON_AddItemToArray(root, sub);
+            char *json = cJSON_Print(root);
+            if (json) {
+                LogPrintf(LogMQTT_Info, "json:\r\n%s\n", json);
+#ifndef USE_BSON
+                esp_mqtt_client_publish(mqtt->client, 
+                        toEnumString(message->attr), 
+                        (const char *)json,
+                        strlen(json),
+                        1, 0);
+#else 
+                bson_error_t error;
+                bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
+                if (bson) {
+                    const uint8_t *bsons = bson_get_data(bson);
+                    esp_mqtt_client_publish(mqtt->client, 
+                            toEnumString(message->attr), 
+                            (const char *)bsons,
+                            bson->len,
+                            1, 0);
+                }
+#endif
+                free(json);
+            }
+            cJSON_Delete(root);
+        }
+    }
+
+
+    return 0;
+}
+
 int32_t MQTTMessageRecvHandler(MQTT *mqtt) {
     if (mqtt->recv) {
         char recv[128];
@@ -125,11 +175,7 @@ int32_t MQTTMessageRecvHandler(MQTT *mqtt) {
             switch (message.attr) {
                 case ModuleDataAttr_GetWifiConfig:
                     {
-                        esp_mqtt_client_publish(mqtt->client, 
-                                toEnumString(message.attr), 
-                                (const char *)&message.wifiConfig,
-                                sizeof(message.wifiConfig),
-                                1, 0);
+                        MQTTMessageRecvGetWifiConfig(mqtt, &message);
                         break;
                     }
                 default:break;
@@ -153,6 +199,38 @@ int32_t MQTTMessageRecvHandler(MQTT *mqtt) {
     return 0;
 }
 
+double MQTTcJsonGetNumber(cJSON *root, int index, const char *htype) {
+    cJSON *sub = cJSON_GetArrayItem(root, index);
+    if (sub) {
+        cJSON *elem = cJSON_GetObjectItem(sub, htype);
+        if (elem) {
+            if (elem->type == cJSON_Number) {
+                return elem->valuedouble;
+            }
+            else return 0.0;
+        }
+
+    }
+
+    return 0.0;
+}
+
+char *MQTTcJsonGetString(cJSON *root, int index, const char *htype) {
+    cJSON *sub = cJSON_GetArrayItem(root, index);
+    if (sub) {
+        cJSON *elem = cJSON_GetObjectItem(sub, htype);
+        if (elem) {
+            if (elem->type == cJSON_String) {
+                return elem->valuestring;
+            }
+            else return NULL;
+        }
+
+    }
+
+    return NULL;
+}
+
 int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
     ModuleDataAttr attr = toStringEnum(event->topic);
     switch (attr) {
@@ -163,13 +241,50 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
         case ModuleDataAttr_GetWifiConfig:
             {
                 /*test*/
-                ModuleMessage *message = (ModuleMessage *)event->data;
-                LogPrintf(LogMQTT_Info, "<TOPIC>=%.*s\n", event->topic_len, event->topic);
-                LogPrintf(LogMQTT_Info, "<DATA>=%s\n", message->wifiConfig.ssid);
-                LogPrintf(LogMQTT_Info, "<DATA>=%s\n", message->wifiConfig.passwd);
+                /* ModuleMessage *message = (ModuleMessage *)event->data; */
+                /* LogPrintf(LogMQTT_Info, "<TOPIC>=%.*s\n", event->topic_len, event->topic); */
+                /* LogPrintf(LogMQTT_Info, "<DATA>=%s\n", message->wifiConfig.ssid); */
+                /* LogPrintf(LogMQTT_Info, "<DATA>=%s\n", message->wifiConfig.passwd); */
                 /* if (mqtt->send)  */
                     /* mqtt->send(gPriv, DataAttr_MqttToWifi, event->data,  */
                             /* event->data_len, DataTimeStatus_BLOCK); */
+#ifdef USE_BSON
+                const char *response = NULL;
+                bson_t *bson = bson_new_from_data((uint8_t *)event->data, event->data_len);
+                if (bson) {
+                    size_t length = 0;
+                    response =  bson_as_json(bson, &length);
+                    LogPrintf(LogMQTT_Info, "message(%d) bson(%d)->json(%d):%s\n",
+                            sizeof(ModuleMessageWifiConfig), bson->len, strlen(response), response);
+                }
+#else
+                response = (char *)event->data; /*json*/
+#endif
+                if (response) {
+                    cJSON *json = cJSON_Parse(response);
+                    if (json) {
+                        int arraysize = cJSON_GetArraySize(json);                        
+                        if (arraysize > 0) {
+                            int index = 0;
+                            for (index = 0; index < arraysize; index++) {
+                                const char *strings = MQTTcJsonGetString(json, index, "htype");
+                                if (!strcmp(strings, "GetWifiConfig")) {
+                                    const char *ssid        = MQTTcJsonGetString(json, index, "ssid");
+                                    const char *passwd      = MQTTcJsonGetString(json, index, "passwd");
+                                    const uint32_t ip       = MQTTcJsonGetNumber(json, index, "ip");
+                                    const uint32_t netmask  = MQTTcJsonGetNumber(json, index, "netmask");
+                                    const uint32_t gateway  = MQTTcJsonGetNumber(json, index, "gateway");
+                                    LogPrintf(LogMQTT_Info, "htype:%s\n", strings);
+                                    LogPrintf(LogMQTT_Info, "ssid:%s\n", ssid);
+                                    LogPrintf(LogMQTT_Info, "passwd:%s\n", passwd);
+                                    LogPrintf(LogMQTT_Info, "ip:" IPSTR "\n", ((uint8_t *)&ip)[0], ((uint8_t *)&ip)[1], ((uint8_t *)&ip)[2], ((uint8_t *)&ip)[3]);
+                                    LogPrintf(LogMQTT_Info, "netmask:" IPSTR "\n", ((uint8_t *)&netmask)[0], ((uint8_t *)&netmask)[1], ((uint8_t *)&netmask)[2], ((uint8_t *)&netmask)[3]);
+                                    LogPrintf(LogMQTT_Info, "gateway:" IPSTR "\n", ((uint8_t *)&gateway)[0], ((uint8_t *)&gateway)[1], ((uint8_t *)&gateway)[2], ((uint8_t *)&gateway)[3]);
+                                }
+                            }
+                        }
+                    }
+                }
                 break;
             }
         default:break;
