@@ -240,14 +240,6 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
             }
         case ModuleDataAttr_GetWifiConfig:
             {
-                /*test*/
-                /* ModuleMessage *message = (ModuleMessage *)event->data; */
-                /* LogPrintf(LogMQTT_Info, "<TOPIC>=%.*s\n", event->topic_len, event->topic); */
-                /* LogPrintf(LogMQTT_Info, "<DATA>=%s\n", message->wifiConfig.ssid); */
-                /* LogPrintf(LogMQTT_Info, "<DATA>=%s\n", message->wifiConfig.passwd); */
-                /* if (mqtt->send)  */
-                    /* mqtt->send(gPriv, DataAttr_MqttToWifi, event->data,  */
-                            /* event->data_len, DataTimeStatus_BLOCK); */
 #ifdef USE_BSON
                 const char *response = NULL;
                 bson_t *bson = bson_new_from_data((uint8_t *)event->data, event->data_len);

@@ -78,11 +78,11 @@ typedef struct {
     int32_t isRunning;
     int32_t retryNum;
     int32_t wifiSok;
-    EventGroupHandle_t eventGroup;
     esp_event_handler_instance_t instanceAnyId;
     esp_event_handler_instance_t instanceGotIp;
     esp_event_handler_instance_t instanceGotIpV6;
     wifi_config_t config;
+    esp_netif_t *staNetif;
     ModuleMessage message; //保存配置
 
     esp_timer_handle_t timer;
@@ -141,15 +141,15 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data) {
     Wifi *wifi = (Wifi *)arg;
 
-    LogPrintf(LogWifi_Debug, "eventBase:%s eventId:%d\n", 
+    LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d\n", 
             event_base, event_id);
 
     if (event_base == WIFI_EVENT) {
         switch (event_id) {
             case WIFI_EVENT_STA_START:
                 {
-                    LogPrintf(LogWifi_Info, "wifi esp_wifi_connect retryNum:%" PRIu32 "\n", wifi->retryNum);
-                    esp_wifi_connect();
+                    esp_err_t status = esp_wifi_connect();
+                    LogPrintf(LogWifi_Info, "wifi esp_wifi_connect retryNum:%" PRIu32 " status:%d\n", wifi->retryNum, status);
                     break;
                 }
             case WIFI_EVENT_STA_DISCONNECTED:
@@ -197,7 +197,9 @@ static void timer_cb(void *arg) {
 void *WifiInit(WifiConfig *config) {
     esp_err_t status                = ESP_FAIL;        
     wifi_init_config_t initConfig   = WIFI_INIT_CONFIG_DEFAULT();
+    esp_netif_inherent_config_t netifConfig = ESP_NETIF_INHERENT_DEFAULT_WIFI_STA();
 
+    netifConfig.route_prio = 128;
     {
         esp_err_t ret = nvs_flash_init();
         if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -216,37 +218,20 @@ void *WifiInit(WifiConfig *config) {
     strcpy(wifi->message.wifiConfig.ssid, config->ssid);
     strcpy(wifi->message.wifiConfig.passwd, config->password);
 
-    wifi->eventGroup = xEventGroupCreate();
-    ERRP(NULL == wifi->eventGroup, goto ERR0, 1, "wifi xEventGroupCreate failure\n");
-
+    // Initialize TCP/IP network interface
     status = esp_netif_init();
     ERRP(ESP_OK != status, goto ERR1, 1, "wifi esp_netif_init failure\n");
 
+    // Create default event loop that running in background
     status = esp_event_loop_create_default();
     ERRP(ESP_OK != status, 
             goto ERR2, 1, "wifi esp_event_loop_create_default failure\n");
 
-    ERRP(NULL == esp_netif_create_default_wifi_sta(), 
-            goto ERR3, 1, "wifi esp_netif_create_default_wifi_sta failure\n");
-
     status = esp_wifi_init(&initConfig);
     ERRP(ESP_OK != status, goto ERR3, 1, "wifi esp_wifi_init failure\n");
 
-    status = esp_event_handler_instance_register(WIFI_EVENT,
-            ESP_EVENT_ANY_ID, &WifiEventHandler,
-            wifi, &wifi->instanceAnyId);
-    ERRP(ESP_OK != status, goto ERR4, 1, 
-            "esp_event_handler_instance_register STA_DISCONNECTED\n");
-
-    status = esp_event_handler_instance_register(IP_EVENT,
-            IP_EVENT_STA_GOT_IP, &WifiEventHandler, wifi, &wifi->instanceGotIp);
-    ERRP(ESP_OK != status, goto ERR5, 1, 
-            "esp_event_handler_instance_register IP_EVENT_STA_GOT_IP\n");
-
-    status = esp_event_handler_instance_register(IP_EVENT,
-            IP_EVENT_GOT_IP6, &WifiEventHandler, wifi, &wifi->instanceGotIpV6);
-    ERRP(ESP_OK != status, goto ERR7, 1, 
-            "esp_event_handler_instance_register WIFI_EVENT_STA_CONNECTED\n");
+    status = esp_wifi_set_storage(WIFI_STORAGE_RAM);
+    ERRP(ESP_OK != status, goto ERR4, 1, "wifi esp_wifi_set_storage failure\n");
 
     strcpy((char *)wifi->config.sta.ssid, (const char *)config->ssid);
     strcpy((char *)wifi->config.sta.password, (const char *)config->password);
@@ -260,8 +245,29 @@ void *WifiInit(WifiConfig *config) {
     status = esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
     ERRP(ESP_OK != status, goto ERR8, 1, "wifi esp_wifi_set_config sta failure\n");
 
+    wifi->staNetif = esp_netif_create_wifi(WIFI_IF_STA, &netifConfig);
+    ERRP(NULL == wifi->staNetif, goto ERR9, 1, "wifi esp_netif_create_wifi failure\n");
+
+    esp_wifi_set_default_wifi_sta_handlers();
+
+    status = esp_event_handler_instance_register(WIFI_EVENT,
+            ESP_EVENT_ANY_ID, &WifiEventHandler,
+            wifi, &wifi->instanceAnyId);
+    ERRP(ESP_OK != status, goto ERR5, 1, 
+            "esp_event_handler_instance_register STA_DISCONNECTED\n");
+
+    status = esp_event_handler_instance_register(IP_EVENT,
+            IP_EVENT_STA_GOT_IP, &WifiEventHandler, wifi, &wifi->instanceGotIp);
+    ERRP(ESP_OK != status, goto ERR6, 1, 
+            "esp_event_handler_instance_register IP_EVENT_STA_GOT_IP\n");
+
+    status = esp_event_handler_instance_register(IP_EVENT,
+            IP_EVENT_GOT_IP6, &WifiEventHandler, wifi, &wifi->instanceGotIpV6);
+    ERRP(ESP_OK != status, goto ERR7, 1, 
+            "esp_event_handler_instance_register WIFI_EVENT_STA_CONNECTED\n");
+
     status = esp_wifi_start();
-    ERRP(ESP_OK != status, goto ERR8, 1, "wifi esp_wifi_start sta failure\n");
+    ERRP(ESP_OK != status, goto ERR10, 1, "wifi esp_wifi_start sta failure\n");
 
     const esp_timer_create_args_t timer_args = {
         timer_cb,
@@ -273,10 +279,6 @@ void *WifiInit(WifiConfig *config) {
     esp_timer_create(&timer_args, &wifi->timer);
     esp_timer_start_periodic(wifi->timer, 1000000);//10ms
 
-    /* baseType = xTaskCreate(WifiResponses,  */
-            /* "WifiResponse", 4096, wifi, 5, &wifi->wifiTask); */
-    /* ERRP(pdPASS != baseType, goto ERR9, 1, "wifi xTaskCreate failure\n"); */
-
     while (!wifi->wifiSok) {
         vTaskDelay(pdMS_TO_TICKS(200));
         LogPrintf(LogWifi_Info, "wifi->wifiSok:%d\n", wifi->wifiSok);
@@ -284,14 +286,17 @@ void *WifiInit(WifiConfig *config) {
     LogPrintf(LogWifi_Info, "<<<wifi->wifiSok:%d>>>\n", wifi->wifiSok);
 
     return wifi;
-/* ERR9: */
-    /* esp_wifi_stop(); */
+ERR10:
+ERR9:
+    esp_netif_destroy(wifi->staNetif);
 ERR8:
     esp_event_handler_unregister(IP_EVENT, IP_EVENT_GOT_IP6, &WifiEventHandler);
 ERR7:
     esp_event_handler_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, &WifiEventHandler);
-ERR5:
+ERR6:
     esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, &WifiEventHandler);
+ERR5:
+    esp_netif_destroy(wifi->staNetif);
 ERR4:
     esp_wifi_deinit();
 ERR3:
@@ -299,8 +304,6 @@ ERR3:
 ERR2:
     esp_netif_deinit();
 ERR1:
-    vEventGroupDelete(wifi->eventGroup);
-ERR0:
     free(wifi);
 
     return NULL;
