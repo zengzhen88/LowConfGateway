@@ -10,6 +10,7 @@
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
+#include "lwip/ip_addr.h"
 
 #include <wifi.h>
 #include <message.h>
@@ -107,30 +108,67 @@ int32_t WifiSetLogLevel(LogWifi level) {
     return 0;
 }
 
-int32_t WifiEventRecvHandler(Wifi *wifi) {
-    if (wifi->recv) {
-        ModuleMessage message;
-        int32_t length = sizeof(message);
-        int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
-        if (!status) {
-            LogPrintf(LogWifi_Info, "start test recv getWifiConfig\n");
-            /*主要是设置Wifi信号*/
-            switch (message.attr) {
-                case ModuleDataAttr_GetWifiConfig:
-                    {
-                        LogPrintf(LogWifi_Info, "SetWifiConfig ssid:%s password:%s\n", 
-                                wifi->message.wifiConfig.ssid, 
-                                wifi->message.wifiConfig.passwd);
-                        if (wifi->send) {
-                            LogPrintf(LogWifi_Info, "start test ack getWifiConfig\n");
-                            wifi->send(gPriv, DataAttr_WifiToMqtt, 
-                                    &wifi->message, sizeof(wifi->message), 0);
+int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
+    switch (message->attr) {
+        case ModuleDataAttr_helloworld:
+            {
+                if (wifi->recv) {
+                    ModuleMessage message;
+                    int32_t length = sizeof(message);
+                    int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
+                    if (!status) {
+                        LogPrintf(LogWifi_Info, "start test recv getWifiConfig\n");
+                        /*主要是设置Wifi信号*/
+                        switch (message.attr) {
+                            case ModuleDataAttr_GetWifiConfig:
+                                {
+                                    LogPrintf(LogWifi_Info, "SetWifiConfig ssid:%s password:%s\n", 
+                                            wifi->message.wifiConfig.ssid, 
+                                            wifi->message.wifiConfig.passwd);
+                                    if (wifi->send) {
+                                        LogPrintf(LogWifi_Info, "start test ack getWifiConfig\n");
+                                        wifi->send(gPriv, DataAttr_WifiToMqtt, 
+                                                &wifi->message, sizeof(wifi->message), 0);
+                                    }
+                                    break;
+                                }
+                            case ModuleDataAttr_SetWifiConfig:
+                                {
+                                    if (0 == ((uint8_t *)message.wifiConfig.ip)[0]
+                                            && 0 == ((int8_t *)message.wifiConfig.ip)[1]
+                                            && 0 == ((int8_t *)message.wifiConfig.ip)[2]
+                                            && 0 == ((int8_t *)message.wifiConfig.ip)[3]) {
+                                        if (ESP_OK == esp_netif_dhcps_stop(wifi->staNetif)) {
+                                            char ip[32];
+                                            esp_netif_ip_info_t info;
+                                            memset(&info, 0x0, sizeof(info));
+                                            IpUInt32ToString(message.wifiConfig.ip, ip, sizeof(ip));
+                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.ip);
+                                            IpUInt32ToString(message.wifiConfig.netmask, ip, sizeof(ip));
+                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.netmask);
+                                            IpUInt32ToString(message.wifiConfig.gateway, ip, sizeof(ip));
+                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.gw);
+                                            esp_netif_set_ip_info(wifi->staNetif, &info);
+                                        }
+                                        else {
+                                            LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_stop failure\n");
+                                        }
+                                    }
+                                    else {
+                                        if (ESP_OK != esp_netif_dhcps_start(wifi->staNetif)) {
+                                            LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_start failure\n");
+                                        }
+                                    }
+
+                                    break;
+                                }
+                            default:break;
                         }
-                        break;
                     }
-                default:break;
+                }
+                break;
             }
-        }
+        default:break;
     }
 
     return 0;
@@ -150,6 +188,7 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
                 {
                     esp_err_t status = esp_wifi_connect();
                     LogPrintf(LogWifi_Info, "wifi esp_wifi_connect retryNum:%" PRIu32 " status:%d\n", wifi->retryNum, status);
+                    wifi->wifiSok = 1; //应该Start就表示可以了
                     break;
                 }
             case WIFI_EVENT_STA_DISCONNECTED:
@@ -167,7 +206,7 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
                 }
             case WIFI_EVENT_MAX:
                 {
-                    WifiEventRecvHandler(wifi);
+                    WifiEventRecvHandler(wifi, (ModuleMessage *)event_data);
                     break;
                 }
             default:break;
@@ -175,7 +214,6 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        wifi->wifiSok = 1;
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (wifi->send) {
             //report
@@ -191,7 +229,9 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
 }
 
 static void timer_cb(void *arg) {
-    esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, NULL, 0, 0);
+    ModuleMessage message;
+    message.attr = ModuleDataAttr_helloworld;
+    esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, &message, sizeof(message), 0);
 }
 
 void *WifiInit(WifiConfig *config) {

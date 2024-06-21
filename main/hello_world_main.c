@@ -16,13 +16,17 @@
 #include "esp_system.h"
 #include <mqtt.h>
 #include <wifi.h>
+#include <eth.h>
 #include <message.h>
+#include <update.h>
 
 #define QueSize (15)
 
 typedef struct {
     void *wifi;
+    void *eth;
     void *mqtt;
+    void *update;
 
     QueueHandle_t bufQue[DataAttr_Cnt];
 } Gateway;
@@ -59,7 +63,7 @@ int32_t appSend(void *priv, DataAttr attr,
         message->length     = fillLength;
         memcpy(message->data, data, message->length);
     
-        status = xQueueSend(gateway->bufQue[attr], &message, pdMS_TO_TICKS(block));
+        status = xQueueSend(gateway->bufQue[attr], &message, (block));
         if (pdPASS == status) {
             return 0;
         }
@@ -92,7 +96,7 @@ int32_t appRecv(void *priv, DataAttr attr,
             }
     }
 
-    status = xQueueReceive(gateway->bufQue[attr], &message, pdMS_TO_TICKS(block));
+    status = xQueueReceive(gateway->bufQue[attr], &message, (block));
     if (pdTRUE == status) {
         if (*fillLength >= message->length) {
             //内存足够才送数据
@@ -139,6 +143,26 @@ void app_main(void) {
             gateway->wifi = WifiInit(&config);
         }
 
+/*
+ *         {
+ *             [>ethernet<]
+ *             EthConfig config;
+ *             memset(&config, 0x0, sizeof(config));
+ * 
+ *             config.send = appSend;
+ *             config.recv = appRecv;
+ * 
+ *             EthInitLog(gateway, appPrint);
+ *             EthSetLogLevel(LogEth_Info);
+ * 
+ *             gateway->eth = EthInit(&config);
+ *         }
+ */
+
+        {
+            /*update*/
+        }
+
         {
             /*mqtt*/
             MQTTConfig config;
@@ -157,6 +181,20 @@ void app_main(void) {
             config.recv = appRecv;
 
             gateway->mqtt = MQTTInit(&config);
+        }
+
+        {
+            /*update*/
+            UpdateConfig config;
+            memset(&config, 0x0, sizeof(config));
+
+            UpdateInitLog(gateway, appPrint);
+            UpdateSetLogLevel(LogUpdate_Info);
+
+            config.send = appSend;
+            config.recv = appRecv;
+
+            gateway->update = UpdateInit(&config);
         }
 
         {

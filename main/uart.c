@@ -108,6 +108,7 @@ char *UARTRecvParse(UART *uart, char *recv, int32_t length) {
     int32_t msgvalid    = 0;
     char *strings       = recv;
     char *chrr          = NULL;
+    Message message;
 
     if (uart->fillLength > 0) {
         memcpy(strings - uart->fillLength, uart->restore, uart->fillLength);
@@ -148,8 +149,124 @@ char *UARTRecvParse(UART *uart, char *recv, int32_t length) {
     return NULL;
 }
 
-void UARTSelectTask(void *args) {
+int32_t UARTMessageRecvHandler(Uart *uart) {
     int length      = -1;
+    Message message
+
+    length = uart->bufSize;
+    if (uart->recv) {
+        length = sizeof(message);
+        status = uart->recv(gPriv, 
+                DataAttr_MqttToUart, &message, &length, 0);
+        if (!status) {
+            switch (message->attr) {
+                case ModuleDataAttr_GetTemperature:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+TEMPERATURE?\r\n");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_GetModuleVersion:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+VER?\r\n");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_GetModuleInfo:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+INFO?\r\n");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_SetModuleInfo:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+INFO=%s\r\n", message.getModuleInfo.info);
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_GetPower:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+POWER?\r\n");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_Reboot:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+OFFNOW?\r\n");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_NetState:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+NETSTATE=<%s>\r\n", 
+                                toNetStateEnumString(message->netState.state));
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_GetWifiCfg:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+WIFICFG?\r\n"); 
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_SetWifiCfg:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "AT+WIFICFG=<%s>,<%s>,<%s>,<%s>,<%s>\r\n", 
+                                message->setWifiCfg.ssid, 
+                                message->setWifiCfg.password, 
+                                message->setWifiCfg.address, 
+                                message->setWifiCfg.netmask, 
+                                message->setWifiCfg.gateway); 
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_GetEthCfg:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, "AT+ETHCFG?\r\n"); 
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_SetEthCfg:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "AT+ETHCFG=<%s>,<%s>,<%s>\r\n", 
+                                message->setEthCfg.address, 
+                                message->setEthCfg.netmask, 
+                                message->setEthCfg.gateway); 
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_PtSend:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "AT+PTSEND=<%d>,<%s>,<%s>\r\n", 
+                                message->ptSend.timeOut, 
+                                message->ptSend.mac, 
+                                message->ptSend.data); 
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_Cnt:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "+OK");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                default:break;
+            }
+            /* strcat(uart->buffer, "\r\n"); */
+            LogPrintf(LogUART_Info, "UART AT Send: %s\n", uart->buffer);
+            uart_write_bytes(uart->uartIndex, 
+                    (const char *)uart->buffer, strlen(uart->buffer));
+        }
+    }
+
+    return 0;
+}
+
+void UARTSelectTask(void *args) {
     int status      = -1;
     char *sbuffer   = NULL;
     char *bbuffer   = NULL;
@@ -170,17 +287,7 @@ void UARTSelectTask(void *args) {
             continue;
         }
 
-        length = uart->bufSize;
-        if (uart->recv) {
-            status = uart->recv(gPriv, 
-                    DataAttr_MqttToUart, uart->buffer, &length, 1);
-            if (!status) {
-                strcat(uart->buffer, "\r\n");
-                LogPrintf(LogUART_Info, "UART AT Send: %s\n", uart->buffer);
-                uart_write_bytes(uart->uartIndex, 
-                        (const char *)uart->buffer, strlen(uart->buffer));
-            }
-        }
+        UARTMessageRecvHandler(uart);
     }
 }
 
