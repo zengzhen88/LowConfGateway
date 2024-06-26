@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <common.h>
 #include <string.h>
 
@@ -13,6 +14,8 @@ const char *toEnumString(ModuleDataAttr attr) {
             return "GetModuleVersion";
         case ModuleDataAttr_GetModuleInfo:
             return "GetModuleInfo";
+        case ModuleDataAttr_SetModuleInfo:
+            return "SetModuleInfo";
         case ModuleDataAttr_GetPower:
             return "GetPower";
         case ModuleDataAttr_Reboot:
@@ -33,41 +36,76 @@ const char *toEnumString(ModuleDataAttr attr) {
     }
 }
 
+const char *toAckEnumString(ModuleDataAttr attr) {
+    switch (attr) {
+        case ModuleDataAttr_Update:
+            return "UpdateAck";
+        case ModuleDataAttr_GetTemperature:
+            return "GetTemperatureAck";
+        case ModuleDataAttr_GetModuleVersion:
+            return "GetModuleVersionAck";
+        case ModuleDataAttr_GetModuleInfo:
+            return "GetModuleInfoAck";
+        case ModuleDataAttr_SetModuleInfo:
+            return "SetModuleInfoAck";
+        case ModuleDataAttr_GetPower:
+            return "GetPowerAck";
+        case ModuleDataAttr_Reboot:
+            return "RebootAck";
+        case ModuleDataAttr_NetState:
+            return "NetStateAck";
+        case ModuleDataAttr_GetWifiCfg:
+            return "GetWifiCfgAck";
+        case ModuleDataAttr_SetWifiCfg:
+            return "SetWifiCfgAck";
+        case ModuleDataAttr_GetEthCfg:
+            return "GetEthCfgAck";
+        case ModuleDataAttr_SetEthCfg:
+            return "SetEthCfgAck";
+        case ModuleDataAttr_PtSend:
+            return "PtSendAck";
+        default:return "Ack";
+    }
+}
+
 ModuleDataAttr toStringEnum(const char *strings) {
-    if (!strcmp(strings, "Update")) {
+    if (strstr(strings, "Update")) {
         return ModuleDataAttr_Update;
     }
-    else if (!strcmp(strings, "GetTemperature")) {
+    else if (strstr(strings, "GetTemperature")) {
         return ModuleDataAttr_GetTemperature;
     }
-    else if (!strcmp(strings, "GetModuleVersion")) {
+    else if (strstr(strings, "GetModuleVersion")) {
         return ModuleDataAttr_GetModuleVersion;
     }
-    else if (!strcmp(strings, "GetModuleInfo")) {
+    else if (strstr(strings, "GetModuleInfo")) {
         return ModuleDataAttr_GetModuleInfo;
     }
-    else if (!strcmp(strings, "GetPower")) {
+    else if (strstr(strings, "SetModuleInfo")) {
+        return ModuleDataAttr_SetModuleInfo;
+    }
+    else if (strstr(strings, "GetPower")) {
         return ModuleDataAttr_GetPower;
     }
-    else if (!strcmp(strings, "Reboot")) {
+    else if (strstr(strings, "Reboot")) {
         return ModuleDataAttr_Reboot;
     }
-    else if (!strcmp(strings, "NetState")) {
+    else if (strstr(strings, "NetState")) {
         return ModuleDataAttr_NetState;
     }
-    else if (!strcmp(strings, "GetWifiCfg")) {
+    else if (strstr(strings, "GetWifiCfg")) {
         return ModuleDataAttr_GetWifiCfg;
     }
-    else if (!strcmp(strings, "SetWifiCfg")) {
+    else if (strstr(strings, "SetWifiCfg")) {
         return ModuleDataAttr_SetWifiCfg;
     }
-    else if (!strcmp(strings, "GetEthCfg")) {
+    else if (strstr(strings, "GetEthCfg")) {
         return ModuleDataAttr_GetEthCfg;
     }
-    else if (!strcmp(strings, "SetEthCfg")) {
+    else if (strstr(strings, "SetEthCfg")) {
         return ModuleDataAttr_SetEthCfg;
     }
-    else if (!strcmp(strings, "PtSend")) {
+    else if (strstr(strings, "PtSend")) {
         return ModuleDataAttr_PtSend;
     }
     else {
@@ -76,13 +114,6 @@ ModuleDataAttr toStringEnum(const char *strings) {
 
     return ModuleDataAttr_Cnt;
 }
-
-typedef enum {
-    NetState_CONNSER, /*连接服务器*/
-    NetState_CONNET,  /*网络连接,但未连接服务器*/
-    NetState_UNNET,   /*网络没有连接*/
-    NetState_Cnt,
-} NetState;
 
 const char *toNetStateEnumString(NetState state) {
     switch (state) {

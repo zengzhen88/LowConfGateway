@@ -109,6 +109,8 @@ int32_t WifiSetLogLevel(LogWifi level) {
 }
 
 int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
+    /* int32_t status = -1; */
+
     switch (message->attr) {
         case ModuleDataAttr_helloworld:
             {
@@ -117,49 +119,46 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
                     int32_t length = sizeof(message);
                     int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
                     if (!status) {
-                        LogPrintf(LogWifi_Info, "start test recv getWifiConfig\n");
+                        LogPrintf(LogWifi_Info, "start test recv setWifiConfig\n");
                         /*主要是设置Wifi信号*/
                         switch (message.attr) {
-                            case ModuleDataAttr_GetWifiConfig:
+                            case ModuleDataAttr_SetWifiCfg:
                                 {
-                                    LogPrintf(LogWifi_Info, "SetWifiConfig ssid:%s password:%s\n", 
-                                            wifi->message.wifiConfig.ssid, 
-                                            wifi->message.wifiConfig.passwd);
-                                    if (wifi->send) {
-                                        LogPrintf(LogWifi_Info, "start test ack getWifiConfig\n");
-                                        wifi->send(gPriv, DataAttr_WifiToMqtt, 
-                                                &wifi->message, sizeof(wifi->message), 0);
+                                    status = 0;
+                                    if (strcmp((const char *)wifi->config.sta.ssid, message.setWifiCfg.ssid)
+                                            || strcmp((const char *)wifi->config.sta.password, message.setWifiCfg.password)) {
+                                        strcpy((char *)wifi->config.sta.ssid, (const char *)message.setWifiCfg.ssid);
+                                        strcpy((char *)wifi->config.sta.password, (const char *)message.setWifiCfg.password);
+                                        esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
                                     }
-                                    break;
-                                }
-                            case ModuleDataAttr_SetWifiConfig:
-                                {
-                                    if (0 == ((uint8_t *)message.wifiConfig.ip)[0]
-                                            && 0 == ((int8_t *)message.wifiConfig.ip)[1]
-                                            && 0 == ((int8_t *)message.wifiConfig.ip)[2]
-                                            && 0 == ((int8_t *)message.wifiConfig.ip)[3]) {
+                                    if (strcmp(message.setWifiCfg.address, "0.0.0.0")) {
                                         if (ESP_OK == esp_netif_dhcps_stop(wifi->staNetif)) {
-                                            char ip[32];
                                             esp_netif_ip_info_t info;
                                             memset(&info, 0x0, sizeof(info));
-                                            IpUInt32ToString(message.wifiConfig.ip, ip, sizeof(ip));
-                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.ip);
-                                            IpUInt32ToString(message.wifiConfig.netmask, ip, sizeof(ip));
-                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.netmask);
-                                            IpUInt32ToString(message.wifiConfig.gateway, ip, sizeof(ip));
-                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.gw);
+                                            ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
+                                            ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
+                                            ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
                                             esp_netif_set_ip_info(wifi->staNetif, &info);
                                         }
                                         else {
                                             LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_stop failure\n");
+                                            status = -1;
                                         }
                                     }
                                     else {
                                         if (ESP_OK != esp_netif_dhcps_start(wifi->staNetif)) {
                                             LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_start failure\n");
+                                            status = -1;
                                         }
                                     }
 
+                                    if (wifi->send) {
+                                        ModuleMessage message;
+                                        message.attr        = ModuleDataAttr_Ack;
+                                        message.ack.srcAttr = ModuleDataAttr_SetWifiCfg;
+                                        message.ack.status  = status;
+                                        wifi->send(gPriv, DataAttr_WifiToMqtt, &message, sizeof(message), 0);
+                                    }
                                     break;
                                 }
                             default:break;
@@ -217,10 +216,12 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (wifi->send) {
             //report
-            wifi->message.wifiConfig.attr      = ModuleDataAttr_GetWifiConfig;
-            wifi->message.wifiConfig.ip        = event->ip_info.ip.addr;
-            wifi->message.wifiConfig.netmask   = event->ip_info.netmask.addr;
-            wifi->message.wifiConfig.gateway   = event->ip_info.gw.addr;
+            /*
+             * wifi->message.wifiConfig.attr      = ModuleDataAttr_GetWifiConfig;
+             * wifi->message.wifiConfig.ip        = event->ip_info.ip.addr;
+             * wifi->message.wifiConfig.netmask   = event->ip_info.netmask.addr;
+             * wifi->message.wifiConfig.gateway   = event->ip_info.gw.addr;
+             */
             /* wifi->send(gPriv, DataAttr_Wifi, &wifi->message, 40); */
         }
         wifi->retryNum = 0;
@@ -255,8 +256,8 @@ void *WifiInit(WifiConfig *config) {
     wifi->send  = config->send;
     wifi->recv  = config->recv;
 
-    strcpy(wifi->message.wifiConfig.ssid, config->ssid);
-    strcpy(wifi->message.wifiConfig.passwd, config->password);
+    /* strcpy(wifi->message.wifiConfig.ssid, config->ssid); */
+    /* strcpy(wifi->message.wifiConfig.passwd, config->password); */
 
     // Initialize TCP/IP network interface
     status = esp_netif_init();

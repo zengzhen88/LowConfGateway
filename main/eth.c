@@ -123,45 +123,47 @@ int32_t EthEventRecvHandler(Eth *net, ModuleMessage *message) {
                         LogPrintf(LogEth_Info, "start test recv getEthConfig\n");
                         /*主要是设置Eth信号*/
                         switch (message.attr) {
-                            case ModuleDataAttr_GetEthConfig:
-                                {
-                                    if (net->send) {
-                                        LogPrintf(LogEth_Info, "start test ack getEthConfig\n");
-                                        net->send(gPriv, DataAttr_EthToMqtt, 
-                                                &net->message, sizeof(net->message), 0);
-                                    }
-                                    break;
-                                }
-                            case ModuleDataAttr_SetEthConfig:
-                                {
-                                    if (0 == ((uint8_t *)message.ethConfig.ip)[0]
-                                            && 0 == ((int8_t *)message.ethConfig.ip)[1]
-                                            && 0 == ((int8_t *)message.ethConfig.ip)[2]
-                                            && 0 == ((int8_t *)message.ethConfig.ip)[3]) {
-                                        if (ESP_OK == esp_netif_dhcps_stop(net->ethif)) {
-                                            char ip[32];
-                                            esp_netif_ip_info_t info;
-                                            memset(&info, 0x0, sizeof(info));
-                                            IpUInt32ToString(message.ethConfig.ip, ip, sizeof(ip));
-                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.ip);
-                                            IpUInt32ToString(message.ethConfig.netmask, ip, sizeof(ip));
-                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.netmask);
-                                            IpUInt32ToString(message.ethConfig.gateway, ip, sizeof(ip));
-                                            ipaddr_aton((const char *)ip, (ip_addr_t *)&info.gw);
-                                            esp_netif_set_ip_info(net->ethif, &info);
-                                        }
-                                        else {
-                                            LogPrintf(LogEth_Error, "eth esp_netif_dhcps_stop failure\n");
-                                        }
-                                    }
-                                    else {
-                                        if (ESP_OK != esp_netif_dhcps_start(net->ethif)) {
-                                            LogPrintf(LogEth_Error, "eth esp_netif_dhcps_start failure\n");
-                                        }
-                                    }
-
-                                    break;
-                                }
+/*
+ *                             case ModuleDataAttr_GetEthConfig:
+ *                                 {
+ *                                     if (net->send) {
+ *                                         LogPrintf(LogEth_Info, "start test ack getEthConfig\n");
+ *                                         net->send(gPriv, DataAttr_EthToMqtt, 
+ *                                                 &net->message, sizeof(net->message), 0);
+ *                                     }
+ *                                     break;
+ *                                 }
+ *                             case ModuleDataAttr_SetEthConfig:
+ *                                 {
+ *                                     if (0 == ((uint8_t *)message.ethConfig.ip)[0]
+ *                                             && 0 == ((int8_t *)message.ethConfig.ip)[1]
+ *                                             && 0 == ((int8_t *)message.ethConfig.ip)[2]
+ *                                             && 0 == ((int8_t *)message.ethConfig.ip)[3]) {
+ *                                         if (ESP_OK == esp_netif_dhcps_stop(net->ethif)) {
+ *                                             char ip[32];
+ *                                             esp_netif_ip_info_t info;
+ *                                             memset(&info, 0x0, sizeof(info));
+ *                                             IpUInt32ToString(message.ethConfig.ip, ip, sizeof(ip));
+ *                                             ipaddr_aton((const char *)ip, (ip_addr_t *)&info.ip);
+ *                                             IpUInt32ToString(message.ethConfig.netmask, ip, sizeof(ip));
+ *                                             ipaddr_aton((const char *)ip, (ip_addr_t *)&info.netmask);
+ *                                             IpUInt32ToString(message.ethConfig.gateway, ip, sizeof(ip));
+ *                                             ipaddr_aton((const char *)ip, (ip_addr_t *)&info.gw);
+ *                                             esp_netif_set_ip_info(net->ethif, &info);
+ *                                         }
+ *                                         else {
+ *                                             LogPrintf(LogEth_Error, "eth esp_netif_dhcps_stop failure\n");
+ *                                         }
+ *                                     }
+ *                                     else {
+ *                                         if (ESP_OK != esp_netif_dhcps_start(net->ethif)) {
+ *                                             LogPrintf(LogEth_Error, "eth esp_netif_dhcps_start failure\n");
+ *                                         }
+ *                                     }
+ * 
+ *                                     break;
+ *                                 }
+ */
                             default:break;
                         }
                     }
@@ -226,10 +228,12 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
         LogPrintf(LogEth_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (eth->send) {
             //report
-            eth->message.ethConfig.attr      = ModuleDataAttr_GetEthConfig;
-            eth->message.ethConfig.ip        = event->ip_info.ip.addr;
-            eth->message.ethConfig.netmask   = event->ip_info.netmask.addr;
-            eth->message.ethConfig.gateway   = event->ip_info.gw.addr;
+            /*
+             * eth->message.ethConfig.attr      = ModuleDataAttr_GetEthConfig;
+             * eth->message.ethConfig.ip        = event->ip_info.ip.addr;
+             * eth->message.ethConfig.netmask   = event->ip_info.netmask.addr;
+             * eth->message.ethConfig.gateway   = event->ip_info.gw.addr;
+             */
             /* eth->send(gPriv, DataAttr_Eth, &eth->message, 40); */
         }
         eth->retryNum = 0;
@@ -245,7 +249,7 @@ static void timer_cb(void *arg) {
 
 void *EthInit(EthConfig *config) {
     esp_err_t status                = ESP_FAIL;        
-    esp_eth_handle_t ret = NULL;
+    /* esp_eth_handle_t ret = NULL; */
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
 
     // Init common MAC and PHY configs to default

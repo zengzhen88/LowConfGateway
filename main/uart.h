@@ -1,36 +1,36 @@
-#ifndef __UART_PROJECT_H__
-#define __UART_PROJECT_H__
+#ifndef __Uart_PROJECT_H__
+#define __Uart_PROJECT_H__
 
 #include <common.h>
 
 typedef enum {
-    LogUART_None = 0,  //关闭日志输出 
-    LogUART_Urgent,    //必须打的
-    LogUART_Fatal,     //致使级
-    LogUART_Error,     //错误级
-    LogUART_Warning,   //告警级
-    LogUART_Info,      //业务级
-    LogUART_Debug,     //调试级
-    LogUART_Trace,     //跟踪级
-    LogUART_Detail,    //详细级
-    LogUART_Cnt
-} LogUART;
+    LogUart_None = 0,  //关闭日志输出 
+    LogUart_Urgent,    //必须打的
+    LogUart_Fatal,     //致使级
+    LogUart_Error,     //错误级
+    LogUart_Warning,   //告警级
+    LogUart_Info,      //业务级
+    LogUart_Debug,     //调试级
+    LogUart_Trace,     //跟踪级
+    LogUart_Detail,    //详细级
+    LogUart_Cnt
+} LogUart;
 
 typedef enum {
-    UARTNUM_0,
-    UARTNUM_1, //暂时先定两个，后面看实际的情况调整
-} UARTNUM;
+    UartNUM_0,
+    UartNUM_1, //暂时先定两个，后面看实际的情况调整
+} UartNUM;
 
-typedef int32_t (*UARTPrint)(void *, const char *);
-typedef int32_t (*UARTSigSend)(void *oObj,
+typedef int32_t (*UartPrint)(void *, const char *);
+typedef int32_t (*UartSigSend)(void *oObj,
         DataAttr attr, void *data, 
         int32_t fillLength, int32_t millis);
-typedef int32_t (*UARTSigRecv)(void *oObj,
-        DataAttr attr, void *data, 
-        int *fillLength, int32_t millis);
+typedef int32_t (*UartSigRecv)(void *oObj,
+        DataAttr attr, void *data,
+        int32_t *fillLength, int32_t millis);
 
-int32_t UARTInitLog(void *priv, UARTPrint print);
-int32_t UARTSetLogLevel(LogUART level);
+int32_t UartInitLog(void *priv, UartPrint print);
+int32_t UartSetLogLevel(LogUart level);
 
 typedef struct {
     char name[128];
@@ -40,11 +40,11 @@ typedef struct {
     int stopBits;       /*停止位*/
     int flowCtrl;       /*硬件控*/
     int sourceClk;      /*源时钟*/
-    UARTNUM uartIndex;
-    UARTSigSend send;
-    UARTSigRecv recv;
-} UARTConfig;
+    UartNUM uartIndex;
+    UartSigSend send;
+    UartSigRecv recv;
+} UartConfig;
 
-void *UARTInit(UARTConfig *config);
+void *UartInit(UartConfig *config);
 
-#endif /* __UART_PROJECT_H__ */
+#endif /* __Uart_PROJECT_H__ */

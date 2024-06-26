@@ -2,6 +2,19 @@
 #define __COMMON_H__ 
 
 typedef enum {
+    NetState_CONNSER, /*连接服务器*/
+    NetState_CONNET,  /*网络连接,但未连接服务器*/
+    NetState_UNNET,   /*网络没有连接*/
+    NetState_Cnt,
+} NetState;
+
+typedef enum {
+    DC,
+    BAT,
+    PowerCnt,
+} PowerSupplyMode;
+
+typedef enum {
     DataAttr_MqttToUart,
     DataAttr_MqttToWifi,
     DataAttr_MqttToEth,
@@ -14,10 +27,12 @@ typedef enum {
 
 typedef enum {
     ModuleDataAttr_helloworld,
+    ModuleDataAttr_Ack,
     ModuleDataAttr_Update,
     ModuleDataAttr_GetTemperature,
     ModuleDataAttr_GetModuleVersion,
     ModuleDataAttr_GetModuleInfo,
+    ModuleDataAttr_SetModuleInfo,
     ModuleDataAttr_GetPower,
     ModuleDataAttr_Reboot,
     ModuleDataAttr_NetState,
@@ -25,10 +40,13 @@ typedef enum {
     ModuleDataAttr_SetEthCfg,
     ModuleDataAttr_GetWifiCfg,
     ModuleDataAttr_SetWifiCfg,
+    ModuleDataAttr_GetMqttCfg,
+    ModuleDataAttr_SetMqttCfg,
     ModuleDataAttr_PtSend,
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;
 const char *toEnumString(ModuleDataAttr attr);
+const char *toAckEnumString(ModuleDataAttr attr);
 ModuleDataAttr toStringEnum(const char *strings);
 
 typedef enum {

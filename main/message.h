@@ -68,12 +68,6 @@ typedef struct {
     char info[128];
 } ModuleMessageSetModuleInfo;
 
-typedef enum {
-    DC,
-    BAT,
-    PowerCnt,
-} PowerSupplyMode;
-
 //ModuleDataAttr_GetPower
 typedef struct {
     ModuleDataAttr attr;
@@ -81,19 +75,14 @@ typedef struct {
     int level;
 } ModuleMessageGetPower;
 
-//ModuleDataAttr_GetPower
-typedef struct {
-    ModuleDataAttr attr;
-    PowerSupplyMode mode;
-    int level;
-} ModuleMessageGetPower;
-
-typedef enum {
-    NetState_CONNSER, /*连接服务器*/
-    NetState_CONNET,  /*网络连接,但未连接服务器*/
-    NetState_UNNET,   /*网络没有连接*/
-    NetState_Cnt,
-} NetState;
+/*
+ * //ModuleDataAttr_GetPower
+ * typedef struct {
+ *     ModuleDataAttr attr;
+ *     PowerSupplyMode mode;
+ *     int level;
+ * } ModuleMessageGetPower;
+ */
 
 //ModuleDataAttr_NetState
 typedef struct {
@@ -137,9 +126,29 @@ typedef struct {
     char gateway[32];
 } ModuleMessageSetEthCfg;
 
+//ModuleDataAttr_GetMqttCfg
+typedef struct {
+    ModuleDataAttr attr;
+    char user[32];
+    char password[32];
+    char url[64];
+    short port;
+} ModuleMessageGetMqttCfg;
+
+//ModuleDataAttr_SetMqttCfg
+typedef struct {
+    ModuleDataAttr attr;
+    char user[32];
+    char password[32];
+    char url[64];
+    short port;
+} ModuleMessageSetMqttCfg;
+
 //ModuleDataAttr_Ack
 typedef struct {
     ModuleDataAttr attr;
+    ModuleDataAttr srcAttr;
+    int32_t status;
 } ModuleMessageAck;
 
 //ModuleDataAttr_PtSend
@@ -164,6 +173,8 @@ typedef union {
     ModuleMessageSetWifiCfg setWifiCfg;
     ModuleMessageGetEthCfg getEthCfg;
     ModuleMessageSetEthCfg setEthCfg;
+    ModuleMessageGetMqttCfg getMqttCfg;
+    ModuleMessageSetMqttCfg setMqttCfg;
     ModuleMessagePtSend ptSend;
     ModuleMessageAck ack;
 } ModuleMessage;

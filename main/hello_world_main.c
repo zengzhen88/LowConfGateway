@@ -16,17 +16,17 @@
 #include "esp_system.h"
 #include <mqtt.h>
 #include <wifi.h>
+#include <uart.h>
 #include <eth.h>
 #include <message.h>
 #include <update.h>
-
-#define QueSize (15)
 
 typedef struct {
     void *wifi;
     void *eth;
     void *mqtt;
     void *update;
+    void *uart;
 
     QueueHandle_t bufQue[DataAttr_Cnt];
 } Gateway;
@@ -99,7 +99,7 @@ int32_t appRecv(void *priv, DataAttr attr,
     status = xQueueReceive(gateway->bufQue[attr], &message, (block));
     if (pdTRUE == status) {
         if (*fillLength >= message->length) {
-            //内存足够才送数据
+            /* 内存足够才送数据 */
             memcpy(data, message->data, message->length);
             *fillLength = message->length;
         }
@@ -114,6 +114,7 @@ int32_t appRecv(void *priv, DataAttr attr,
 
 
 void app_main(void) {
+    int QueSize = 15;
     Gateway *gateway = (Gateway *) malloc (sizeof(*gateway));
     if (gateway) {
         memset(gateway, 0x0, sizeof(*gateway));
@@ -125,6 +126,20 @@ void app_main(void) {
             for (index = 0; index < DataAttr_Cnt; index++) {
                 gateway->bufQue[index] = xQueueCreate(QueSize, sizeof(int32_t *));
             }
+        }
+
+        {
+            /*uart*/
+            UartConfig config;
+            memset(&config, 0x0, sizeof(config));
+
+            config.send = appSend;
+            config.recv = appRecv;
+
+            UartInitLog(gateway, appPrint);
+            UartSetLogLevel(LogUart_Info);
+
+            gateway->uart = UartInit(&config);
         }
 
         {
