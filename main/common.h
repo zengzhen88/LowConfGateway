@@ -26,7 +26,7 @@ typedef enum {
 } DataAttr;
 
 typedef enum {
-    ModuleDataAttr_helloworld,
+    ModuleDataAttr_TriggerRecv,
     ModuleDataAttr_Ack,
     ModuleDataAttr_Update,
     ModuleDataAttr_GetTemperature,

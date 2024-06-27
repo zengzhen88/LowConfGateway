@@ -35,6 +35,38 @@ int32_t appPrint(void *priv, const char *strings) {
     return printf ("%s", strings);
 }
 
+static int32_t appTriggerRecv(void *handle, DataAttr attr) {
+    Gateway *gateWay = (Gateway *)handle;
+
+    switch (attr) {
+        case DataAttr_MqttToWifi:
+            {
+                WifiTriggerRecv(gateWay->wifi);
+                break;
+            }
+        case DataAttr_WifiToMqtt:
+        case DataAttr_UartToMqtt:
+        case DataAttr_EthToMqtt:
+            {
+                MQTTTriggerRecv(gateWay->mqtt);
+                break;
+            }
+        case DataAttr_MqttToEth:
+            {
+                EthTriggerRecv(gateWay->eth);
+                break;
+            }
+        case DataAttr_MqttToUpdate:
+            {
+                UpdateTriggerRecv(gateWay->update);
+                break;
+            }
+        default:break;
+    }
+
+    return 0;
+}
+
 
 int32_t appSend(void *priv, DataAttr attr, 
         void *data, int32_t fillLength, int32_t millis) {
@@ -65,6 +97,7 @@ int32_t appSend(void *priv, DataAttr attr,
     
         status = xQueueSend(gateway->bufQue[attr], &message, (block));
         if (pdPASS == status) {
+            appTriggerRecv(gateway, attr);
             return 0;
         }
 
@@ -147,8 +180,10 @@ void app_main(void) {
             WifiConfig config;
             memset(&config, 0x0, sizeof(config));
 
-            strcpy(config.ssid, "TP-LINK_342B");
-            strcpy(config.password, "88888888");
+            /* strcpy(config.ssid, "TP-LINK_342B"); */
+            /* strcpy(config.password, "88888888"); */
+            strcpy(config.ssid, "zz");
+            strcpy(config.password, "212345678");
             config.send = appSend;
             config.recv = appRecv;
 
@@ -190,14 +225,15 @@ void app_main(void) {
             strcpy(config.username, "admin");
             strcpy(config.password, "123456");
             strcpy(config.url, "mqtt://192.168.0.107:1883");
-            strcpy(config.hostname, "192.168.0.107");
-            config.port = 1883;
+            /* strcpy(config.hostname, "192.168.0.107"); */
+            /* config.port = 1883; */
             config.send = appSend;
             config.recv = appRecv;
 
             gateway->mqtt = MQTTInit(&config);
         }
 
+        /* printf ("%s %d\n", __func__, __LINE__); */
         {
             /*update*/
             UpdateConfig config;
@@ -211,10 +247,27 @@ void app_main(void) {
 
             gateway->update = UpdateInit(&config);
         }
+        /* printf ("%s %d\n", __func__, __LINE__); */
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetTemperature);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetModuleInfo);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetPower);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_Reboot);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetWifiCfg);
+        vTaskDelay(pdMS_TO_TICKS(10000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetMqttCfg);
 
         {
             /* int running = 0; */
             while (1) {
+                /* if (running++ == 6) { */
+                    /* printf ("%s %d\n", __func__, __LINE__); */
+                    /* MQTTTriggerRecv(gateway->mqtt); */
+                /* } */
                 /* char buf[128]; */
 
                 vTaskDelay(pdMS_TO_TICKS(2000));

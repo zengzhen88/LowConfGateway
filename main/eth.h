@@ -33,6 +33,7 @@ typedef struct {
 } EthConfig;
 
 void *EthInit(EthConfig *config);
+int32_t EthTriggerRecv(void *arg);
 
 #endif /* __Eth_PROJECT_H__ */
 

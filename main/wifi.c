@@ -112,7 +112,7 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
     /* int32_t status = -1; */
 
     switch (message->attr) {
-        case ModuleDataAttr_helloworld:
+        case ModuleDataAttr_TriggerRecv:
             {
                 if (wifi->recv) {
                     ModuleMessage message;
@@ -132,23 +132,47 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
                                         esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
                                     }
                                     if (strcmp(message.setWifiCfg.address, "0.0.0.0")) {
-                                        if (ESP_OK == esp_netif_dhcps_stop(wifi->staNetif)) {
-                                            esp_netif_ip_info_t info;
-                                            memset(&info, 0x0, sizeof(info));
-                                            ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
-                                            ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
-                                            ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
-                                            esp_netif_set_ip_info(wifi->staNetif, &info);
-                                        }
-                                        else {
-                                            LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_stop failure\n");
-                                            status = -1;
+                                        esp_netif_dhcp_status_t dhcpcStatus;
+                                        if (ESP_OK == esp_netif_dhcpc_get_status(wifi->staNetif, &dhcpcStatus)) {
+                                            if (dhcpcStatus == ESP_NETIF_DHCP_STARTED) {
+                                                if (ESP_OK == esp_netif_dhcpc_stop(wifi->staNetif)) {
+                                                    esp_netif_ip_info_t info;
+                                                    memset(&info, 0x0, sizeof(info));
+                                                    ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
+                                                    ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
+                                                    ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
+                                                    message.setWifiCfg.address, 
+                                                        message.setWifiCfg.netmask, 
+                                                        message.setWifiCfg.gateway);
+                                                    status = esp_netif_set_ip_info(wifi->staNetif, &info);
+                                                }
+                                                else {
+                                                    LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_stop failure\n");
+                                                    status = -1;
+                                                }
+                                            }
+                                            else {
+                                                esp_netif_ip_info_t info;
+                                                memset(&info, 0x0, sizeof(info));
+                                                ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
+                                                ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
+                                                ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
+                                                message.setWifiCfg.address, 
+                                                    message.setWifiCfg.netmask, 
+                                                    message.setWifiCfg.gateway);
+                                                status = esp_netif_set_ip_info(wifi->staNetif, &info);
+                                            }
                                         }
                                     }
                                     else {
-                                        if (ESP_OK != esp_netif_dhcps_start(wifi->staNetif)) {
-                                            LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_start failure\n");
-                                            status = -1;
+                                        esp_netif_dhcp_status_t dhcpcStatus;
+                                        if (ESP_OK == esp_netif_dhcpc_get_status(wifi->staNetif, &dhcpcStatus)) {
+                                            if (dhcpcStatus == ESP_NETIF_DHCP_STOPPED) {
+                                                if (ESP_OK != esp_netif_dhcpc_start(wifi->staNetif)) {
+                                                    LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_start failure\n");
+                                                    status = -1;
+                                                }
+                                            }
                                         }
                                     }
 
@@ -229,10 +253,20 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     //暂不考虑IPV6
 }
 
-static void timer_cb(void *arg) {
+/*
+ * static void timer_cb(void *arg) {
+ *     ModuleMessage message;
+ *     message.attr = ModuleDataAttr_TriggerRecv;
+ *     esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, &message, sizeof(message), 0);
+ * }
+ */
+
+int32_t WifiTriggerRecv(void *arg) {
     ModuleMessage message;
-    message.attr = ModuleDataAttr_helloworld;
+    message.attr = ModuleDataAttr_TriggerRecv;
     esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, &message, sizeof(message), 0);
+
+    return 0;
 }
 
 void *WifiInit(WifiConfig *config) {
@@ -310,15 +344,17 @@ void *WifiInit(WifiConfig *config) {
     status = esp_wifi_start();
     ERRP(ESP_OK != status, goto ERR10, 1, "wifi esp_wifi_start sta failure\n");
 
-    const esp_timer_create_args_t timer_args = {
-        timer_cb,
-        wifi,
-        ESP_TIMER_TASK,
-        "wifi_timer",
-        true,
-    };
-    esp_timer_create(&timer_args, &wifi->timer);
-    esp_timer_start_periodic(wifi->timer, 1000000);//10ms
+    /*
+     * const esp_timer_create_args_t timer_args = {
+     *     timer_cb,
+     *     wifi,
+     *     ESP_TIMER_TASK,
+     *     "wifi_timer",
+     *     true,
+     * };
+     * esp_timer_create(&timer_args, &wifi->timer);
+     * esp_timer_start_periodic(wifi->timer, 1000000);//10ms
+     */
 
     while (!wifi->wifiSok) {
         vTaskDelay(pdMS_TO_TICKS(200));

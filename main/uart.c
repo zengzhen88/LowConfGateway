@@ -282,11 +282,10 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                 case ModuleDataAttr_SetMqttCfg:
                     {
                         snprintf (uart->buffer, uart->bufSize, 
-                                "AT+WIFICFG=<%s>,<%s>,<%s>,<%d>\r\n", 
+                                "AT+WIFICFG=<%s>,<%s>,<%s>\r\n", 
                                 mess->setMqttCfg.user, 
                                 mess->setMqttCfg.password, 
-                                mess->setMqttCfg.url, 
-                                mess->setMqttCfg.port); 
+                                mess->setMqttCfg.url); 
                         uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
                         strcpy(uart->uartAck, "+OK\r\n");
@@ -344,6 +343,58 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                     (const char *)uart->buffer, strlen(uart->buffer));
 #endif
         }
+    }
+
+    return 0;
+}
+
+int32_t UartMaunulSendAT(void *arg, ModuleDataAttr attr) {
+    Uart *uart      = (Uart *)arg;
+
+    switch (attr) {
+        case ModuleDataAttr_GetTemperature:
+            {
+                strcpy(uart->uartAck, "+TEMPERATUREUPDATE:20\r\n");
+                uart->ackSize = strlen("+TEMPERATUREUPDATE:20\r\n") + 1;
+                break;
+            }
+        case ModuleDataAttr_GetModuleInfo:
+            {
+                strcpy(uart->uartAck, "+INFOUPDATE:abcd\r\n");
+                uart->ackSize = strlen("+INFOUPDATE:abcd\r\n") + 1;
+                break;
+            }
+        case ModuleDataAttr_GetPower:
+            {
+                strcpy(uart->uartAck, "+POWERUPDATE:<DC>,<100>\r\n");
+                uart->ackSize = strlen("+POWERUPDATE:<DC>,<100>\r\n") + 1;
+                break;
+            }
+        case ModuleDataAttr_Reboot:
+            {
+                strcpy(uart->uartAck, "+OFFNOWUPDATE\r\n");
+                uart->ackSize = strlen("+OFFNOWUPDATE\r\n") + 1;
+                break;
+            }
+        case ModuleDataAttr_GetEthCfg:
+            {
+                strcpy(uart->uartAck, "+ETHCFGUPDATE:<192.168.0.104>,<255.255.255.0>,<192.168.0.1>\r\n");
+                uart->ackSize = strlen("+ETHCFGUPDATE:<192.168.0.104>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+                break;
+            }
+        case ModuleDataAttr_GetWifiCfg:
+            {
+                strcpy(uart->uartAck, "+WIFICFGUPDATE:<TP-LINK_342B>,<88888888>,<192.168.0.103>,<255.255.255.0>,<192.168.0.1>\r\n");
+                uart->ackSize = strlen("+WIFICFGUPDATE:<TP-LINK_342B>,<88888888>,<192.168.0.103>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+                break;
+            }
+        case ModuleDataAttr_GetMqttCfg:
+            {
+                strcpy(uart->uartAck, "+MQTTCFGUPDATE:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n");
+                uart->ackSize = strlen("+MQTTCFGUPDATE:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n") + 1;
+                break;
+            }
+        default:break;
     }
 
     return 0;

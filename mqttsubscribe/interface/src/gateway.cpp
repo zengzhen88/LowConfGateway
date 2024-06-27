@@ -943,6 +943,11 @@ void *GatewayInit(void) {
                     cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_SetWifiCfg));
                     cJSON_AddStringToObject(sub, "ssid", "TP-LINK_342B");
                     cJSON_AddStringToObject(sub, "password", "88888888");
+                    // cJSON_AddStringToObject(sub, "ssid", "zz");
+                    // cJSON_AddStringToObject(sub, "password", "12345678");
+                    // cJSON_AddStringToObject(sub, "address", "0.0.0.0");
+                    // cJSON_AddStringToObject(sub, "netmask", "255.255.255.0");
+                    // cJSON_AddStringToObject(sub, "gateway", "192.168.0.1");
                     cJSON_AddStringToObject(sub, "address", "192.168.0.103");
                     cJSON_AddStringToObject(sub, "netmask", "255.255.255.0");
                     cJSON_AddStringToObject(sub, "gateway", "192.168.0.1");

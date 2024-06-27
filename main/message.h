@@ -13,10 +13,10 @@ typedef struct {
 Message *RequestMessage(int32_t size);
 int32_t ReleaseMessage(Message *mess);
 
-//ModuleDataAttr_helloworld
+//ModuleDataAttr_TriggerRecv
 typedef struct {
     ModuleDataAttr attr;
-} ModuleMessageHelloWorld; 
+} ModuleMessageTriggerRecv; 
 
 //ModuleDataAttr_SetWifiConfig
 //ModuleDataAttr_GetWifiConfig
@@ -141,7 +141,6 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
-    short port;
 } ModuleMessageSetMqttCfg;
 
 //ModuleDataAttr_Ack
@@ -161,7 +160,7 @@ typedef struct {
 
 typedef union {
     ModuleDataAttr attr;
-    ModuleMessageHelloWorld helloworld;
+    ModuleMessageTriggerRecv triggerRecv;
     ModuleMessageUpdate update;
     ModuleMessageGetTemperature getTemperature;
     ModuleMessageGetModuleVersion getModuleVersion;

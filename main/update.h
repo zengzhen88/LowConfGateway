@@ -33,5 +33,6 @@ typedef struct {
 } UpdateConfig;
 
 void *UpdateInit(UpdateConfig *config);
+int32_t UpdateTriggerRecv(void *arg);
 
 #endif /* __Update_PROJECT_H__ */

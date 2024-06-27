@@ -35,6 +35,7 @@ typedef struct {
 } WifiConfig;
 
 void *WifiInit(WifiConfig *config);
+int32_t WifiTriggerRecv(void *arg);
 
 #endif /* __Wifi_PROJECT_H__ */
 

@@ -207,7 +207,7 @@ ERR0:
 
 int32_t UpdateEventRecvHandler(Update *update, ModuleMessage *message) {
     switch (message->attr) {
-        case ModuleDataAttr_helloworld:
+        case ModuleDataAttr_TriggerRecv:
             {
                 if (update->recv) {
                     ModuleMessage message;
@@ -287,10 +287,20 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
     }
 }
 
-static void timer_cb(void *arg) {
+/*
+ * static void timer_cb(void *arg) {
+ *     ModuleMessage message;
+ *     message.attr = ModuleDataAttr_TriggerRecv;
+ *     esp_event_post(ESP_HTTPS_OTA_EVENT, ESP_HTTPS_OTA_MAX, &message, sizeof(message), 0);
+ * }
+ */
+
+int32_t UpdateTriggerRecv(void *arg) {
     ModuleMessage message;
-    message.attr = ModuleDataAttr_helloworld;
+    message.attr = ModuleDataAttr_TriggerRecv;
     esp_event_post(ESP_HTTPS_OTA_EVENT, ESP_HTTPS_OTA_MAX, &message, sizeof(message), 0);
+
+    return 0;
 }
 
 void *UpdateInit(UpdateConfig *config) {
@@ -337,15 +347,17 @@ void *UpdateInit(UpdateConfig *config) {
     xTaskCreate(&UpdateAdvancedOtaTask, 
             "advanced_ota_example_task", 1024 * 8, update, 5, &update->pTask);
 
-    const esp_timer_create_args_t timer_args = {
-        timer_cb,
-        update,
-        ESP_TIMER_TASK,
-        "update_timer",
-        true,
-    };
-    esp_timer_create(&timer_args, &update->timer);
-    esp_timer_start_periodic(update->timer, 1000000);//10ms
+    /*
+     * const esp_timer_create_args_t timer_args = {
+     *     timer_cb,
+     *     update,
+     *     ESP_TIMER_TASK,
+     *     "update_timer",
+     *     true,
+     * };
+     * esp_timer_create(&timer_args, &update->timer);
+     * esp_timer_start_periodic(update->timer, 1000000);//10ms
+     */
 
     return update;
 ERR4:

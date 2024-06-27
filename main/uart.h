@@ -46,5 +46,6 @@ typedef struct {
 } UartConfig;
 
 void *UartInit(UartConfig *config);
+int32_t UartMaunulSendAT(void *arg, ModuleDataAttr attr);
 
 #endif /* __Uart_PROJECT_H__ */

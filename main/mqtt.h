@@ -39,9 +39,6 @@ typedef struct {
 } MQTTConfig;
 
 void *MQTTInit(MQTTConfig *config);
-// int32_t MQTTPushlish(void *oObj, 
-        // const char *data, int32_t len, 
-        // const char *topic, int qos, int retain);
-// int32_t MQTTSubscribe(void *oObj, const char *topic, int qos);
+int32_t MQTTTriggerRecv(void *arg);
 
 #endif /* __MQTT_PROJECT_H__ */

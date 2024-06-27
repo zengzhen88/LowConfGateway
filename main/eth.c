@@ -113,7 +113,7 @@ int32_t EthSetLogLevel(LogEth level) {
 
 int32_t EthEventRecvHandler(Eth *net, ModuleMessage *message) {
     switch (message->attr) {
-        case ModuleDataAttr_helloworld:
+        case ModuleDataAttr_TriggerRecv:
             {
                 if (net->recv) {
                     ModuleMessage message;
@@ -241,10 +241,20 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
     //暂不考虑IPV6
 }
 
-static void timer_cb(void *arg) {
+/*
+ * static void timer_cb(void *arg) {
+ *     ModuleMessage message;
+ *     message.attr = ModuleDataAttr_TriggerRecv;
+ *     esp_event_post(ETH_EVENT, ETHERNET_EVENT_MAX, &message, sizeof(message), 0);
+ * }
+ */
+
+int32_t EthTriggerRecv(void *arg) {
     ModuleMessage message;
-    message.attr = ModuleDataAttr_helloworld;
+    message.attr = ModuleDataAttr_TriggerRecv;
     esp_event_post(ETH_EVENT, ETHERNET_EVENT_MAX, &message, sizeof(message), 0);
+
+    return 0;
 }
 
 void *EthInit(EthConfig *config) {
@@ -323,15 +333,17 @@ void *EthInit(EthConfig *config) {
 
     status = esp_eth_start(eth->ethHandle);
 
-    const esp_timer_create_args_t timer_args = {
-        timer_cb,
-        eth,
-        ESP_TIMER_TASK,
-        "eth_timer",
-        true,
-    };
-    esp_timer_create(&timer_args, &eth->timer);
-    esp_timer_start_periodic(eth->timer, 1000000);//10ms
+    /*
+     * const esp_timer_create_args_t timer_args = {
+     *     timer_cb,
+     *     eth,
+     *     ESP_TIMER_TASK,
+     *     "eth_timer",
+     *     true,
+     * };
+     * esp_timer_create(&timer_args, &eth->timer);
+     * esp_timer_start_periodic(eth->timer, 1000000);//10ms
+     */
 
     while (!eth->ethSok) {
         vTaskDelay(pdMS_TO_TICKS(200));
