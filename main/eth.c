@@ -176,6 +176,12 @@ int32_t EthEventRecvHandler(Eth *net, ModuleMessage *message) {
     return 0;
 }
 
+typedef enum {
+    MYETHERNET_EVENT_START,
+} myeth_event_t;
+ESP_EVENT_DEFINE_BASE(MYETH_EVENT);
+#define MYETH_EVENT_ETH_ANY_ID (-1)
+
 #define EXAMPLE_ESP_MAXIMUM_RETRY  5
 void EthEventHandler(void* arg, esp_event_base_t event_base,
         int32_t event_id, void *event_data) {
@@ -215,6 +221,16 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                     break;
                 }
             case ETHERNET_EVENT_MAX:
+                {
+                    EthEventRecvHandler(eth, (ModuleMessage *)event_data);
+                    break;
+                }
+            default:break;
+        }
+    }
+    else if (event_base == MYETH_EVENT) {
+        switch (event_id) {
+            case MYETHERNET_EVENT_START:
                 {
                     EthEventRecvHandler(eth, (ModuleMessage *)event_data);
                     break;
@@ -328,8 +344,9 @@ void *EthInit(EthConfig *config) {
     status = esp_netif_attach(eth->ethif, eth->ethNetifGlues);
     ERRP(ESP_OK != status, goto ERR7, 1, "eth esp_netif_attach failure\n");
 
-    esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &EthEventHandler, NULL);
-    esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &EthEventHandler, NULL);
+    esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &EthEventHandler, eth);
+    esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &EthEventHandler, eth);
+    esp_event_handler_register(MYETH_EVENT, MYETH_EVENT_ETH_ANY_ID, &EthEventHandler, eth);
 
     status = esp_eth_start(eth->ethHandle);
 

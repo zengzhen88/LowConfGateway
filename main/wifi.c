@@ -141,9 +141,6 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
                                                     ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
                                                     ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
                                                     ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
-                                                    message.setWifiCfg.address, 
-                                                        message.setWifiCfg.netmask, 
-                                                        message.setWifiCfg.gateway);
                                                     status = esp_netif_set_ip_info(wifi->staNetif, &info);
                                                 }
                                                 else {
@@ -157,9 +154,6 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
                                                 ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
                                                 ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
                                                 ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
-                                                message.setWifiCfg.address, 
-                                                    message.setWifiCfg.netmask, 
-                                                    message.setWifiCfg.gateway);
                                                 status = esp_netif_set_ip_info(wifi->staNetif, &info);
                                             }
                                         }
@@ -177,11 +171,7 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
                                     }
 
                                     if (wifi->send) {
-                                        ModuleMessage message;
-                                        message.attr        = ModuleDataAttr_Ack;
-                                        message.ack.srcAttr = ModuleDataAttr_SetWifiCfg;
-                                        message.ack.status  = status;
-                                        wifi->send(gPriv, DataAttr_WifiToMqtt, &message, sizeof(message), 0);
+                                        wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
                                     }
                                     break;
                                 }

@@ -39,6 +39,8 @@ typedef struct {
 } MQTTConfig;
 
 void *MQTTInit(MQTTConfig *config);
-int32_t MQTTTriggerRecv(void *arg);
+int32_t MQTTUartTriggerRecv(void *arg);
+int32_t MQTTEthTriggerRecv(void *arg);
+int32_t MQTTWifiTriggerRecv(void *arg);
 
 #endif /* __MQTT_PROJECT_H__ */

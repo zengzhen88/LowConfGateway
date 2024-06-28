@@ -205,6 +205,12 @@ ERR0:
     }
 }
 
+typedef enum {
+    MYUPDATEERNET_EVENT_START,
+} myupdate_event_t;
+ESP_EVENT_DEFINE_BASE(MYUPDATE_EVENT);
+#define MYUPDATE_EVENT_ETH_ANY_ID (-1)
+
 int32_t UpdateEventRecvHandler(Update *update, ModuleMessage *message) {
     switch (message->attr) {
         case ModuleDataAttr_TriggerRecv:
@@ -285,27 +291,27 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
             default:break;
         }
     }
+    else if (event_base == MYUPDATE_EVENT) {
+        switch (event_id) {
+            case MYUPDATEERNET_EVENT_START:
+                UpdateEventRecvHandler(update, (ModuleMessage *)event_data);
+                break;
+            default:break;
+        }
+    }
 }
-
-/*
- * static void timer_cb(void *arg) {
- *     ModuleMessage message;
- *     message.attr = ModuleDataAttr_TriggerRecv;
- *     esp_event_post(ESP_HTTPS_OTA_EVENT, ESP_HTTPS_OTA_MAX, &message, sizeof(message), 0);
- * }
- */
 
 int32_t UpdateTriggerRecv(void *arg) {
     ModuleMessage message;
     message.attr = ModuleDataAttr_TriggerRecv;
-    esp_event_post(ESP_HTTPS_OTA_EVENT, ESP_HTTPS_OTA_MAX, &message, sizeof(message), 0);
+    esp_event_post(MYUPDATE_EVENT, MYUPDATEERNET_EVENT_START, &message, sizeof(message), 0);
 
     return 0;
 }
 
 void *UpdateInit(UpdateConfig *config) {
     esp_err_t status        = ESP_FAIL;        
-    esp_ota_img_states_t ota_state;
+    /* esp_ota_img_states_t ota_state; */
 
     Update *update = (Update *) malloc (sizeof(*update));
     ERRP(NULL == update, return NULL, 1, "malloc Update Instance failure\n");
@@ -317,6 +323,11 @@ void *UpdateInit(UpdateConfig *config) {
     status = esp_event_handler_register(ESP_HTTPS_OTA_EVENT, 
             ESP_EVENT_ANY_ID, &UpdateEventHandler, update);
     ERRP(ESP_OK != status, goto ERR0, 1, 
+            "update esp_event_handler_register failure\n");
+
+    status = esp_event_handler_register(MYUPDATE_EVENT, 
+            MYUPDATE_EVENT_ETH_ANY_ID, &UpdateEventHandler, update);
+    ERRP(ESP_OK != status, goto ERR00, 1, 
             "update esp_event_handler_register failure\n");
 
     const esp_partition_t *running = esp_ota_get_running_partition();
@@ -347,24 +358,13 @@ void *UpdateInit(UpdateConfig *config) {
     xTaskCreate(&UpdateAdvancedOtaTask, 
             "advanced_ota_example_task", 1024 * 8, update, 5, &update->pTask);
 
-    /*
-     * const esp_timer_create_args_t timer_args = {
-     *     timer_cb,
-     *     update,
-     *     ESP_TIMER_TASK,
-     *     "update_timer",
-     *     true,
-     * };
-     * esp_timer_create(&timer_args, &update->timer);
-     * esp_timer_start_periodic(update->timer, 1000000);//10ms
-     */
-
     return update;
 ERR4:
 ERR3:
 ERR2:
 ERR1:
 ERR0:
+ERR00:
     free(update);
 
     return NULL;

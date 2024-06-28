@@ -909,6 +909,68 @@ void *GatewayInit(void) {
         pObj->mqttsubscribe = MQTTNewSubscribe(
                 (const char *)pObj->username, 
                 (const char *)pObj->password,
+                toEnumString(ModuleDataAttr_Update), 
+                (const char *)pObj->host, 
+                pObj->port, 
+                pObj->qos, 
+                GatewayMqttSubscribeConnect, 
+                GatewayMqttSubscribeDisconnect, 
+                GatewayMqttSubscribe, 
+                GatewayMqttSubscribeMessage, 
+                pObj);
+        pObj->mqttpublish = MQTTNewPublish(
+                (const char *)pObj->username, 
+                (const char *)pObj->password,
+                toAckEnumString(ModuleDataAttr_Update), 
+                (const char *)pObj->host, 
+                pObj->port, 
+                pObj->qos, 
+                GatewayMqttPushlishConnect, 
+                GatewayMqttPushlishDisconnect,
+                GatewayMqttPushlish, 
+                pObj);
+        while (!pObj->connect) {
+            sleep(1);
+        }
+        if (pObj->mqttpublish) {
+            cJSON *root = NULL;
+            cJSON *sub  = NULL;
+
+            root = cJSON_CreateArray();
+            if (root) {
+                sub = cJSON_CreateObject();
+                if (sub) {
+                    cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_Update));
+                    cJSON_AddStringToObject(sub, "url", "http://192.168.0.107:8080/build/hello_world.bin");
+                    cJSON_AddItemToArray(root, sub);
+                    char *json = cJSON_Print(root);
+                    if (json) {
+                        LogPrintf(LogGateway_Info, "json:\r\n%s\n", json);
+                        MQTTPush(pObj->mqttpublish,
+                                (const char *)json,
+                                strlen(json));
+                        free(json);
+                    }
+                    cJSON_Delete(root);
+                }
+            }
+        }
+
+
+        while (!pObj->ackValid) {
+            sleep(1);
+        }
+        LogPrintf(LogGateway_Info, "Message %s suc\n", toEnumString(ModuleDataAttr_Update));
+        MQTTDestory(pObj->mqttpublish);
+        MQTTDestory(pObj->mqttsubscribe);
+    }
+
+    {
+        pObj->ackValid = 0;
+        pObj->connect = 0;
+        pObj->mqttsubscribe = MQTTNewSubscribe(
+                (const char *)pObj->username, 
+                (const char *)pObj->password,
                 toEnumString(ModuleDataAttr_SetWifiCfg), 
                 (const char *)pObj->host, 
                 pObj->port, 

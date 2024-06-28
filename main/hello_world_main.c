@@ -41,25 +41,31 @@ static int32_t appTriggerRecv(void *handle, DataAttr attr) {
     switch (attr) {
         case DataAttr_MqttToWifi:
             {
-                WifiTriggerRecv(gateWay->wifi);
-                break;
+                return WifiTriggerRecv(gateWay->wifi);
             }
-        case DataAttr_WifiToMqtt:
         case DataAttr_UartToMqtt:
+            {
+                return MQTTUartTriggerRecv(gateWay->mqtt);
+            }
         case DataAttr_EthToMqtt:
             {
-                MQTTTriggerRecv(gateWay->mqtt);
-                break;
+                return MQTTEthTriggerRecv(gateWay->mqtt);
+            }
+        case DataAttr_WifiToUart:
+            {
+                return 0;//UartTriggerRecv(gateWay->mqtt);
+            }
+        case DataAttr_WifiToMqtt:
+            {
+                return MQTTWifiTriggerRecv(gateWay->mqtt);
             }
         case DataAttr_MqttToEth:
             {
-                EthTriggerRecv(gateWay->eth);
-                break;
+                return EthTriggerRecv(gateWay->eth);
             }
         case DataAttr_MqttToUpdate:
             {
-                UpdateTriggerRecv(gateWay->update);
-                break;
+                return UpdateTriggerRecv(gateWay->update);
             }
         default:break;
     }
@@ -222,9 +228,9 @@ void app_main(void) {
             MQTTSetLogLevel(LogMQTT_Info);
 
             strcpy(config.name, "Pushlish");
-            strcpy(config.username, "admin");
-            strcpy(config.password, "123456");
-            strcpy(config.url, "mqtt://192.168.0.107:1883");
+            /* strcpy(config.username, "admin"); */
+            /* strcpy(config.password, "123456"); */
+            /* strcpy(config.url, "mqtt://192.168.0.107:1883"); */
             /* strcpy(config.hostname, "192.168.0.107"); */
             /* config.port = 1883; */
             config.send = appSend;
@@ -247,7 +253,10 @@ void app_main(void) {
 
             gateway->update = UpdateInit(&config);
         }
-        /* printf ("%s %d\n", __func__, __LINE__); */
+
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetWifiCfg);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetMqttCfg);
         vTaskDelay(pdMS_TO_TICKS(2000));
         UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetTemperature);
         vTaskDelay(pdMS_TO_TICKS(2000));
@@ -257,12 +266,9 @@ void app_main(void) {
         vTaskDelay(pdMS_TO_TICKS(2000));
         UartMaunulSendAT(gateway->uart, ModuleDataAttr_Reboot);
         vTaskDelay(pdMS_TO_TICKS(2000));
-        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetWifiCfg);
         vTaskDelay(pdMS_TO_TICKS(10000));
-        UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetMqttCfg);
 
         {
-            /* int running = 0; */
             while (1) {
                 /* if (running++ == 6) { */
                     /* printf ("%s %d\n", __func__, __LINE__); */
@@ -271,9 +277,6 @@ void app_main(void) {
                 /* char buf[128]; */
 
                 vTaskDelay(pdMS_TO_TICKS(2000));
-
-                /* snprintf (buf, sizeof(buf) - 1, "running_%d", running++); */
-                /* MQTTPushlish(gateway->mqtt, buf, strlen(buf), "zengzhen", 1, 0); */
             }
         }
     }
