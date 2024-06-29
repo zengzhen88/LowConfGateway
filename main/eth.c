@@ -81,6 +81,7 @@ typedef struct {
     int32_t isRunning;
     int32_t retryNum;
     int32_t ethSok;
+    esp_event_loop_handle_t event;
     esp_event_handler_instance_t instanceAnyId;
     esp_event_handler_instance_t instanceGotIp;
     esp_event_handler_instance_t instanceGotIpV6;
@@ -327,9 +328,21 @@ void *EthInit(EthConfig *config) {
     printf ("%s %d\n", __func__, __LINE__);
 
     // Create default event loop that running in background
-    status = esp_event_loop_create_default();
-    ERRP(ESP_OK != status, 
-            goto ERR4, 1, "eth esp_event_loop_create_default failure\n");
+    /*
+     * status = esp_event_loop_create_default();
+     * ERRP(ESP_OK != status, 
+     *         goto ERR4, 1, "eth esp_event_loop_create_default failure\n");
+     */
+    esp_event_loop_args_t loop_args = {
+        .queue_size = CONFIG_ESP_SYSTEM_EVENT_QUEUE_SIZE,
+        .task_name = "update",
+        .task_stack_size = ESP_TASKD_EVENT_STACK,
+        .task_priority = ESP_TASKD_EVENT_PRIO,
+        .task_core_id = 0
+    };
+    status = esp_event_loop_create(&loop_args, &eth->event);
+    ERRP(ESP_OK != status, goto ERR000, 1, 
+            "update esp_event_loop_create failure\n");
     printf ("%s %d\n", __func__, __LINE__);
 
     eth->ethif = esp_netif_new(&cfg);
@@ -344,9 +357,9 @@ void *EthInit(EthConfig *config) {
     status = esp_netif_attach(eth->ethif, eth->ethNetifGlues);
     ERRP(ESP_OK != status, goto ERR7, 1, "eth esp_netif_attach failure\n");
 
-    esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &EthEventHandler, eth);
-    esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &EthEventHandler, eth);
-    esp_event_handler_register(MYETH_EVENT, MYETH_EVENT_ETH_ANY_ID, &EthEventHandler, eth);
+    esp_event_handler_register_with(eth->event, ETH_EVENT, ESP_EVENT_ANY_ID, EthEventHandler, eth);
+    esp_event_handler_register_with(eth->event, IP_EVENT, IP_EVENT_ETH_GOT_IP, EthEventHandler, eth);
+    esp_event_handler_register_with(eth->event, MYETH_EVENT, MYETH_EVENT_ETH_ANY_ID, EthEventHandler, eth);
 
     status = esp_eth_start(eth->ethHandle);
 
@@ -372,11 +385,11 @@ void *EthInit(EthConfig *config) {
 ERR7:
 ERR6:
 ERR5:
-ERR4:
 ERR3:
 ERR2:
 ERR1:
 ERR0:
+ERR000:
     free(eth);
 
     return NULL;

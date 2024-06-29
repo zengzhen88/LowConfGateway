@@ -316,18 +316,18 @@ void *WifiInit(WifiConfig *config) {
     esp_wifi_set_default_wifi_sta_handlers();
 
     status = esp_event_handler_instance_register(WIFI_EVENT,
-            ESP_EVENT_ANY_ID, &WifiEventHandler,
+            ESP_EVENT_ANY_ID, WifiEventHandler,
             wifi, &wifi->instanceAnyId);
     ERRP(ESP_OK != status, goto ERR5, 1, 
             "esp_event_handler_instance_register STA_DISCONNECTED\n");
 
     status = esp_event_handler_instance_register(IP_EVENT,
-            IP_EVENT_STA_GOT_IP, &WifiEventHandler, wifi, &wifi->instanceGotIp);
+            IP_EVENT_STA_GOT_IP, WifiEventHandler, wifi, &wifi->instanceGotIp);
     ERRP(ESP_OK != status, goto ERR6, 1, 
             "esp_event_handler_instance_register IP_EVENT_STA_GOT_IP\n");
 
     status = esp_event_handler_instance_register(IP_EVENT,
-            IP_EVENT_GOT_IP6, &WifiEventHandler, wifi, &wifi->instanceGotIpV6);
+            IP_EVENT_GOT_IP6, WifiEventHandler, wifi, &wifi->instanceGotIpV6);
     ERRP(ESP_OK != status, goto ERR7, 1, 
             "esp_event_handler_instance_register WIFI_EVENT_STA_CONNECTED\n");
 

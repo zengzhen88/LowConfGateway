@@ -84,6 +84,7 @@ typedef struct {
 
     char url[128];
 
+    esp_event_loop_handle_t event;
     esp_timer_handle_t timer;
     esp_ota_img_states_t otaState;
     SemaphoreHandle_t binarySemHandle;
@@ -138,7 +139,7 @@ void UpdateAdvancedOtaTask(void *args) {
 
             esp_https_ota_handle_t https_ota_handle = NULL;
             esp_err_t err = esp_https_ota_begin(&ota_config, &https_ota_handle);
-            ERRP(err != ESP_OK, goto ERR0, 1, "Update ESP HTTPS OTA Begin failure\n");
+            ERRP(err != ESP_OK, goto ERR0, 1, "Update ESP HTTPS OTA Begin (%d)failure\n", err);
 
             esp_app_desc_t app_desc;
             err = esp_https_ota_get_img_desc(https_ota_handle, &app_desc);
@@ -154,7 +155,7 @@ void UpdateAdvancedOtaTask(void *args) {
 
             err = memcmp(new_app_info->version, running_app_info.version, sizeof(new_app_info->version));
             ERRP(err != ESP_OK, goto ERR1, 1, 
-                    "Update Current running version is the same as a new. We will not continue the update.");
+                    "Update Current running version is the same as a new. We will not continue the update.\n");
 
 #ifdef CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK
             /**
@@ -164,7 +165,7 @@ void UpdateAdvancedOtaTask(void *args) {
              */
             const uint32_t hw_sec_version = esp_efuse_read_secure_version();
             if (new_app_info->secure_version < hw_sec_version) {
-                ESP_LOGW(TAG, "New firmware security version is less than eFuse programmed, %"PRIu32" < %"PRIu32, new_app_info->secure_version, hw_sec_version);
+                ESP_LOGW(TAG, "New firmware security version is less than eFuse programmed, %"PRIu32" < %"PRIu32 \n, new_app_info->secure_version, hw_sec_version);
                 return ESP_FAIL;
             }
 #endif
@@ -177,29 +178,29 @@ void UpdateAdvancedOtaTask(void *args) {
                 // esp_https_ota_perform returns after every read operation which gives user the ability to
                 // monitor the status of OTA upgrade by calling esp_https_ota_get_image_len_read, which gives length of image
                 // data read so far.
-                LogPrintf(LogUpdate_Info, "Update Image bytes read: %d", esp_https_ota_get_image_len_read(https_ota_handle));
+                LogPrintf(LogUpdate_Info, "Update Image bytes read: %d\n", esp_https_ota_get_image_len_read(https_ota_handle));
             }
 
-            err = esp_https_ota_is_complete_data_received(https_ota_handle); 
-            ERRP(err != ESP_OK, goto ERR1, 1, "Update Complete data was not received.\n");
+            esp_err_t status = esp_https_ota_is_complete_data_received(https_ota_handle); 
+            ERRP(status != true, goto ERR1, 1, "Update Complete data was not received.\n");
 
             ota_finish_err = esp_https_ota_finish(https_ota_handle);
             if ((err == ESP_OK) && (ota_finish_err == ESP_OK)) {
-                LogPrintf(LogUpdate_Info, "Update ESP_HTTPS_OTA upgrade successful. Rebooting ...");
+                LogPrintf(LogUpdate_Info, "Update ESP_HTTPS_OTA upgrade successful. Rebooting ...\n");
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 esp_restart();
             } else {
                 if (ota_finish_err == ESP_ERR_OTA_VALIDATE_FAILED) {
-                    LogPrintf(LogUpdate_Info, "Update Image validation failed, image is corrupted");
+                    LogPrintf(LogUpdate_Info, "Update Image validation failed, image is corrupted\n");
                 }
-                LogPrintf(LogUpdate_Info, "Update ESP_HTTPS_OTA upgrade failed 0x%x", ota_finish_err);
+                LogPrintf(LogUpdate_Info, "Update ESP_HTTPS_OTA upgrade failed 0x%x\n", ota_finish_err);
                 goto ERR0;
             }
 
 ERR1:
             esp_https_ota_abort(https_ota_handle);
 ERR0:
-            LogPrintf(LogUpdate_Info, "ESP_HTTPS_OTA upgrade failed");
+            LogPrintf(LogUpdate_Info, "ESP_HTTPS_OTA upgrade failed\n");
 
         }
     }
@@ -302,9 +303,11 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
 }
 
 int32_t UpdateTriggerRecv(void *arg) {
+    Update *update = (Update *)arg;
     ModuleMessage message;
     message.attr = ModuleDataAttr_TriggerRecv;
-    esp_event_post(MYUPDATE_EVENT, MYUPDATEERNET_EVENT_START, &message, sizeof(message), 0);
+    esp_event_post_to(update->event, MYUPDATE_EVENT, 
+            MYUPDATEERNET_EVENT_START, &message, sizeof(message), 0);
 
     return 0;
 }
@@ -312,6 +315,13 @@ int32_t UpdateTriggerRecv(void *arg) {
 void *UpdateInit(UpdateConfig *config) {
     esp_err_t status        = ESP_FAIL;        
     /* esp_ota_img_states_t ota_state; */
+    esp_event_loop_args_t loop_args = {
+        .queue_size = CONFIG_ESP_SYSTEM_EVENT_QUEUE_SIZE,
+        .task_name = "update",
+        .task_stack_size = ESP_TASKD_EVENT_STACK,
+        .task_priority = ESP_TASKD_EVENT_PRIO,
+        .task_core_id = 0
+    };
 
     Update *update = (Update *) malloc (sizeof(*update));
     ERRP(NULL == update, return NULL, 1, "malloc Update Instance failure\n");
@@ -320,13 +330,21 @@ void *UpdateInit(UpdateConfig *config) {
     update->send  = config->send;
     update->recv  = config->recv;
 
-    status = esp_event_handler_register(ESP_HTTPS_OTA_EVENT, 
-            ESP_EVENT_ANY_ID, &UpdateEventHandler, update);
+    status = esp_event_loop_create(&loop_args, &update->event);
+    ERRP(ESP_OK != status, goto ERR000, 1, 
+            "update esp_event_loop_create failure\n");
+
+    status = esp_event_handler_instance_register_with(
+            update->event,
+            ESP_HTTPS_OTA_EVENT, 
+            ESP_EVENT_ANY_ID, UpdateEventHandler, update, NULL);
     ERRP(ESP_OK != status, goto ERR0, 1, 
             "update esp_event_handler_register failure\n");
 
-    status = esp_event_handler_register(MYUPDATE_EVENT, 
-            MYUPDATE_EVENT_ETH_ANY_ID, &UpdateEventHandler, update);
+    status = esp_event_handler_instance_register_with(
+            update->event,
+            MYUPDATE_EVENT, 
+            MYUPDATE_EVENT_ETH_ANY_ID, UpdateEventHandler, update, NULL);
     ERRP(ESP_OK != status, goto ERR00, 1, 
             "update esp_event_handler_register failure\n");
 
@@ -335,14 +353,13 @@ void *UpdateInit(UpdateConfig *config) {
             "update esp_ota_get_running_partition failure\n");
 
     status = esp_ota_get_state_partition(running, &update->otaState);
-    ERRP(ESP_OK != status, goto ERR2, 1, 
-            "update esp_ota_get_state_partition failure\n");
-
-    if (update->otaState == ESP_OTA_IMG_PENDING_VERIFY) {
-        if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) {
-            LogPrintf(LogUpdate_Info, "Update App is valid, rollback cancelled successfully");
-        } else {
-            LogPrintf(LogUpdate_Info, "Update Failed to cancel rollback");
+    if (ESP_OK == status) {
+        if (update->otaState == ESP_OTA_IMG_PENDING_VERIFY) {
+            if (esp_ota_mark_app_valid_cancel_rollback() == ESP_OK) {
+                LogPrintf(LogUpdate_Info, "Update App is valid, rollback cancelled successfully");
+            } else {
+                LogPrintf(LogUpdate_Info, "Update Failed to cancel rollback");
+            }
         }
     }
 
@@ -358,13 +375,16 @@ void *UpdateInit(UpdateConfig *config) {
     xTaskCreate(&UpdateAdvancedOtaTask, 
             "advanced_ota_example_task", 1024 * 8, update, 5, &update->pTask);
 
+    LogPrintf(LogUpdate_Info, "Update INIT Over\n");
+
     return update;
 ERR4:
 ERR3:
-ERR2:
+/* ERR2: */
 ERR1:
 ERR0:
 ERR00:
+ERR000:
     free(update);
 
     return NULL;

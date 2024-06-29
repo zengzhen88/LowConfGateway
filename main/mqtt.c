@@ -1043,7 +1043,7 @@ int32_t MQTTMessageSendHandlerPTSend(MQTT *mqtt, esp_mqtt_event_handle_t event) 
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_PtSend; */
+                                mqtt->attr = ModuleDataAttr_PtSend;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1104,7 +1104,7 @@ int32_t MQTTMessageSendHandlerSetMqttCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                                 if (!status) {
                                     status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                                     if (!status) {
-                                        /* mqtt->attr = ModuleDataAttr_SetMqttCfg; */
+                                        mqtt->attr = ModuleDataAttr_SetMqttCfg;
                                         /* MQTTMessageRecvUartHandler(mqtt); */
                                     }
                                     else {
@@ -1156,7 +1156,7 @@ int32_t MQTTMessageSendHandlerGetMqttCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_GetMqttCfg; */
+                                mqtt->attr = ModuleDataAttr_GetMqttCfg;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1214,12 +1214,12 @@ int32_t MQTTMessageSendHandlerSetWifiCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
                             if (!status) {
+                                mqtt->attr = ModuleDataAttr_SetWifiCfg;
                                 /*
                                  * status = MQTTMessageRecvWifiHandler(mqtt);
                                  * if (!status) {
                                  *     status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                                  *     if (!status) {
-                                 *         [> mqtt->attr = ModuleDataAttr_SetWifiCfg; <]
                                  *         [> MQTTMessageRecvUartHandler(mqtt); <]
                                  *     }
                                  *     else {
@@ -1278,7 +1278,7 @@ int32_t MQTTMessageSendHandlerGetWifiCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_GetWifiCfg; */
+                                mqtt->attr = ModuleDataAttr_GetWifiCfg;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1331,7 +1331,7 @@ int32_t MQTTMessageSendHandlerSetEthCfg(MQTT *mqtt, esp_mqtt_event_handle_t even
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_SetEthCfg; */
+                                mqtt->attr = ModuleDataAttr_SetEthCfg;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1377,7 +1377,7 @@ int32_t MQTTMessageSendHandlerGetEthCfg(MQTT *mqtt, esp_mqtt_event_handle_t even
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_GetEthCfg; */
+                                mqtt->attr = ModuleDataAttr_GetEthCfg;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1423,7 +1423,7 @@ int32_t MQTTMessageSendHandlerNetState(MQTT *mqtt, esp_mqtt_event_handle_t event
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_NetState; */
+                                mqtt->attr = ModuleDataAttr_NetState;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1468,7 +1468,7 @@ int32_t MQTTMessageSendHandlerReboot(MQTT *mqtt, esp_mqtt_event_handle_t event) 
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_Reboot; */
+                                mqtt->attr = ModuleDataAttr_Reboot;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1513,7 +1513,7 @@ int32_t MQTTMessageSendHandlerGetPower(MQTT *mqtt, esp_mqtt_event_handle_t event
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_GetPower; */
+                                mqtt->attr = ModuleDataAttr_GetPower;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1558,7 +1558,7 @@ int32_t MQTTMessageSendHandlerSetModuleInfo(MQTT *mqtt, esp_mqtt_event_handle_t 
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_SetModuleInfo; */
+                                mqtt->attr = ModuleDataAttr_SetModuleInfo;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1603,7 +1603,7 @@ int32_t MQTTMessageSendHandlerGetModuleInfo(MQTT *mqtt, esp_mqtt_event_handle_t 
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_GetModuleInfo; */
+                                mqtt->attr = ModuleDataAttr_GetModuleInfo;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1648,7 +1648,7 @@ int32_t MQTTMessageSendHandlerGetModuleVersion(MQTT *mqtt, esp_mqtt_event_handle
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                /* mqtt->attr = ModuleDataAttr_GetModuleVersion; */
+                                mqtt->attr = ModuleDataAttr_GetModuleVersion;
                                 /* MQTTMessageRecvUartHandler(mqtt); */
                             }
                         }
@@ -1694,7 +1694,7 @@ int32_t MQTTMessageSendHandlerGetTemperature(MQTT *mqtt, esp_mqtt_event_handle_t
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
                                 /* mqtt->attr = ModuleDataAttr_GetTemperature; */
-                                /* MQTTMessageRecvUartHandler(mqtt); */
+                                MQTTMessageRecvUartHandler(mqtt);
                             }
                         }
                     }

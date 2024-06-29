@@ -400,6 +400,7 @@ void *GatewayInit(void) {
     MQTTInitLog(pObj, gPrint);
     MQTTInit();
 
+#if 0
     {
         pObj->ackValid = 0;
         pObj->connect = 0;
@@ -903,6 +904,7 @@ void *GatewayInit(void) {
         MQTTDestory(pObj->mqttsubscribe);
     }
 
+#endif
     {
         pObj->ackValid = 0;
         pObj->connect = 0;
@@ -965,6 +967,7 @@ void *GatewayInit(void) {
         MQTTDestory(pObj->mqttsubscribe);
     }
 
+#if 0
     {
         pObj->ackValid = 0;
         pObj->connect = 0;
@@ -1035,6 +1038,7 @@ void *GatewayInit(void) {
         MQTTDestory(pObj->mqttpublish);
         MQTTDestory(pObj->mqttsubscribe);
     }
+#endif
 
 
 
