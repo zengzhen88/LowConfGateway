@@ -11,6 +11,7 @@ idf_component_register(
     "rbtrees.c"                
     "eth.c"
     "update.c"
+    "spi.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bcon.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bson-md5.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bson-atomic.c" 

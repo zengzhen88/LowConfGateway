@@ -248,8 +248,8 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         snprintf (uart->buffer, uart->bufSize, "AT+WIFICFG?\r\n"); 
                         uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                        strcpy(uart->uartAck, "+WIFICFG:<TP-LINK_432B>,<88888888>,<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n");
-                        uart->ackSize = strlen("+WIFICFG:<TP-LINK_432B>,<88888888>,<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n") + 1;
+                        strcpy(uart->uartAck, "+WIFICFG:<TP-LINK_342B>,<88888888>,<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n");
+                        uart->ackSize = strlen("+WIFICFG:<TP-LINK_342B>,<88888888>,<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n") + 1;
 #endif
                         break;
                     }
@@ -274,8 +274,8 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         snprintf (uart->buffer, uart->bufSize, "AT+MQTTCFG?\r\n"); 
                         uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                        strcpy(uart->uartAck, "+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.107:1883>,<1883>\r\n");
-                        uart->ackSize = strlen("+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.107:1883>,<1883>\r\n") + 1;
+                        strcpy(uart->uartAck, "+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n");
+                        uart->ackSize = strlen("+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n") + 1;
 #endif
                         break;
                     }

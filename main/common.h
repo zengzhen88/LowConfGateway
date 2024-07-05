@@ -23,6 +23,7 @@ typedef enum {
     DataAttr_WifiToUart,
     DataAttr_UartToMqtt,
     DataAttr_EthToMqtt,
+    DataAttr_SpiToMqtt,
     DataAttr_Cnt,
 } DataAttr;
 

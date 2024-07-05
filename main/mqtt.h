@@ -28,12 +28,16 @@ int32_t MQTTInitLog(void *priv, MQTTPrint print);
 int32_t MQTTSetLogLevel(LogMQTT level);
 
 typedef struct {
-    char name[128];
-    char username[128];
-    char password[128];
+    char version[32];
+    char info[32];
+
+    PowerSupplyMode mode;
+    int32_t level;
+
+    char user[32];
+    char password[32];
+
     char url[128];
-    char hostname[128];
-    uint32_t port;
     MQTTSigSend send;
     MQTTSigRecv recv;
 } MQTTConfig;
@@ -42,5 +46,6 @@ void *MQTTInit(MQTTConfig *config);
 int32_t MQTTUartTriggerRecv(void *arg);
 int32_t MQTTEthTriggerRecv(void *arg);
 int32_t MQTTWifiTriggerRecv(void *arg);
+int32_t MQTTSpiTriggerRecv(void *arg);
 
 #endif /* __MQTT_PROJECT_H__ */

@@ -86,6 +86,12 @@ typedef struct {
     esp_netif_t *staNetif;
     ModuleMessage message; //保存配置
 
+    char ssid[32];
+    char password[32];
+    char address[32];
+    char netmask[32];
+    char gateway[32];
+
     esp_timer_handle_t timer;
     /* TaskHandle_t wifiTask; */
 
@@ -279,9 +285,11 @@ void *WifiInit(WifiConfig *config) {
 
     wifi->send  = config->send;
     wifi->recv  = config->recv;
-
-    /* strcpy(wifi->message.wifiConfig.ssid, config->ssid); */
-    /* strcpy(wifi->message.wifiConfig.passwd, config->password); */
+    strcpy(wifi->ssid, config->ssid);
+    strcpy(wifi->password, config->password);
+    strcpy(wifi->address, config->address);
+    strcpy(wifi->netmask, config->netmask);
+    strcpy(wifi->gateway, config->gateway);
 
     // Initialize TCP/IP network interface
     status = esp_netif_init();
@@ -303,6 +311,9 @@ void *WifiInit(WifiConfig *config) {
     wifi->config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     wifi->config.sta.sae_pwe_h2e        = WPA3_SAE_PWE_BOTH;
     strcpy((char *)wifi->config.sta.sae_h2e_identifier, "");
+
+    LogPrintf(LogWifi_Info, "ssid:%s\n", (char *)wifi->config.sta.ssid);
+    LogPrintf(LogWifi_Info, "password:%s\n", (char *)wifi->config.sta.password);
 
     status = esp_wifi_set_mode(WIFI_MODE_STA);
     ERRP(ESP_OK != status, goto ERR8, 1, "wifi esp_wifi_set_mode failure\n");
@@ -333,18 +344,6 @@ void *WifiInit(WifiConfig *config) {
 
     status = esp_wifi_start();
     ERRP(ESP_OK != status, goto ERR10, 1, "wifi esp_wifi_start sta failure\n");
-
-    /*
-     * const esp_timer_create_args_t timer_args = {
-     *     timer_cb,
-     *     wifi,
-     *     ESP_TIMER_TASK,
-     *     "wifi_timer",
-     *     true,
-     * };
-     * esp_timer_create(&timer_args, &wifi->timer);
-     * esp_timer_start_periodic(wifi->timer, 1000000);//10ms
-     */
 
     while (!wifi->wifiSok) {
         vTaskDelay(pdMS_TO_TICKS(200));

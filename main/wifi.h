@@ -28,8 +28,11 @@ int32_t WifiInitLog(void *priv, WifiPrint print);
 int32_t WifiSetLogLevel(LogWifi level);
 
 typedef struct {
-    char ssid[128];
-    char password[128];
+    char ssid[32];
+    char password[32];
+    char address[32];
+    char netmask[32];
+    char gateway[32];
     WifiSigSend send;
     WifiSigRecv recv;
 } WifiConfig;

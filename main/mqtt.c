@@ -96,9 +96,18 @@ typedef struct {
 
     char name[32];
 
-    ModuleDataAttr attr;
+    char version[32];
+    char info[32];
 
-    int port;
+    PowerSupplyMode mode;
+    int32_t level;
+
+    char username[32];
+    char password[32];
+
+    char url[128];
+
+    ModuleDataAttr attr;
 } MQTT;
 
 //设置日志输出对象，主要看你想输出到哪里，就对应填充回调
@@ -736,6 +745,22 @@ int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature) 
 
 int32_t MQTTMessageRecvEthHandler(MQTT *mqtt) {
     return 0;
+}
+
+int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
+    int status = -1;
+    if (mqtt->recv) {
+        /* char recv[128]; */
+        int32_t length = 0;
+        Message *message = NULL;
+        status = mqtt->recv(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
+        if (!status) {
+            LogPrintf(LogMQTT_Info, "Data:%s\n", (char *)message->data);
+            /*send to MQTT SubScri*/
+        }
+    }
+
+    return status;
 }
 
 int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
@@ -1816,6 +1841,7 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
     MQTTMessageRecvWifiHandler(mqtt);
     MQTTMessageRecvUartHandler(mqtt);
     MQTTMessageRecvEthHandler(mqtt);
+    MQTTMessageRecvSpiHandler(mqtt);
 
     switch (/* (esp_mqtt_event_id_t) */event_id) {
         case MQTT_EVENT_CONNECTED:
@@ -1942,6 +1968,26 @@ int32_t MQTTUartTriggerRecv(void *arg) {
     return 0;
 }
 
+int32_t MQTTSpiTriggerRecv(void *arg) {
+    MQTT *mqtt = (MQTT *)arg;
+
+    esp_mqtt_event_t event;
+    event.event_id  = MQTT_USER_EVENT;
+    event.topic     = (char *) malloc (strlen("SPItimer") + 1);
+    if (event.topic) {
+        strcpy(event.topic, "SPItimer");
+        event.topic_len = strlen("SPItimer");
+    }
+    else {
+        event.topic_len = 0;
+    }
+
+    return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
+    /* printf ("MQTTUARTEVnetID:%d status:%d\n", event.event_id, status); */
+
+    return 0;
+}
+
 int32_t MQTTWifiTriggerRecv(void *arg) {
     MQTT *mqtt = (MQTT *)arg;
 
@@ -1976,9 +2022,9 @@ void *MQTTInit(MQTTConfig *config) {
 
     snprintf (mqtt->name, sizeof(mqtt->name) - 1, "mqtt");
 
-    mqttConfig.credentials.username = "admin";
-    mqttConfig.credentials.authentication.password = "123456";
-    mqttConfig.broker.address.uri = "mqtt://192.168.0.102:1883";
+    mqttConfig.credentials.username = config->user;
+    mqttConfig.credentials.authentication.password = config->password;
+    mqttConfig.broker.address.uri = config->url;
     /* mqtt://192.168.0.107:1883 */
     mqttConfig.network.reconnect_timeout_ms = 1000;
     mqttConfig.network.timeout_ms = 1000;

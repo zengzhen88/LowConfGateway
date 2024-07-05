@@ -28,6 +28,9 @@ int32_t EthInitLog(void *priv, EthPrint print);
 int32_t EthSetLogLevel(LogEth level);
 
 typedef struct {
+    char address[32];
+    char netmask[32];
+    char gateway[32];
     EthSigSend send;
     EthSigRecv recv;
 } EthConfig;

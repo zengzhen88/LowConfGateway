@@ -90,8 +90,9 @@ typedef struct {
     esp_eth_netif_glue_handle_t ethNetifGlues;
     ModuleMessage message; //保存配置
 
-    esp_timer_handle_t timer;
-    /* TaskHandle_t ethTask; */
+    char address[32];
+    char netmask[32];
+    char gateway[32];
 
     EthSigSend send;
     EthSigRecv recv;
@@ -287,6 +288,9 @@ void *EthInit(EthConfig *config) {
     ERRP(NULL == eth, return NULL, 1, "malloc Eth Instance failure\n");
     memset(eth, 0x0, sizeof(*eth));
 
+    strcpy(eth->address, config->address);
+    strcpy(eth->netmask, config->netmask);
+    strcpy(eth->gateway, config->gateway);
 
     esp_log_level_set("esp.emac", ESP_LOG_VERBOSE);
     esp_log_level_set("esp_eth", ESP_LOG_VERBOSE);
@@ -362,18 +366,6 @@ void *EthInit(EthConfig *config) {
     esp_event_handler_register_with(eth->event, MYETH_EVENT, MYETH_EVENT_ETH_ANY_ID, EthEventHandler, eth);
 
     status = esp_eth_start(eth->ethHandle);
-
-    /*
-     * const esp_timer_create_args_t timer_args = {
-     *     timer_cb,
-     *     eth,
-     *     ESP_TIMER_TASK,
-     *     "eth_timer",
-     *     true,
-     * };
-     * esp_timer_create(&timer_args, &eth->timer);
-     * esp_timer_start_periodic(eth->timer, 1000000);//10ms
-     */
 
     while (!eth->ethSok) {
         vTaskDelay(pdMS_TO_TICKS(200));

@@ -132,7 +132,6 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
-    short port;
 } ModuleMessageGetMqttCfg;
 
 //ModuleDataAttr_SetMqttCfg
