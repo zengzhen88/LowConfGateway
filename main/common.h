@@ -28,7 +28,6 @@ typedef enum {
 } DataAttr;
 
 typedef enum {
-    ModuleDataAttr_TriggerRecv,
     ModuleDataAttr_Ack,
     ModuleDataAttr_Update,
     ModuleDataAttr_GetTemperature,
@@ -44,9 +43,16 @@ typedef enum {
     ModuleDataAttr_SetWifiCfg,
     ModuleDataAttr_GetMqttCfg,
     ModuleDataAttr_SetMqttCfg,
+    ModuleDataAttr_ReportData,
     ModuleDataAttr_PtSend,
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;
+
+typedef enum {
+    ModuleInternalDataAttr_TriggerRecv,
+    ModuleInternalDataAttr_Cnt,
+} ModuleInternalDataAttr;
+
 const char *toEnumString(ModuleDataAttr attr);
 const char *toAckEnumString(ModuleDataAttr attr);
 ModuleDataAttr toStringEnum(const char *strings);

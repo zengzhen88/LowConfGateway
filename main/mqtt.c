@@ -90,6 +90,8 @@ typedef struct {
 
     MQTTSigSend send;
     MQTTSigRecv recv;
+    MQTTSigRequest request;
+    MQTTSigRelease release;
 
     int32_t msgQos;
     int32_t dataQos;
@@ -750,13 +752,55 @@ int32_t MQTTMessageRecvEthHandler(MQTT *mqtt) {
 int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
     int status = -1;
     if (mqtt->recv) {
-        /* char recv[128]; */
-        int32_t length = 0;
-        Message *message = NULL;
-        status = mqtt->recv(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
-        if (!status) {
+        while (1) {
+            /* char recv[128]; */
+            int32_t length = 0;
+            Message *message = NULL;
+            status = mqtt->recv(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
+            ERRP(status, break, 0);
+
             LogPrintf(LogMQTT_Info, "Data:%s\n", (char *)message->data);
             /*send to MQTT SubScri*/
+            cJSON *root = NULL;
+            cJSON *sub  = NULL;
+
+            root = cJSON_CreateArray();
+            if (root) {
+                sub = cJSON_CreateObject();
+                if (sub) {
+                    cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportData));
+                    cJSON_AddStringToObject(sub, "data", (char *)message->data);
+                    cJSON_AddItemToArray(root, sub);
+                    char *json = cJSON_Print(root);
+                    if (json) {
+                        LogPrintf(LogMQTT_Info, "json:\r\n%s\n", json);
+#ifndef USE_BSON
+                        esp_mqtt_client_publish(mqtt->client, 
+                                toEnumString(ModuleDataAttr_ReportData), 
+                                (const char *)json,
+                                strlen(json),
+                                mqtt->msgQos, 0);
+#else 
+                        bson_error_t error;
+                        bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
+                        if (bson) {
+                            const uint8_t *bsons = bson_get_data(bson);
+                            esp_mqtt_client_publish(mqtt->client, 
+                                    toEnumString(ModuleDataAttr_ReportData), 
+                                    (const char *)bsons,
+                                    bson->len,
+                                    mqtt->msgQos, 0);
+                        }
+#endif
+                        free(json);
+                    }
+                    cJSON_Delete(root);
+                }
+            }
+
+            if (mqtt->release) {
+                status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
+            }
         }
     }
 
@@ -1828,6 +1872,24 @@ int32_t MQTTMessageSubscribeList(MQTT *mqtt) {
     return 0;
 }
 
+static void timer_cb(void *arg) {
+    MQTT *mqtt = (MQTT *)arg;
+
+    esp_mqtt_event_t event;
+    event.event_id  = MQTT_USER_EVENT;
+    event.topic     = (char *) malloc (strlen("uarttimer") + 1);
+    if (event.topic) {
+        strcpy(event.topic, "uarttimer");
+        event.topic_len = strlen("uarttimer");
+    }
+    else {
+        event.topic_len = 0;
+    }
+
+    esp_mqtt_dispatch_custom_event(mqtt->client, &event);
+}
+
+
 void MQTTEventHandler(void *handler_args, esp_event_base_t base,
         int32_t event_id, void *event_data) {
     MQTT *mqtt = (MQTT *)handler_args;
@@ -1969,22 +2031,24 @@ int32_t MQTTUartTriggerRecv(void *arg) {
 }
 
 int32_t MQTTSpiTriggerRecv(void *arg) {
-    MQTT *mqtt = (MQTT *)arg;
-
-    esp_mqtt_event_t event;
-    event.event_id  = MQTT_USER_EVENT;
-    event.topic     = (char *) malloc (strlen("SPItimer") + 1);
-    if (event.topic) {
-        strcpy(event.topic, "SPItimer");
-        event.topic_len = strlen("SPItimer");
-    }
-    else {
-        event.topic_len = 0;
-    }
-
-    return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
-    /* printf ("MQTTUARTEVnetID:%d status:%d\n", event.event_id, status); */
-
+/*
+ *     MQTT *mqtt = (MQTT *)arg;
+ * 
+ *     esp_mqtt_event_t event;
+ *     event.event_id  = MQTT_USER_EVENT;
+ *     event.topic     = (char *) malloc (strlen("SPItimer") + 1);
+ *     if (event.topic) {
+ *         strcpy(event.topic, "SPItimer");
+ *         event.topic_len = strlen("SPItimer");
+ *     }
+ *     else {
+ *         event.topic_len = 0;
+ *     }
+ * 
+ *     return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
+ *     [> printf ("MQTTUARTEVnetID:%d status:%d\n", event.event_id, status); <]
+ * 
+ */
     return 0;
 }
 
@@ -2017,6 +2081,8 @@ void *MQTTInit(MQTTConfig *config) {
 
     mqtt->send      = config->send;
     mqtt->recv      = config->recv;
+    mqtt->request   = config->request;
+    mqtt->release   = config->release;
     mqtt->msgQos    = 0;
     mqtt->dataQos   = 0;
 
@@ -2034,6 +2100,16 @@ void *MQTTInit(MQTTConfig *config) {
 
     esp_mqtt_client_register_event(mqtt->client, 
             MQTT_EVENT_ANY, MQTTEventHandler, mqtt);
+
+    const esp_timer_create_args_t timer_args = {
+        timer_cb,
+        mqtt,
+        ESP_TIMER_TASK,
+        "wifi_timer",
+        true,
+    };
+    esp_timer_create(&timer_args, &mqtt->timer);
+    esp_timer_start_periodic(mqtt->timer, 1000000);//10000);//10ms
 
     esp_mqtt_client_start(mqtt->client);
 

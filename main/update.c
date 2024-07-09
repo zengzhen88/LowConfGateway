@@ -212,9 +212,9 @@ typedef enum {
 ESP_EVENT_DEFINE_BASE(MYUPDATE_EVENT);
 #define MYUPDATE_EVENT_ETH_ANY_ID (-1)
 
-int32_t UpdateEventRecvHandler(Update *update, ModuleMessage *message) {
+int32_t UpdateEventRecvHandler(Update *update, ModuleInternalMessage *message) {
     switch (message->attr) {
-        case ModuleDataAttr_TriggerRecv:
+        case ModuleInternalDataAttr_TriggerRecv:
             {
                 if (update->recv) {
                     ModuleMessage message;
@@ -286,7 +286,7 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
                 break;
             case ESP_HTTPS_OTA_MAX:
                 {
-                    UpdateEventRecvHandler(update, (ModuleMessage *)event_data);
+                    UpdateEventRecvHandler(update, (ModuleInternalMessage *)event_data);
                     break;
                 }
             default:break;
@@ -295,7 +295,7 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
     else if (event_base == MYUPDATE_EVENT) {
         switch (event_id) {
             case MYUPDATEERNET_EVENT_START:
-                UpdateEventRecvHandler(update, (ModuleMessage *)event_data);
+                UpdateEventRecvHandler(update, (ModuleInternalMessage *)event_data);
                 break;
             default:break;
         }
@@ -304,8 +304,8 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
 
 int32_t UpdateTriggerRecv(void *arg) {
     Update *update = (Update *)arg;
-    ModuleMessage message;
-    message.attr = ModuleDataAttr_TriggerRecv;
+    ModuleInternalMessage message;
+    message.attr = ModuleInternalDataAttr_TriggerRecv;
     esp_event_post_to(update->event, MYUPDATE_EVENT, 
             MYUPDATEERNET_EVENT_START, &message, sizeof(message), 0);
 

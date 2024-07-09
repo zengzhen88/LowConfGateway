@@ -103,20 +103,6 @@ int32_t SpiSetLogLevel(LogSpi level) {
     return 0;
 }
 
-int32_t SpiEventRecvHandler(Spi *spi, ModuleMessage *message) {
-    /* int32_t status = -1; */
-
-    switch (message->attr) {
-        case ModuleDataAttr_TriggerRecv:
-            {
-                break;
-            }
-        default:break;
-    }
-
-    return 0;
-}
-
 #define GPIO_HANDSHAKE      2
 #define GPIO_MOSI           12
 #define GPIO_MISO           13
@@ -156,12 +142,13 @@ void SpiRecvTask(void *args) {
         if (spi->request) {
             status = spi->request(gPriv, DataAttr_SpiToMqtt, &message, SPI_DATA_LENGTH);
             if (!status) {
-                //Clear receive buffer, set send buffer to something sane
-                /* memset(recvbuf, 0xA5, 129); */
-                /* sprintf(sendbuf, "This is the receiver, sending data for transmission number %04d.", n); */
+                if (message->data)
+                    //Clear receive buffer, set send buffer to something sane
+                    /* memset(recvbuf, 0xA5, 129); */
+                    /* sprintf(sendbuf, "This is the receiver, sending data for transmission number %04d.", n); */
 
-                //Set up a transaction of 128 bytes to send/receive
-                t.length = SPI_DATA_LENGTH * 8;
+                    //Set up a transaction of 128 bytes to send/receive
+                    t.length = SPI_DATA_LENGTH * 8;
                 t.tx_buffer = sendbuf;
                 t.rx_buffer = (char *)message->data;//recvbuf;
                 /* This call enables the SPI slave interface to send/receive to the sendbuf and recvbuf. The transaction is
@@ -170,11 +157,21 @@ void SpiRecvTask(void *args) {
                    .post_setup_cb callback that is called as soon as a transaction is ready, to let the master know it is free to transfer
                    data.
                    */
+#define USE_SPI_TEST 
+#ifndef USE_SPI_TEST
                 status = spi_slave_transmit(RCV_HOST, &t, portMAX_DELAY);
+#else 
+                vTaskDelay(pdMS_TO_TICKS(200));
+                static int32_t index = 0;
+                char buffer[SPI_DATA_LENGTH+1];
+                snprintf (buffer, sizeof(buffer) - 1, "1234567890qwertyuiopasdfghjklzxcvbnmqwertyuiopasdfghjklzxcv%ld", index++);
+                strcpy((char *)t.rx_buffer, buffer);
+                status = ESP_OK;
+#endif
                 if (ESP_OK == status) {
                     //spi_slave_transmit does not return until the master has done a transmission, so by here we have sent our data and
                     //received data from the master. Print it.
-                    printf("Received: %s\n", (char *)t.tx_buffer);//recvbuf);
+                    printf("Received: %s\n", (char *)t.rx_buffer);//recvbuf);
                     /* n++; */
                     if (spi->send) {
                         spi->send(gPriv, DataAttr_SpiToMqtt, 
@@ -194,8 +191,10 @@ void *SpiInit(SpiConfig *config) {
     ERRP(NULL == spi, return NULL, 1, "malloc Spi Instance failure\n");
     memset(spi, 0x0, sizeof(*spi));
 
-    spi->send  = config->send;
-    spi->recv  = config->recv;
+    spi->send   = config->send;
+    spi->recv   = config->recv;
+    spi->request= config->request;
+    spi->release= config->release;
 
     //Configuration for the SPI bus
     spi_bus_config_t buscfg = {
@@ -223,6 +222,7 @@ void *SpiInit(SpiConfig *config) {
         .pin_bit_mask = BIT64(GPIO_HANDSHAKE),
     };
 
+#ifndef USE_SPI_TEST
     //Configure handshake line as output
     gpio_config(&io_conf);
     //Enable pull-ups on SPI lines so we don't detect rogue pulses when no master is connected.
@@ -233,6 +233,7 @@ void *SpiInit(SpiConfig *config) {
     //Initialize SPI slave interface
     status = spi_slave_initialize(RCV_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);
     assert(status == ESP_OK);
+#endif
 
     baseType = xTaskCreate(SpiRecvTask, 
             "spiRecvTask", 4096, spi, 5, &spi->spiTask);

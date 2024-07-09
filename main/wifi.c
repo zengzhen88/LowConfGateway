@@ -114,11 +114,11 @@ int32_t WifiSetLogLevel(LogWifi level) {
     return 0;
 }
 
-int32_t WifiEventRecvHandler(Wifi *wifi, ModuleMessage *message) {
+int32_t WifiEventRecvHandler(Wifi *wifi, ModuleInternalMessage *message) {
     /* int32_t status = -1; */
 
     switch (message->attr) {
-        case ModuleDataAttr_TriggerRecv:
+        case ModuleInternalDataAttr_TriggerRecv:
             {
                 if (wifi->recv) {
                     ModuleMessage message;
@@ -225,7 +225,7 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
                 }
             case WIFI_EVENT_MAX:
                 {
-                    WifiEventRecvHandler(wifi, (ModuleMessage *)event_data);
+                    WifiEventRecvHandler(wifi, (ModuleInternalMessage *)event_data);
                     break;
                 }
             default:break;
@@ -249,17 +249,9 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     //暂不考虑IPV6
 }
 
-/*
- * static void timer_cb(void *arg) {
- *     ModuleMessage message;
- *     message.attr = ModuleDataAttr_TriggerRecv;
- *     esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, &message, sizeof(message), 0);
- * }
- */
-
 int32_t WifiTriggerRecv(void *arg) {
     ModuleMessage message;
-    message.attr = ModuleDataAttr_TriggerRecv;
+    message.attr = ModuleInternalDataAttr_TriggerRecv;
     esp_event_post(WIFI_EVENT, WIFI_EVENT_MAX, &message, sizeof(message), 0);
 
     return 0;

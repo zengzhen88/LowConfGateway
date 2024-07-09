@@ -23,6 +23,10 @@ typedef int32_t (*MQTTSigSend)(void *oObj,
 typedef int32_t (*MQTTSigRecv)(void *oObj,
         DataAttr attr, void *data,
         int32_t *fillLength, int32_t millis);
+typedef int32_t (*MQTTSigRequest)(void *oObj,
+        DataAttr attr, void *data, int32_t fillLength);
+typedef int32_t (*MQTTSigRelease)(void *oObj,
+        DataAttr attr, void *data);
 
 int32_t MQTTInitLog(void *priv, MQTTPrint print);
 int32_t MQTTSetLogLevel(LogMQTT level);
@@ -40,6 +44,8 @@ typedef struct {
     char url[128];
     MQTTSigSend send;
     MQTTSigRecv recv;
+    MQTTSigRequest request;
+    MQTTSigRelease release;
 } MQTTConfig;
 
 void *MQTTInit(MQTTConfig *config);

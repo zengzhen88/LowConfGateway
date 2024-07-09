@@ -113,9 +113,9 @@ int32_t EthSetLogLevel(LogEth level) {
     return 0;
 }
 
-int32_t EthEventRecvHandler(Eth *net, ModuleMessage *message) {
+int32_t EthEventRecvHandler(Eth *net, ModuleInternalMessage *message) {
     switch (message->attr) {
-        case ModuleDataAttr_TriggerRecv:
+        case ModuleInternalDataAttr_TriggerRecv:
             {
                 if (net->recv) {
                     ModuleMessage message;
@@ -222,11 +222,6 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                     LogPrintf(LogEth_Info, "Ethernet Stopped");
                     break;
                 }
-            case ETHERNET_EVENT_MAX:
-                {
-                    EthEventRecvHandler(eth, (ModuleMessage *)event_data);
-                    break;
-                }
             default:break;
         }
     }
@@ -234,7 +229,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
         switch (event_id) {
             case MYETHERNET_EVENT_START:
                 {
-                    EthEventRecvHandler(eth, (ModuleMessage *)event_data);
+                    EthEventRecvHandler(eth, (ModuleInternalMessage *)event_data);
                     break;
                 }
             default:break;
@@ -269,7 +264,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
 
 int32_t EthTriggerRecv(void *arg) {
     ModuleMessage message;
-    message.attr = ModuleDataAttr_TriggerRecv;
+    message.attr = ModuleInternalDataAttr_TriggerRecv;
     esp_event_post(ETH_EVENT, ETHERNET_EVENT_MAX, &message, sizeof(message), 0);
 
     return 0;

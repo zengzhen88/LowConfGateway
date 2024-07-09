@@ -904,7 +904,6 @@ void *GatewayInit(void) {
         MQTTDestory(pObj->mqttsubscribe);
     }
 
-#endif
     {
         pObj->ackValid = 0;
         pObj->connect = 0;
@@ -967,7 +966,6 @@ void *GatewayInit(void) {
         MQTTDestory(pObj->mqttsubscribe);
     }
 
-#if 0
     {
         pObj->ackValid = 0;
         pObj->connect = 0;
@@ -1030,6 +1028,85 @@ void *GatewayInit(void) {
             }
         }
 
+
+        while (!pObj->ackValid) {
+            sleep(1);
+        }
+        LogPrintf(LogGateway_Info, "Message %s suc\n", toEnumString(ModuleDataAttr_SetWifiCfg));
+        MQTTDestory(pObj->mqttpublish);
+        MQTTDestory(pObj->mqttsubscribe);
+    }
+#else
+    {
+        pObj->ackValid = 0;
+        pObj->connect = 0;
+        pObj->mqttsubscribe = MQTTNewSubscribe(
+                (const char *)pObj->username, 
+                (const char *)pObj->password,
+                toEnumString(ModuleDataAttr_ReportData), 
+                (const char *)pObj->host, 
+                pObj->port, 
+                pObj->qos, 
+                GatewayMqttSubscribeConnect, 
+                GatewayMqttSubscribeDisconnect, 
+                GatewayMqttSubscribe, 
+                GatewayMqttSubscribeMessage, 
+                pObj);
+
+        while (1) { //这个消息一定要放最后，一直需要接收数据
+            sleep(1);
+        }
+
+        if (0) {
+            pObj->mqttpublish = MQTTNewPublish(
+                    (const char *)pObj->username, 
+                    (const char *)pObj->password,
+                    toAckEnumString(ModuleDataAttr_SetWifiCfg), 
+                    (const char *)pObj->host, 
+                    pObj->port, 
+                    pObj->qos, 
+                    GatewayMqttPushlishConnect, 
+                    GatewayMqttPushlishDisconnect,
+                    GatewayMqttPushlish, 
+                    pObj);
+            while (!pObj->connect) {
+                sleep(1);
+            }
+
+            if (pObj->mqttpublish) {
+                cJSON *root = NULL;
+                cJSON *sub  = NULL;
+
+                root = cJSON_CreateArray();
+                if (root) {
+                    sub = cJSON_CreateObject();
+                    if (sub) {
+                        cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_SetWifiCfg));
+                        cJSON_AddStringToObject(sub, "ssid", "TP-LINK_342B");
+                        cJSON_AddStringToObject(sub, "password", "88888888");
+                        // cJSON_AddStringToObject(sub, "ssid", "zz");
+                        // cJSON_AddStringToObject(sub, "password", "12345678");
+                        // cJSON_AddStringToObject(sub, "address", "0.0.0.0");
+                        // cJSON_AddStringToObject(sub, "netmask", "255.255.255.0");
+                        // cJSON_AddStringToObject(sub, "gateway", "192.168.0.1");
+                        cJSON_AddStringToObject(sub, "address", "192.168.0.103");
+                        cJSON_AddStringToObject(sub, "netmask", "255.255.255.0");
+                        cJSON_AddStringToObject(sub, "gateway", "192.168.0.1");
+                        cJSON_AddItemToArray(root, sub);
+                        char *json = cJSON_Print(root);
+                        if (json) {
+                            LogPrintf(LogGateway_Info, "json:\r\n%s\n", json);
+                            MQTTPush(pObj->mqttpublish,
+                                    (const char *)json,
+                                    strlen(json));
+                            free(json);
+                        }
+                        cJSON_Delete(root);
+                    }
+                }
+            }
+
+        }
 
         while (!pObj->ackValid) {
             sleep(1);

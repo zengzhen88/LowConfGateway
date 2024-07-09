@@ -142,6 +142,16 @@ typedef struct {
     char url[64];
 } ModuleMessageSetMqttCfg;
 
+/*
+ * //ModuleDataAttr_SendData
+ * typedef struct {
+ *     ModuleDataAttr attr;
+ *     char user[32];
+ *     char password[32];
+ *     char url[64];
+ * } ModuleMessageSetMqttCfg;
+ */
+
 //ModuleDataAttr_Ack
 typedef struct {
     ModuleDataAttr attr;
@@ -176,6 +186,11 @@ typedef union {
     ModuleMessagePtSend ptSend;
     ModuleMessageAck ack;
 } ModuleMessage;
+
+typedef union {
+    ModuleDataAttr attr;
+    ModuleMessageTriggerRecv triggerRecv;
+} ModuleInternalMessage;
 
 #endif
 

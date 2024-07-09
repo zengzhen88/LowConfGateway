@@ -6,6 +6,8 @@
 
 const char *toEnumString(ModuleDataAttr attr) {
     switch (attr) {
+        case ModuleDataAttr_ReportData:
+            return "ReportData";
         case ModuleDataAttr_Update:
             return "Update";
         case ModuleDataAttr_GetTemperature:
@@ -38,6 +40,8 @@ const char *toEnumString(ModuleDataAttr attr) {
 
 const char *toAckEnumString(ModuleDataAttr attr) {
     switch (attr) {
+        case ModuleDataAttr_ReportData:
+            return "ReportDataAck";
         case ModuleDataAttr_Update:
             return "UpdateAck";
         case ModuleDataAttr_GetTemperature:
@@ -71,6 +75,9 @@ const char *toAckEnumString(ModuleDataAttr attr) {
 ModuleDataAttr toStringEnum(const char *strings) {
     if (strstr(strings, "Update")) {
         return ModuleDataAttr_Update;
+    }
+    else if (strstr(strings, "ReportData")) {
+        return ModuleDataAttr_ReportData;
     }
     else if (strstr(strings, "GetTemperature")) {
         return ModuleDataAttr_GetTemperature;

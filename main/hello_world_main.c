@@ -20,6 +20,7 @@
 #include <eth.h>
 #include <message.h>
 #include <update.h>
+#include <spi.h>
 #include <queue.h>
 
 typedef struct {
@@ -28,6 +29,7 @@ typedef struct {
     void *mqtt;
     void *update;
     void *uart;
+    void *spi;
 
     float temperature;
 
@@ -114,7 +116,7 @@ static int32_t appTriggerRecv(void *handle, DataAttr attr) {
 }
 
 
-int32_t appSend(void *priv, DataAttr attr, 
+int32_t appMsgSend(void *priv, DataAttr attr, 
         void *data, int32_t fillLength, int32_t millis) {
     int status       = ESP_FAIL;
     Message *message = NULL;
@@ -154,7 +156,7 @@ int32_t appSend(void *priv, DataAttr attr,
     return -1;
 }
 
-int32_t appRecv(void *priv, DataAttr attr, 
+int32_t appMsgRecv(void *priv, DataAttr attr, 
         void *data, int32_t *fillLength, int32_t millis) {
     int32_t status   = -1;
     Message *message = NULL;
@@ -193,7 +195,6 @@ int32_t appRecv(void *priv, DataAttr attr,
 
 int32_t appDataRequest(void *priv, DataAttr attr, void *data, int32_t fillLength) {
     Message *message = NULL;
-    Gateway *gateway = (Gateway *)priv;
 
     message = RequestMessage(fillLength);
     if (message) {
@@ -236,6 +237,7 @@ int32_t appDataSend(void *priv, DataAttr attr, void *data, int32_t millis) {
 
     status = xQueueSend(gateway->bufQue[attr], &message, (block));
     if (pdPASS == status) {
+            printf ("444xxx33message:%p data:%p :%s\n", message, message->data, (char *)message->data);
         appTriggerRecv(gateway, attr);
         return 0;
     }
@@ -244,7 +246,7 @@ int32_t appDataSend(void *priv, DataAttr attr, void *data, int32_t millis) {
 }
 
 int32_t appDataRecv(void *priv, DataAttr attr, void *data, int32_t millis) {
-    int32_t status   = -1;
+    BaseType_t status   = -1;
     Message *message = NULL;
     TickType_t block = portMAX_DELAY; 
     Gateway *gateway = (Gateway *)priv;
@@ -264,11 +266,43 @@ int32_t appDataRecv(void *priv, DataAttr attr, void *data, int32_t millis) {
     }
 
     status = xQueueReceive(gateway->bufQue[attr], &message, (block));
-    if (!status) {
+    if (pdTRUE == status) {
+        printf ("333message:%p \n", message);
+        if (message->data)
+            printf ("3xxx33message:%p data:%p %s\n", message, message->data, (char *)message->data);
         *((Message **)data) = message;
+        return 0;
     }
 
-    return status;
+    return -1;
+}
+
+int32_t appSend(void *priv, DataAttr attr, void *data, 
+        int32_t fillLength, int32_t millis) { 
+    switch (attr) {
+        case DataAttr_SpiToMqtt:
+            {
+                return appDataSend(priv, attr, data, millis);
+            }
+        default:
+            return appMsgSend(priv, attr, data, fillLength, millis);
+    }
+
+    return 0;
+}
+
+int32_t appRecv(void *priv, DataAttr attr, void *data, 
+        int32_t *fillLength, int32_t millis) { 
+    switch (attr) {
+        case DataAttr_SpiToMqtt:
+            {
+                return appDataRecv(priv, attr, data, millis);
+            }
+        default:
+            return appMsgRecv(priv, attr, data, fillLength, millis);
+    }
+
+    return 0;
 }
 
 int32_t appSearchConfig(void *args, ModuleMessage *message) {
@@ -484,7 +518,7 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
 
 
 void app_main(void) {
-    int QueSize     = 15;
+    int QueSize     = 128;
 
     Gateway *gateway = (Gateway *) malloc (sizeof(*gateway));
     if (gateway) {
@@ -622,8 +656,10 @@ void app_main(void) {
             MQTTInitLog(gateway, appPrint);
             MQTTSetLogLevel(LogMQTT_Info);
 
-            config.send = appSend;
-            config.recv = appRecv;
+            config.send     = appSend;
+            config.recv     = appRecv;
+            config.request  = appDataRequest;
+            config.release  = appDataRelease;
 
             gateway->mqtt = MQTTInit(&config);
         }
@@ -641,6 +677,22 @@ void app_main(void) {
             config.recv = appRecv;
 
             gateway->update = UpdateInit(&config);
+        }
+
+        {
+            /*spi*/
+            SpiConfig config;
+            memset(&config, 0x0, sizeof(config));
+
+            SpiInitLog(gateway, appPrint);
+            SpiSetLogLevel(LogSpi_Info);
+
+            config.send     = appSend;
+            config.recv     = appRecv;
+            config.request  = appDataRequest;
+            config.release  = appDataRelease;
+
+            gateway->spi = SpiInit(&config);
         }
 
         /*
