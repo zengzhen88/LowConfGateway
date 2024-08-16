@@ -284,11 +284,6 @@ void UpdateEventHandler(void* arg, esp_event_base_t event_base,
             case ESP_HTTPS_OTA_ABORT:
                 LogPrintf (LogUpdate_Info, "OTA abort");
                 break;
-            case ESP_HTTPS_OTA_MAX:
-                {
-                    UpdateEventRecvHandler(update, (ModuleInternalMessage *)event_data);
-                    break;
-                }
             default:break;
         }
     }

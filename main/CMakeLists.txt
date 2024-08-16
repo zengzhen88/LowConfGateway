@@ -41,8 +41,9 @@ idf_component_register(
 
     INCLUDE_DIRS
     "./"
-    "libbson/mongo-c-driver/src/libbson/src/jsonsl"
-    "libbson/mongo-c-driver/src/common/"
-    "libbson/mongo-c-driver/src/libbson/src/")
+    # "libbson/mongo-c-driver/src/libbson/src/jsonsl"
+    # "libbson/mongo-c-driver/src/common/"
+    # "libbson/mongo-c-driver/src/libbson/src/"
+    )
 
 add_definitions(-D BSON_COMPILATION)

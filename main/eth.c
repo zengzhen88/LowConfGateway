@@ -265,7 +265,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
 int32_t EthTriggerRecv(void *arg) {
     ModuleMessage message;
     message.attr = ModuleInternalDataAttr_TriggerRecv;
-    esp_event_post(ETH_EVENT, ETHERNET_EVENT_MAX, &message, sizeof(message), 0);
+    esp_event_post(MYETH_EVENT, MYETHERNET_EVENT_START, &message, sizeof(message), 0);
 
     return 0;
 }
