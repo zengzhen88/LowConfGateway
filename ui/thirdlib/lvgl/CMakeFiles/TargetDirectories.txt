@@ -1,0 +1,10 @@
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/lvgl.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/lvgl_thorvg.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/lvgl_examples.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/lvgl_demos.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/edit_cache.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/rebuild_cache.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/list_install_components.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/install.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/install/local.dir
+/home/zeng/share/lowconfgateway/LowConfGateway/ui/thirdlib/lvgl/CMakeFiles/install/strip.dir
