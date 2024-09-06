@@ -1,6 +1,8 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__ 
 
+#include <stdint.h>
+
 typedef enum {
     NetState_CONNSER, /*连接服务器*/
     NetState_CONNET,  /*网络连接,但未连接服务器*/
@@ -28,8 +30,6 @@ typedef enum {
 } DataAttr;
 
 typedef enum {
-    ModuleDataAttr_Ack,
-    ModuleDataAttr_Update,
     ModuleDataAttr_GetTemperature,
     ModuleDataAttr_GetModuleVersion,
     ModuleDataAttr_GetModuleInfo,
@@ -43,8 +43,10 @@ typedef enum {
     ModuleDataAttr_SetWifiCfg,
     ModuleDataAttr_GetMqttCfg,
     ModuleDataAttr_SetMqttCfg,
+    ModuleDataAttr_Update,
     ModuleDataAttr_ReportData,
     ModuleDataAttr_PtSend,
+    ModuleDataAttr_Ack,
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;
 
@@ -56,6 +58,7 @@ typedef enum {
 const char *toEnumString(ModuleDataAttr attr);
 const char *toAckEnumString(ModuleDataAttr attr);
 ModuleDataAttr toStringEnum(const char *strings);
+const char *toEnumChineseString(ModuleDataAttr attr);
 
 typedef enum {
     DataTimeStatus_BLOCK = -1,

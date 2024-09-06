@@ -1752,13 +1752,13 @@ int32_t MQTTMessageSendHandlerGetTemperature(MQTT *mqtt, esp_mqtt_event_handle_t
                 for (index = 0; index < arraysize; index++) {
                     const char *strings = MQTTcJsonGetString(json, index, "htype");
                     if (!strcmp(strings, "GetTemperature")) {
-                        /* const float temperature = MQTTcJsonGetNumber(json, index, "temperature"); */
+                        const float temperature = MQTTcJsonGetNumber(json, index, "temperature");
                         LogPrintf(LogMQTT_Info, "htype:%s\n", strings);
                         /* LogPrintf(LogMQTT_Info, "temperature:%f\n", temperature); */
 
                         ModuleMessage message;
                         message.attr = ModuleDataAttr_GetTemperature;
-                        /* message.getTemperature.temperature = temperature; */
+                        message.getTemperature.temperature = temperature;
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {

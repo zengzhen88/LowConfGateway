@@ -171,11 +171,11 @@ void SpiRecvTask(void *args) {
                 if (ESP_OK == status) {
                     //spi_slave_transmit does not return until the master has done a transmission, so by here we have sent our data and
                     //received data from the master. Print it.
-                    printf("Received: %s\n", (char *)t.rx_buffer);//recvbuf);
+                    /* printf("Received: %s\n", (char *)t.rx_buffer);//recvbuf); */
                     /* n++; */
                     if (spi->send) {
-                        spi->send(gPriv, DataAttr_SpiToMqtt, 
-                                message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK);
+                        /* spi->send(gPriv, DataAttr_SpiToMqtt,  */
+                                /* message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK); */
                     }
                 }
             }

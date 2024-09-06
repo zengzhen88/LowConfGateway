@@ -1,0 +1,28 @@
+esp-idf/esp_system/CMakeFiles/__idf_esp_system.dir/port/arch/xtensa/debug_stubs.c.obj: \
+ /home/zeng/share/espdemo/esp-idf/components/esp_system/port/arch/xtensa/debug_stubs.c \
+ /home/zeng/share/espdemo/esp-idf/components/xtensa/include/eri.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include/stdint.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/stdint.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/machine/_default_types.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/sys/features.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/_newlib_version.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/sys/_intsup.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/sys/_stdint.h \
+ /home/zeng/share/espdemo/esp-idf/components/xtensa/include/xtensa-debug-module.h \
+ /home/zeng/share/espdemo/esp-idf/components/xtensa/esp32/include/xtensa/config/core-isa.h \
+ /home/zeng/share/espdemo/esp-idf/components/log/include/esp_log.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include/stdarg.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/inttypes.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/newlib.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/sys/config.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/machine/ieeefp.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/_ansi.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/lib/gcc/xtensa-esp-elf/13.2.0/include/stddef.h \
+ /home/zeng/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-esp-elf/xtensa-esp-elf/include/sys/_locale.h \
+ /home/zeng/share/gateway/LowConfGateway/build/config/sdkconfig.h \
+ /home/zeng/share/espdemo/esp-idf/components/esp_rom/include/esp_rom_sys.h \
+ /home/zeng/share/espdemo/esp-idf/components/soc/esp32/include/soc/reset_reasons.h \
+ /home/zeng/share/espdemo/esp-idf/components/log/include/esp_log_level.h \
+ /home/zeng/share/espdemo/esp-idf/components/log/include/esp_log_color.h \
+ /home/zeng/share/espdemo/esp-idf/components/log/include/esp_log_buffer.h \
+ /home/zeng/share/espdemo/esp-idf/components/log/include/esp_log_timestamp.h

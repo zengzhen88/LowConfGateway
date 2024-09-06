@@ -4,6 +4,44 @@
 #include <common.h>
 #include <string.h>
 
+const char *toEnumChineseString(ModuleDataAttr attr) {
+    switch (attr) {
+        case ModuleDataAttr_ReportData:
+            return "上报数据";
+        case ModuleDataAttr_Update:
+            return "升级系统";
+        case ModuleDataAttr_GetTemperature:
+            return "获取温度";
+        case ModuleDataAttr_GetModuleVersion:
+            return "查询模块版本";
+        case ModuleDataAttr_GetModuleInfo:
+            return "查询模块信息";
+        case ModuleDataAttr_SetModuleInfo:
+            return "设置模块信息";
+        case ModuleDataAttr_GetPower:
+            return "查询模块供电";
+        case ModuleDataAttr_Reboot:
+            return "模块重启";
+        case ModuleDataAttr_NetState:
+            return "查询网络状态";
+        case ModuleDataAttr_GetWifiCfg:
+            return "查询无线配置";
+        case ModuleDataAttr_SetWifiCfg:
+            return "设置无线配置";
+        case ModuleDataAttr_GetEthCfg:
+            return "查询有线配置";
+        case ModuleDataAttr_SetEthCfg:
+            return "设置有线配置";
+        case ModuleDataAttr_GetMqttCfg:
+            return "查询MQTT配置";
+        case ModuleDataAttr_SetMqttCfg:
+            return "设置MQTT配置";
+        case ModuleDataAttr_PtSend:
+            return "Ack";
+        default:return "Ack";
+    }
+}
+
 const char *toEnumString(ModuleDataAttr attr) {
     switch (attr) {
         case ModuleDataAttr_ReportData:
