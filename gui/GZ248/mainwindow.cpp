@@ -9,6 +9,28 @@
 #include "common.h"
 #include "transmit.h"
 
+const char *PowerMode2Name[] = {
+    "DC",
+    "BAT"
+};
+
+void MainWindow::ClearWidget(void) {
+    enter->hide();
+    cancel->hide();
+    lineEdit0->hide();
+    lineEdit1->hide();
+    lineEdit2->hide();
+    lineEdit3->hide();
+    lineEdit4->hide();
+    lineEdit5->hide();
+    label->hide();
+}
+
+int32_t MainWindow::SetCurrentIndex(int32_t number) {
+    currentIndex = number;
+    return 0;
+}
+
 int32_t MainWindow::JumpTransmit(int32_t number) {
     switch (number) {
     case ModuleDataAttr_GetTemperature:
@@ -19,11 +41,13 @@ int32_t MainWindow::JumpTransmit(int32_t number) {
     {
         break;
     }
+    case ModuleDataAttr_GetModuleInfo:
+    {
+        break;
+    }
     case ModuleDataAttr_SetModuleInfo:
     {
-        QString text = lineEdit0->text();
-        label->setText(text);
-        label->show();
+        printf ("mqtt set module info\n");
         break;
     }
     case ModuleDataAttr_GetPower:
@@ -79,36 +103,82 @@ int32_t MainWindow::JumpSubWindow(int32_t number) {
     switch (number) {
     case ModuleDataAttr_GetTemperature:
     {
+        ClearWidget();
+        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         QString strings("温度:");
         QString temperature(QString::number(MQTTGetTemperature()));
         label->setText(strings + temperature);
+        label->adjustSize();
         label->show();
+        rightLayout->removeWidget(label);
         break;
     }
     case ModuleDataAttr_GetModuleVersion:
     {
+        ClearWidget();
+        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         QString strings("模块版本:");
         QString version((MQTTGetModuleVersion()));
         label->setText(strings + version);
+        label->adjustSize();
         label->show();
+        rightLayout->removeWidget(label);
+        break;
+    }
+    case ModuleDataAttr_GetModuleInfo:
+    {
+        ClearWidget();
+        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        QString strings("模块信息:");
+        QString info((MQTTGetModuleInfo()));
+        //printf ("info:%s\n", strings + info);
+        label->setText(strings + info);
+        label->adjustSize();
+        label->show();
+        rightLayout->removeWidget(label);
         break;
     }
     case ModuleDataAttr_SetModuleInfo:
     {
-        //QString strings("模块版本:");
-        //QString version((MQTTGetModuleVersion()));
-        lineEdit0->setPlaceholderText("请输入模块版本");
+        ClearWidget();
+        subHLayout->addWidget(label, 0, Qt::AlignTop);
+        subHLayout->addWidget(lineEdit0, 0, Qt::AlignTop);
+        subHLayout->addWidget(enter, 0, Qt::AlignTop);
+        rightLayout->addLayout(subHLayout);
+        enter->setText("确定");
+        label->setText("请输入模块版本:");
+        label->show();
         lineEdit0->show();
-        //label->setText(strings + version);
-        //label->show();
+        enter->show();
+        rightLayout->removeItem(subHLayout);
+        subHLayout->removeWidget(lineEdit0);
+        subHLayout->removeWidget(label);
+        subHLayout->removeWidget(enter);
         break;
     }
     case ModuleDataAttr_GetPower:
     {
+        PowerSupplyMode mode;
+        int level;
+        ClearWidget();
+        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        QString strings("模块信息:");
+        MQTTGetPower(&mode, &level);
+        QString info((QString)"PowerMode<" + (QString)PowerMode2Name[mode] + (QString)">  PowerLevel<" + QString::number(level) + (QString)">");
+        //printf ("info:%s\n", strings + info);
+        label->setText(strings + info);
+        label->adjustSize();
+        label->show();
+        rightLayout->removeWidget(label);
         break;
     }
     case ModuleDataAttr_Reboot:
     {
+        ClearWidget();
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
+        enter->setText("重启");
+        enter->show();
+        rightLayout->removeWidget(enter);
         break;
     }
     case ModuleDataAttr_NetState:
@@ -163,62 +233,26 @@ MainWindow::MainWindow(QMainWindow *parent) : QMainWindow(parent)
     rightLayout = new QVBoxLayout(rightWidget);
     // 水平布局器 QHBoxLayout：将内部的控件按照水平方向排布，一列一个。
     mainLayout = new QHBoxLayout(mainWidget);
+
+    subVLayout = new QVBoxLayout(NULL);
+    // 水平布局器 QHBoxLayout：将内部的控件按照水平方向排布，一列一个。
+    subHLayout = new QHBoxLayout(NULL);
     QNavigationWidget *navigationWidget = new QNavigationWidget;
-    enter = new QPushButton("enter");
-    cancel = new QPushButton("cancel");
-    lineEdit0 = new QLineEdit("line0");
-    lineEdit1 = new QLineEdit("line1");
-    lineEdit2 = new QLineEdit("line2");
-    lineEdit3 = new QLineEdit("line3");
-    lineEdit4 = new QLineEdit("line4");
-    lineEdit5 = new QLineEdit("line5");
-    label = new QLabel("label");
-
-    rightLayout->addWidget(lineEdit0, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(lineEdit1, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(lineEdit2, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(lineEdit3, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(lineEdit4, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(lineEdit5, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
-    rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
-    lineEdit0->hide();
-    lineEdit1->hide();
-    lineEdit2->hide();
-    lineEdit3->hide();
-    lineEdit4->hide();
-    lineEdit5->hide();
-    enter->hide();
-    cancel->hide();
-    label->hide();
-    //QSlider *slider = new QSlider();
-    //slider->setValue(0);
-    //slider->setRange(0, (sizeof(res)/sizeof(res[0])) / 2 - 1);
-    //slider->setOrientation(Qt::Vertical);
-    //slider->setInvertedAppearance(true);
-    // 设置边框样式
-    //QString styleSheet = QString("QSlider {"
-    //                             "border: 2px solid #000000;" // 边框宽度2px，颜色为黑色
-    //                             "border-radius: 5px;"      // 边框圆角5px
-    //                             "background: #DDDDDD;"     // 背景颜色
-    //                             "}"
-    //                             "QProgressBar::chunk {"
-    //                             "background: #FFFFFFFF;"      // 进度条颜色
-    //                             "border-radius: 5px;"       // 圆角
-    //                             "}");
-
-    //slider->setStyleSheet(styleSheet);
+    enter = new QPushButton();
+    cancel = new QPushButton();
+    lineEdit0 = new QLineEdit();
+    lineEdit1 = new QLineEdit();
+    lineEdit2 = new QLineEdit();
+    lineEdit3 = new QLineEdit();
+    lineEdit4 = new QLineEdit();
+    lineEdit5 = new QLineEdit();
+    label = new QLabel();
 
     navigationWidget->setRowHeight(30);
     for (int32_t index = 0; index < ModuleDataAttr_Cnt; index++) {
         if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
         navigationWidget->addItem("GZ248", toEnumChineseString((ModuleDataAttr)index));
     }
-
-    //widget 就是要添加的控件指针，stretch 是伸展因子（到 6.5 节再讲这个，本节先不管），伸展因子越大，窗口变大时拉伸越 多，alignment 一般不需要指定，用默认的即可
-    //rightLayout->addWidget(tipsLabel, 0, Qt::AlignCenter);
-
 
     //设置内部控件或子布局器距离四个边的边距
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -229,10 +263,11 @@ MainWindow::MainWindow(QMainWindow *parent) : QMainWindow(parent)
     setCentralWidget(mainWidget);
 
     connect(navigationWidget, &QNavigationWidget::currentItemChanged, this, [=](const int &current){
+        SetCurrentIndex(current);
         JumpSubWindow(current);
     });
-    connect(lineEdit0, , this, [=](const int &current){
-        JumpTransmit(current);
+    connect(enter, &QPushButton::clicked, this, [=](){
+        JumpTransmit(currentIndex);
     });
 }
 

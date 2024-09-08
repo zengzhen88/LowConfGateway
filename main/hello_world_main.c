@@ -620,25 +620,23 @@ void app_main(void) {
             gateway->wifi = WifiInit(&config);
         }
 
-/*
- *         {
- *             [>ethernet<]
- *             EthConfig config;
- *             memset(&config, 0x0, sizeof(config));
- *             
- *             strcpy(config.address, gateway->address);
- *             strcpy(config.netmask, gateway->netmask);
- *             strcpy(config.gateway, gateway->gateway);
- * 
- *             config.send = appSend;
- *             config.recv = appRecv;
- * 
- *             EthInitLog(gateway, appPrint);
- *             EthSetLogLevel(LogEth_Info);
- * 
- *             gateway->eth = EthInit(&config);
- *         }
- */
+        {
+            /*ethernet*/
+            EthConfig config;
+            memset(&config, 0x0, sizeof(config));
+            
+            strcpy(config.address, gateway->ethAddress);
+            strcpy(config.netmask, gateway->ethNetmask);
+            strcpy(config.gateway, gateway->ethGateway);
+
+            config.send = appSend;
+            config.recv = appRecv;
+
+            EthInitLog(gateway, appPrint);
+            EthSetLogLevel(LogEth_Info);
+
+            gateway->eth = EthInit(&config);
+        }
 
         {
             /*mqtt*/

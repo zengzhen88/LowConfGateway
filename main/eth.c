@@ -296,7 +296,7 @@ void *EthInit(EthConfig *config) {
     eth->recv  = config->recv;
 
     // Update PHY config based on board specific configuration
-    phy_config.phy_addr = 2;//1;//CONFIG_EXAMPLE_ETH_PHY_ADDR;
+    phy_config.phy_addr = -1;//CONFIG_EXAMPLE_ETH_PHY_ADDR;
     phy_config.reset_gpio_num = 5;//CONFIG_EXAMPLE_ETH_PHY_RST_GPIO;
     // Init vendor specific MAC config to default
     eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
@@ -310,7 +310,8 @@ void *EthInit(EthConfig *config) {
     printf ("%s %d\n", __func__, __LINE__);
 
     // Create new PHY instance based on board configuration
-    esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
+    /* esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config); */
+    esp_eth_phy_t *phy = esp_eth_phy_new_ip101(&phy_config);
     ERRP(NULL == phy, goto ERR1, 1, "eth esp_eth_phy_new_lan87xx failure\n");
     printf ("%s %d\n", __func__, __LINE__);
 
@@ -345,7 +346,7 @@ void *EthInit(EthConfig *config) {
     printf ("%s %d\n", __func__, __LINE__);
 
     eth->ethif = esp_netif_new(&cfg);
-    ERRP(NULL != eth->ethif, goto ERR5, 1, "eth esp_netif_new failure\n");
+    ERRP(NULL == eth->ethif, goto ERR5, 1, "eth esp_netif_new failure\n");
     printf ("%s %d\n", __func__, __LINE__);
 
     eth->ethNetifGlues = esp_eth_new_netif_glue(eth->ethHandle);
