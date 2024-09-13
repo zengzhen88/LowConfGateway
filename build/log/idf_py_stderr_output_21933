@@ -1,0 +1,21 @@
+/home/zeng/share/gateway/LowConfGateway/main/spi.c: In function 'SpiInit':
+/home/zeng/share/gateway/LowConfGateway/main/spi.c:219:19: warning: unused variable 'io_conf' [-Wunused-variable]
+  219 |     gpio_config_t io_conf = {
+      |                   ^~~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/spi.c:209:34: warning: unused variable 'slvcfg' [-Wunused-variable]
+  209 |     spi_slave_interface_config_t slvcfg = {
+      |                                  ^~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/spi.c:200:22: warning: unused variable 'buscfg' [-Wunused-variable]
+  200 |     spi_bus_config_t buscfg = {
+      |                      ^~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/spi.c:187:15: warning: unused variable 'status' [-Wunused-variable]
+  187 |     esp_err_t status                = ESP_FAIL;
+      |               ^~~~~~
+Error: All app partitions are too small for binary hello_world.bin size 0x100ab0:
+  - Part 'factory' 0/0 @ 0x10000 size 0x100000 (overflow 0xab0)
+  - Part 'ota_0' 0/16 @ 0x110000 size 0x100000 (overflow 0xab0)
+  - Part 'ota_1' 0/17 @ 0x210000 size 0x100000 (overflow 0xab0)
+make[3]: *** [esp-idf/esptool_py/CMakeFiles/app_check_size.dir/build.make:70：esp-idf/esptool_py/CMakeFiles/app_check_size] 错误 1
+make[2]: *** [CMakeFiles/Makefile2:3070：esp-idf/esptool_py/CMakeFiles/app_check_size.dir/all] 错误 2
+make[1]: *** [CMakeFiles/Makefile2:2455：CMakeFiles/flash.dir/rule] 错误 2
+make: *** [Makefile:312：flash] 错误 2

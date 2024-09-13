@@ -201,9 +201,40 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                     esp_eth_handle_t ethHandle = *(esp_eth_handle_t *)event_data;
                     esp_eth_ioctl(ethHandle, ETH_CMD_G_MAC_ADDR, macAddr);
                     LogPrintf(LogEth_Info, "Ethernet Link Up");
-                    LogPrintf(LogEth_Info, "Ethernet HW Addr %02x:%02x:%02x:%02x:%02x:%02x",
+                    LogPrintf(LogEth_Info, "Ethernet HW Addr %02x:%02x:%02x:%02x:%02x:%02x\n",
                             macAddr[0], macAddr[1], macAddr[2],
                             macAddr[3], macAddr[4], macAddr[5]);
+
+/*
+ *                     esp_err_t status                = ESP_FAIL;        
+ *                     esp_netif_dhcp_status_t dhcpcStatus;
+ *                     if (ESP_OK == esp_netif_dhcpc_get_status(eth->ethif, &dhcpcStatus)) {
+ *                         printf ("%s %d status:%d dhcpcStatus:%d\n", __func__, __LINE__, status, dhcpcStatus);
+ *                         if (dhcpcStatus == ESP_NETIF_DHCP_STARTED) {
+ *                             printf ("%s %d\n", __func__, __LINE__);
+ *                             if (ESP_OK == esp_netif_dhcpc_stop(eth->ethif)) {
+ *                                 printf ("%s %d\n", __func__, __LINE__);
+ *                                 esp_netif_ip_info_t info;
+ *                                 memset(&info, 0x0, sizeof(info));
+ *                                 ipaddr_aton((const char *)"192.168.0.104", (ip_addr_t *)&info.ip);
+ *                                 ipaddr_aton((const char *)"255.255.255.0", (ip_addr_t *)&info.netmask);
+ *                                 ipaddr_aton((const char *)"192.168.0.1", (ip_addr_t *)&info.gw);
+ *                                 status = esp_netif_set_ip_info(eth->ethif, &info);
+ *                                 if (ESP_OK != status) {
+ *                                     LogPrintf(LogEth_Info, "eth esp_netif_dhcps_static failure\n");
+ *                                     printf ("%s %d\n", __func__, __LINE__);
+ *                                 }
+ *                             }
+ *                             else {
+ *                                 LogPrintf(LogEth_Info, "eth esp_netif_dhcps_stop failure\n");
+ *                                 status = -1;
+ *                             }
+ *                         }
+ *                         else {
+ * 
+ *                         }
+ *                     }
+ */
                     break;
                 }
             case ETHERNET_EVENT_DISCONNECTED:
@@ -214,12 +245,12 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                 }
             case ETHERNET_EVENT_START:
                 {
-                    LogPrintf(LogEth_Info, "Ethernet Started");
+                    LogPrintf(LogEth_Info, "Ethernet Started\n");
                     break;
                 }
             case ETHERNET_EVENT_STOP:
                 {
-                    LogPrintf(LogEth_Info, "Ethernet Stopped");
+                    LogPrintf(LogEth_Info, "Ethernet Stopped\n");
                     break;
                 }
             default:break;
@@ -235,7 +266,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
             default:break;
         }
     }
-    else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+    else if (event_base == IP_EVENT && event_id == IP_EVENT_ETH_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         eth->ethSok = 1;
         LogPrintf(LogEth_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
@@ -273,7 +304,25 @@ int32_t EthTriggerRecv(void *arg) {
 void *EthInit(EthConfig *config) {
     esp_err_t status                = ESP_FAIL;        
     /* esp_eth_handle_t ret = NULL; */
-    esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
+    /* esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH(); */
+    esp_netif_inherent_config_t esp_netif_config = ESP_NETIF_INHERENT_DEFAULT_ETH();
+    esp_netif_config_t cfg_spi = {
+        .base = &esp_netif_config,
+        .stack = ESP_NETIF_NETSTACK_DEFAULT_ETH
+    };
+
+    char if_key_str[10];
+    char if_desc_str[10];
+
+    strcpy(if_key_str, "ETH_0");
+    strcpy(if_desc_str, "eth_0");
+    esp_netif_config.if_key = if_key_str;
+    esp_netif_config.if_desc = if_desc_str;
+    esp_netif_config.route_prio = 100;
+    /* eth_netifs[i] = esp_netif_new(&cfg_spi); */
+    /* eth_netif_glues[i] = esp_eth_new_netif_glue(eth_handles[0]); */
+    // Attach Ethernet driver to TCP/IP stack
+    /* ESP_ERROR_CHECK(esp_netif_attach(eth_netifs[i], eth_netif_glues[i])); */
 
     // Init common MAC and PHY configs to default
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
@@ -290,6 +339,7 @@ void *EthInit(EthConfig *config) {
     esp_log_level_set("esp.emac", ESP_LOG_VERBOSE);
     esp_log_level_set("esp_eth", ESP_LOG_VERBOSE);
     esp_log_level_set("eth_phy_802_3", ESP_LOG_VERBOSE);
+    esp_log_level_set("esp_netif_lwip", ESP_LOG_VERBOSE);
 
 
     eth->send  = config->send;
@@ -328,24 +378,22 @@ void *EthInit(EthConfig *config) {
     printf ("%s %d\n", __func__, __LINE__);
 
     // Create default event loop that running in background
-    /*
-     * status = esp_event_loop_create_default();
-     * ERRP(ESP_OK != status, 
-     *         goto ERR4, 1, "eth esp_event_loop_create_default failure\n");
-     */
+    status = esp_event_loop_create_default();
+    ERRP(ESP_OK != status, 
+            goto ERR000, 1, "eth esp_event_loop_create_default failure\n");
     esp_event_loop_args_t loop_args = {
         .queue_size = CONFIG_ESP_SYSTEM_EVENT_QUEUE_SIZE,
-        .task_name = "update",
+        .task_name = "ethSub",
         .task_stack_size = ESP_TASKD_EVENT_STACK,
         .task_priority = ESP_TASKD_EVENT_PRIO,
         .task_core_id = 0
     };
     status = esp_event_loop_create(&loop_args, &eth->event);
-    ERRP(ESP_OK != status, goto ERR000, 1, 
+    ERRP(ESP_OK != status, goto ERR001, 1, 
             "update esp_event_loop_create failure\n");
     printf ("%s %d\n", __func__, __LINE__);
 
-    eth->ethif = esp_netif_new(&cfg);
+    eth->ethif = esp_netif_new(&cfg_spi);
     ERRP(NULL == eth->ethif, goto ERR5, 1, "eth esp_netif_new failure\n");
     printf ("%s %d\n", __func__, __LINE__);
 
@@ -357,8 +405,9 @@ void *EthInit(EthConfig *config) {
     status = esp_netif_attach(eth->ethif, eth->ethNetifGlues);
     ERRP(ESP_OK != status, goto ERR7, 1, "eth esp_netif_attach failure\n");
 
-    esp_event_handler_register_with(eth->event, ETH_EVENT, ESP_EVENT_ANY_ID, EthEventHandler, eth);
-    esp_event_handler_register_with(eth->event, IP_EVENT, IP_EVENT_ETH_GOT_IP, EthEventHandler, eth);
+    // Register user defined event handers
+    ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, EthEventHandler, eth));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, EthEventHandler, eth));
     esp_event_handler_register_with(eth->event, MYETH_EVENT, MYETH_EVENT_ETH_ANY_ID, EthEventHandler, eth);
 
     status = esp_eth_start(eth->ethHandle);
@@ -378,6 +427,7 @@ ERR2:
 ERR1:
 ERR0:
 ERR000:
+ERR001:
     free(eth);
 
     return NULL;

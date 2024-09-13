@@ -22,6 +22,8 @@
 #include <update.h>
 #include <spi.h>
 #include <queue.h>
+#include <uart.h>
+#include "driver/uart.h"
 
 typedef struct {
     void *wifi;
@@ -559,13 +561,22 @@ void app_main(void) {
 
         }
 
+#if 0
         {
             /*uart*/
             UartConfig config;
             memset(&config, 0x0, sizeof(config));
 
+            config.uartIndex = UART_NUM_1;
             config.send = appSend;
             config.recv = appRecv;
+            config.baudRate = 115200;
+            config.dataBits = UART_DATA_8_BITS;
+            config.parity = UART_PARITY_DISABLE;
+            config.stopBits = UART_STOP_BITS_1;
+            config.flowCtrl = UART_HW_FLOWCTRL_DISABLE;
+            config.sourceClk = UART_SCLK_DEFAULT;
+
 
             UartInitLog(gateway, appPrint);
             UartSetLogLevel(LogUart_Info);
@@ -578,23 +589,30 @@ void app_main(void) {
             message.attr = ModuleDataAttr_GetTemperature;
             appSearchConfig(gateway, &message);
 
-            message.attr = ModuleDataAttr_GetModuleVersion;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetModuleInfo;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetPower;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetWifiCfg;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetEthCfg;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetMqttCfg;
-            appSearchConfig(gateway, &message);
+            /*
+             * ModuleMessage message;
+             * message.attr = ModuleDataAttr_GetTemperature;
+             * appSearchConfig(gateway, &message);
+             */
+/*
+ *             message.attr = ModuleDataAttr_GetModuleVersion;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleInfo;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetPower;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetWifiCfg;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetEthCfg;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetMqttCfg;
+ *             appSearchConfig(gateway, &message);
+ */
         }
 
         running = 1;
@@ -620,23 +638,25 @@ void app_main(void) {
             gateway->wifi = WifiInit(&config);
         }
 
-        {
-            /*ethernet*/
-            EthConfig config;
-            memset(&config, 0x0, sizeof(config));
-            
-            strcpy(config.address, gateway->ethAddress);
-            strcpy(config.netmask, gateway->ethNetmask);
-            strcpy(config.gateway, gateway->ethGateway);
-
-            config.send = appSend;
-            config.recv = appRecv;
-
-            EthInitLog(gateway, appPrint);
-            EthSetLogLevel(LogEth_Info);
-
-            gateway->eth = EthInit(&config);
-        }
+/*
+ *         {
+ *             [>ethernet<]
+ *             EthConfig config;
+ *             memset(&config, 0x0, sizeof(config));
+ *             
+ *             strcpy(config.address, gateway->ethAddress);
+ *             strcpy(config.netmask, gateway->ethNetmask);
+ *             strcpy(config.gateway, gateway->ethGateway);
+ * 
+ *             config.send = appSend;
+ *             config.recv = appRecv;
+ * 
+ *             EthInitLog(gateway, appPrint);
+ *             EthSetLogLevel(LogEth_Info);
+ * 
+ *             gateway->eth = EthInit(&config);
+ *         }
+ */
 
         {
             /*mqtt*/
@@ -662,7 +682,7 @@ void app_main(void) {
             gateway->mqtt = MQTTInit(&config);
         }
 
-        /* printf ("%s %d\n", __func__, __LINE__); */
+        printf ("%s %d\n", __func__, __LINE__);
         {
             /*update*/
             UpdateConfig config;
@@ -677,6 +697,8 @@ void app_main(void) {
             gateway->update = UpdateInit(&config);
         }
 
+#endif
+        printf ("%s %d\n", __func__, __LINE__);
         {
             /*spi*/
             SpiConfig config;
@@ -693,6 +715,7 @@ void app_main(void) {
             gateway->spi = SpiInit(&config);
         }
 
+        printf ("%s %d\n", __func__, __LINE__);
         /*
          * UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetWifiCfg);
          * vTaskDelay(pdMS_TO_TICKS(2000));
@@ -717,7 +740,12 @@ void app_main(void) {
                 /* } */
                 /* char buf[128]; */
 
-                vTaskDelay(pdMS_TO_TICKS(2000));
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                /*
+                 * ModuleMessage message;
+                 * message.attr = ModuleDataAttr_GetTemperature;
+                 * appSearchConfig(gateway, &message);
+                 */
             }
         }
     }

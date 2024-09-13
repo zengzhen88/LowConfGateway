@@ -1,0 +1,16 @@
+/home/zeng/share/gateway/LowConfGateway/main/spi.c: In function 'SpiRecvTask':
+/home/zeng/share/gateway/LowConfGateway/main/spi.c:181:36: error: format '%x' expects argument of type 'unsigned int', but argument 2 has type 'char *' [-Werror=format=]
+  181 |                         printf("%02x ", ((char *)t.rx_buffer))[jindex];//recvbuf);
+      |                                 ~~~^    ~~~~~~~~~~~~~~~~~~~~~
+      |                                    |     |
+      |                                    |     char *
+      |                                    unsigned int
+      |                                 %02s
+/home/zeng/share/gateway/LowConfGateway/main/spi.c:181:63: error: subscripted value is neither array nor pointer nor vector
+  181 |                         printf("%02x ", ((char *)t.rx_buffer))[jindex];//recvbuf);
+      |                                                               ^
+cc1: some warnings being treated as errors
+make[3]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/build.make:216：esp-idf/main/CMakeFiles/__idf_main.dir/spi.c.obj] 错误 1
+make[2]: *** [CMakeFiles/Makefile2:5751：esp-idf/main/CMakeFiles/__idf_main.dir/all] 错误 2
+make[1]: *** [CMakeFiles/Makefile2:2455：CMakeFiles/flash.dir/rule] 错误 2
+make: *** [Makefile:312：flash] 错误 2

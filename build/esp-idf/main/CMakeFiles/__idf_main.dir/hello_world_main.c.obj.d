@@ -117,4 +117,7 @@ esp-idf/main/CMakeFiles/__idf_main.dir/hello_world_main.c.obj: \
  /home/zeng/share/gateway/LowConfGateway/main/message.h \
  /home/zeng/share/gateway/LowConfGateway/main/update.h \
  /home/zeng/share/gateway/LowConfGateway/main/spi.h \
- /home/zeng/share/gateway/LowConfGateway/main/queue.h
+ /home/zeng/share/gateway/LowConfGateway/main/queue.h \
+ /home/zeng/share/espdemo/esp-idf/components/esp_driver_uart/include/driver/uart.h \
+ /home/zeng/share/espdemo/esp-idf/components/hal/include/hal/uart_types.h \
+ /home/zeng/share/espdemo/esp-idf/components/soc/esp32/include/soc/clk_tree_defs.h

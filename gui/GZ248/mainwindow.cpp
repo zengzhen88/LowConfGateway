@@ -118,7 +118,9 @@ int32_t MainWindow::JumpSubWindow(int32_t number) {
         ClearWidget();
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         QString strings("模块版本:");
-        QString version((MQTTGetModuleVersion()));
+        char sVersion[128];
+        MQTTGetModuleVersion(sVersion, sizeof(sVersion));
+        QString version(sVersion);
         label->setText(strings + version);
         label->adjustSize();
         label->show();
@@ -130,7 +132,9 @@ int32_t MainWindow::JumpSubWindow(int32_t number) {
         ClearWidget();
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         QString strings("模块信息:");
-        QString info((MQTTGetModuleInfo()));
+        char sInfo[128];
+        MQTTGetModuleInfo(sInfo, sizeof(sInfo));
+        QString info(sInfo);
         //printf ("info:%s\n", strings + info);
         label->setText(strings + info);
         label->adjustSize();
@@ -183,14 +187,74 @@ int32_t MainWindow::JumpSubWindow(int32_t number) {
     }
     case ModuleDataAttr_NetState:
     {
+        ClearWidget();
+        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        QString strings("网络状态:");
+        QString netState((MQTTGetNetState()));
+        //printf ("netState:%s\n", strings + netState);
+        label->setText(strings + netState);
+        label->adjustSize();
+        label->show();
+        rightLayout->removeWidget(label);
         break;
     }
     case ModuleDataAttr_GetEthCfg:
     {
+        ClearWidget();
+        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        QString strings("有线配置:");
+        char sAddress[128];
+        char sNetmask[128];
+        char sGateway[128];
+        MQTTGetEthCfg(sAddress, sNetmask, sGateway, sizeof(sAddress));
+        //QString ethCfg("<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
+        //printf ("netState:%s\n", strings + netState);
+        label->setText(strings + "<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
+        label->adjustSize();
+        label->show();
+        rightLayout->removeWidget(label);
         break;
     }
     case ModuleDataAttr_SetEthCfg:
     {
+        ClearWidget();
+        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        subVLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
+        subVLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
+        subVLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+        subVLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addLayout(subVLayout);
+        enter->setText("确定");
+        label->setText("请输入有线配置:");
+        lineEdit0->setPlaceholderText("网络地址");
+        lineEdit1->setPlaceholderText("子网掩码");
+        lineEdit2->setPlaceholderText("网关地址");
+        label->show();
+        lineEdit0->show();
+        lineEdit1->show();
+        lineEdit2->show();
+        enter->show();
+        int32_t left, right, top, bottom;
+        subVLayout->setContentsMargins(2, 2, 2, 2);
+        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
+        //printf ("left:%d top:%d right:%d bottom:%d\n",
+        //        left, top, right, bottom);
+        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
+        label->setGeometry(labelX, labelY, labelW, labelH);
+        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
+        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = 200, lineEdit0H = 20;
+        lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
+        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = 200, lineEdit1H = 20;
+        lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
+        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = 200, lineEdit2H = 20;
+        lineEdit2->setGeometry(lineEdit2X, lineEdit2Y, lineEdit2W, lineEdit2H);
+        int32_t enterX = labelX, enterY = lineEdit2Y + lineEdit1H, enterW = 40, enterH = 20;
+        enter->setGeometry(enterX, enterY, enterW, enterH);
+
+        rightLayout->removeItem(subVLayout);
+        subVLayout->removeWidget(lineEdit0);
+        subVLayout->removeWidget(label);
+        subVLayout->removeWidget(enter);
         break;
     }
     case ModuleDataAttr_GetWifiCfg:

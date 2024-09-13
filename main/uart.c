@@ -87,7 +87,7 @@ typedef struct {
 
     TaskHandle_t uartTask;
 
-#define Uart_TEST
+/* #define Uart_TEST */
 #ifdef Uart_TEST
     char *uartAck;
     int ackSize;
@@ -339,8 +339,11 @@ int32_t UartMessageRecvHandler(Uart *uart) {
             /* strcat(uart->buffer, "\r\n"); */
             LogPrintf(LogUart_Info, "Uart AT Send: %s\n", uart->buffer);
 #ifndef Uart_TEST
-            uart_write_bytes(uart->uartIndex, 
+            status = uart_write_bytes(uart->uartIndex, 
                     (const char *)uart->buffer, strlen(uart->buffer));
+            if (status < 0) {
+                LogPrintf(LogUart_Error, "uart_write_bytes failure\n");
+            }
 #endif
         }
     }
@@ -348,6 +351,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
     return 0;
 }
 
+#ifdef Uart_TEST
 int32_t UartMaunulSendAT(void *arg, ModuleDataAttr attr) {
     Uart *uart      = (Uart *)arg;
 
@@ -399,6 +403,7 @@ int32_t UartMaunulSendAT(void *arg, ModuleDataAttr attr) {
 
     return 0;
 }
+#endif
 
 void UartSelectTask(void *args) {
     int status      = -1;
@@ -424,9 +429,9 @@ void UartSelectTask(void *args) {
             status = -1;
         }
 #endif
-        if (status >= 0) {
+        if (status > 0) {
             sbuffer[status] = '\0';
-            LogPrintf(LogUart_Info, "read AT===:%s\n", sbuffer);
+            LogPrintf(LogUart_Info, "read(%d) AT===:%s\n", status, sbuffer);
             bbuffer = UartRecvParse(uart, sbuffer, status);
             if (NULL != bbuffer) {
                 LogPrintf(LogUart_Info, "Uart AT Recv :%s\n", bbuffer);
@@ -439,16 +444,18 @@ void UartSelectTask(void *args) {
 }
 
 void *UartInit(UartConfig *config) {
-    /* esp_err_t status                = ESP_FAIL;         */
+    esp_err_t status                = ESP_FAIL;        
     BaseType_t baseType             = pdFAIL;
 #ifndef Uart_TEST
     uart_config_t uart_config;
+    memset(&uart_config, 0x0, sizeof(uart_config));
 #endif
 
     Uart *uart = (Uart *) malloc (sizeof(*uart));
     ERRP(NULL == uart, return NULL, 1, " uartmalloc Uart Instance failure\n");
     memset(uart, 0x0, sizeof(*uart));
 
+    printf ("%s %d\n", __func__, __LINE__);
     uart->send      = config->send;
     uart->recv      = config->recv;
 
@@ -467,48 +474,65 @@ void *UartInit(UartConfig *config) {
     uart->sourceClk = config->sourceClk;
     uart->uartIndex = config->uartIndex;
 
+    printf ("%s %d\n", __func__, __LINE__);
     uart->name = (char *) malloc (strlen(config->name) + 1);
     ERRP(NULL == uart->name, goto ERR00, 1, "uart malloc name mem failure\n");
+    printf ("%s %d\n", __func__, __LINE__);
     strcpy(uart->name, config->name);
+    printf ("%s %d\n", __func__, __LINE__);
 
 #ifndef Uart_TEST
+    printf ("%s %d\n", __func__, __LINE__);
     status = uart_driver_install(config->uartIndex, 2048, 2048, 0, NULL, 0);
+    printf ("%s %d\n", __func__, __LINE__);
     ERRP(ESP_OK != status, goto ERR01, 1, "uart uart_driver_install failure\n");
+    printf ("%s %d\n", __func__, __LINE__);
 
-    //这里需要确定具体的GPIO口
-    /* status = uart_set_pin(config->uartIndex, GPI0, GPI0, GPI0, GPIO); */
-    /* ERRP(ESP_OK != status, goto ERR02, 1, "uart uart_set_pin failure\n"); */
-#endif
-
-#ifndef Uart_TEST
     uart_config.baud_rate   = uart->baudRate;
     uart_config.data_bits   = uart->dataBits;
     uart_config.parity      = uart->parity;
     uart_config.stop_bits   = uart->stopBits;
     uart_config.flow_ctrl   = uart->flowCtrl;
     uart_config.source_clk  = uart->sourceClk;
+
+    printf ("%s %d\n", __func__, __LINE__);
+    uart_param_config(config->uartIndex, &uart_config);
+    printf ("%s %d\n", __func__, __LINE__);
+
+    //这里需要确定具体的GPIO口
+    printf ("%s %d\n", __func__, __LINE__);
+    /* status = uart_set_pin(config->uartIndex, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE); */
+    status = uart_set_pin(config->uartIndex, 10, 9, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    printf ("%s %d\n", __func__, __LINE__);
+    ERRP(ESP_OK != status, goto ERR02, 1, "uart uart_set_pin failure\n");
+    printf ("%s %d\n", __func__, __LINE__);
 #endif
 
     uart->bufSize = 512;
+    printf ("%s %d\n", __func__, __LINE__);
     uart->buffer = (char *) malloc (uart->bufSize);
+    printf ("%s %d\n", __func__, __LINE__);
     ERRP(NULL == uart->buffer, goto ERR02, 1,
             "uart malloc buffer size:%d failure\n", uart->bufSize);
 
+    printf ("%s %d\n", __func__, __LINE__);
     uart->restore = (char *) malloc (uart->bufSize >> 1);
+    printf ("%s %d\n", __func__, __LINE__);
     ERRP(NULL == uart->restore, goto ERR03, 1,
             "uart malloc restore size:%d failure\n", uart->bufSize >> 1);
 
-#ifndef Uart_TEST
-    uart_param_config(config->uartIndex, &uart_config);
-#endif
-
 #ifdef Uart_TEST
+    printf ("%s %d\n", __func__, __LINE__);
     uart->uartAck = (char *) malloc (512);
+    printf ("%s %d\n", __func__, __LINE__);
 #endif
 
+    printf ("%s %d\n", __func__, __LINE__);
     baseType = xTaskCreate(UartSelectTask, 
             "uartSelectTask", 4096, uart, 5, &uart->uartTask);
+    printf ("%s %d\n", __func__, __LINE__);
     ERRP(pdPASS != baseType, goto ERR04, 1, "uart xTaskCreate failure\n");
+    printf ("%s %d\n", __func__, __LINE__);
 
     return uart;
 ERR04:

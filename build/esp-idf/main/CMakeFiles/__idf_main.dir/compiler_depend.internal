@@ -260,6 +260,7 @@ esp-idf/main/CMakeFiles/__idf_main.dir/hello_world_main.c.obj
  /home/zeng/share/espdemo/esp-idf/components/esp_common/include/esp_idf_version.h
  /home/zeng/share/espdemo/esp-idf/components/esp_common/include/esp_macros.h
  /home/zeng/share/espdemo/esp-idf/components/esp_common/include/esp_types.h
+ /home/zeng/share/espdemo/esp-idf/components/esp_driver_uart/include/driver/uart.h
  /home/zeng/share/espdemo/esp-idf/components/esp_hw_support/include/esp_chip_info.h
  /home/zeng/share/espdemo/esp-idf/components/esp_hw_support/include/esp_cpu.h
  /home/zeng/share/espdemo/esp-idf/components/esp_hw_support/include/esp_intr_alloc.h
@@ -289,12 +290,14 @@ esp-idf/main/CMakeFiles/__idf_main.dir/hello_world_main.c.obj
  /home/zeng/share/espdemo/esp-idf/components/freertos/esp_additions/include/freertos/idf_additions.h
  /home/zeng/share/espdemo/esp-idf/components/hal/include/hal/esp_flash_err.h
  /home/zeng/share/espdemo/esp-idf/components/hal/include/hal/spi_flash_types.h
+ /home/zeng/share/espdemo/esp-idf/components/hal/include/hal/uart_types.h
  /home/zeng/share/espdemo/esp-idf/components/heap/include/esp_heap_caps.h
  /home/zeng/share/espdemo/esp-idf/components/heap/include/multi_heap.h
  /home/zeng/share/espdemo/esp-idf/components/newlib/platform_include/assert.h
  /home/zeng/share/espdemo/esp-idf/components/newlib/platform_include/esp_newlib.h
  /home/zeng/share/espdemo/esp-idf/components/newlib/platform_include/sys/lock.h
  /home/zeng/share/espdemo/esp-idf/components/newlib/platform_include/sys/reent.h
+ /home/zeng/share/espdemo/esp-idf/components/soc/esp32/include/soc/clk_tree_defs.h
  /home/zeng/share/espdemo/esp-idf/components/soc/esp32/include/soc/interrupts.h
  /home/zeng/share/espdemo/esp-idf/components/soc/esp32/include/soc/reg_base.h
  /home/zeng/share/espdemo/esp-idf/components/soc/esp32/include/soc/reset_reasons.h

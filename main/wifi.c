@@ -262,7 +262,7 @@ void *WifiInit(WifiConfig *config) {
     wifi_init_config_t initConfig   = WIFI_INIT_CONFIG_DEFAULT();
     esp_netif_inherent_config_t netifConfig = ESP_NETIF_INHERENT_DEFAULT_WIFI_STA();
 
-    netifConfig.route_prio = 128;
+    netifConfig.route_prio = 10;
     {
         esp_err_t ret = nvs_flash_init();
         if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {

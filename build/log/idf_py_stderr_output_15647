@@ -1,0 +1,28 @@
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c: In function 'app_main':
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:572:31: error: 'UART_DATA_8_BITS' undeclared (first use in this function)
+  572 |             config.dataBits = UART_DATA_8_BITS,;
+      |                               ^~~~~~~~~~~~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:572:31: note: each undeclared identifier is reported only once for each function it appears in
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:572:48: error: expected expression before ';' token
+  572 |             config.dataBits = UART_DATA_8_BITS,;
+      |                                                ^
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:572:47: error: left-hand operand of comma expression has no effect [-Werror=unused-value]
+  572 |             config.dataBits = UART_DATA_8_BITS,;
+      |                                               ^
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:573:29: error: 'UART_PARITY_DISABLE' undeclared (first use in this function)
+  573 |             config.parity = UART_PARITY_DISABLE;
+      |                             ^~~~~~~~~~~~~~~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:574:31: error: 'UART_STOP_BITS_1' undeclared (first use in this function)
+  574 |             config.stopBits = UART_STOP_BITS_1;
+      |                               ^~~~~~~~~~~~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:575:31: error: 'UART_HW_FLOWCTRL_DISABLE' undeclared (first use in this function)
+  575 |             config.flowCtrl = UART_HW_FLOWCTRL_DISABLE;
+      |                               ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/zeng/share/gateway/LowConfGateway/main/hello_world_main.c:576:32: error: 'UART_SCLK_DEFAULT' undeclared (first use in this function)
+  576 |             config.sourceClk = UART_SCLK_DEFAULT;
+      |                                ^~~~~~~~~~~~~~~~~
+cc1: some warnings being treated as errors
+make[3]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/build.make:76：esp-idf/main/CMakeFiles/__idf_main.dir/hello_world_main.c.obj] 错误 1
+make[2]: *** [CMakeFiles/Makefile2:5751：esp-idf/main/CMakeFiles/__idf_main.dir/all] 错误 2
+make[1]: *** [CMakeFiles/Makefile2:2455：CMakeFiles/flash.dir/rule] 错误 2
+make: *** [Makefile:312：flash] 错误 2

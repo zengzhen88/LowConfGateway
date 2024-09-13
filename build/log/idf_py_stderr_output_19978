@@ -1,0 +1,11 @@
+/home/zeng/share/gateway/LowConfGateway/main/uart.c: In function 'UartInit':
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:477:5: error: 'status' undeclared (first use in this function); did you mean 'stat'?
+  477 |     status = uart_driver_install(config->uartIndex, 2048, 2048, 0, NULL, 0);
+      |     ^~~~~~
+      |     stat
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:477:5: note: each undeclared identifier is reported only once for each function it appears in
+make[3]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/build.make:146：esp-idf/main/CMakeFiles/__idf_main.dir/uart.c.obj] 错误 1
+make[3]: *** 正在等待未完成的任务....
+make[2]: *** [CMakeFiles/Makefile2:5751：esp-idf/main/CMakeFiles/__idf_main.dir/all] 错误 2
+make[1]: *** [CMakeFiles/Makefile2:2455：CMakeFiles/flash.dir/rule] 错误 2
+make: *** [Makefile:312：flash] 错误 2

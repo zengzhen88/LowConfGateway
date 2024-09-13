@@ -1,0 +1,54 @@
+/home/zeng/share/gateway/LowConfGateway/main/uart.c: In function 'UartMaunulSendAT':
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:357:28: error: 'Uart' has no member named 'uartAck'
+  357 |                 strcpy(uart->uartAck, "+TEMPERATUREUPDATE:20\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:358:21: error: 'Uart' has no member named 'ackSize'
+  358 |                 uart->ackSize = strlen("+TEMPERATUREUPDATE:20\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:363:28: error: 'Uart' has no member named 'uartAck'
+  363 |                 strcpy(uart->uartAck, "+INFOUPDATE:abcd\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:364:21: error: 'Uart' has no member named 'ackSize'
+  364 |                 uart->ackSize = strlen("+INFOUPDATE:abcd\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:369:28: error: 'Uart' has no member named 'uartAck'
+  369 |                 strcpy(uart->uartAck, "+POWERUPDATE:<DC>,<100>\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:370:21: error: 'Uart' has no member named 'ackSize'
+  370 |                 uart->ackSize = strlen("+POWERUPDATE:<DC>,<100>\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:375:28: error: 'Uart' has no member named 'uartAck'
+  375 |                 strcpy(uart->uartAck, "+OFFNOWUPDATE\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:376:21: error: 'Uart' has no member named 'ackSize'
+  376 |                 uart->ackSize = strlen("+OFFNOWUPDATE\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:381:28: error: 'Uart' has no member named 'uartAck'
+  381 |                 strcpy(uart->uartAck, "+ETHCFGUPDATE:<192.168.0.104>,<255.255.255.0>,<192.168.0.1>\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:382:21: error: 'Uart' has no member named 'ackSize'
+  382 |                 uart->ackSize = strlen("+ETHCFGUPDATE:<192.168.0.104>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:387:28: error: 'Uart' has no member named 'uartAck'
+  387 |                 strcpy(uart->uartAck, "+WIFICFGUPDATE:<TP-LINK_342B>,<88888888>,<192.168.0.103>,<255.255.255.0>,<192.168.0.1>\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:388:21: error: 'Uart' has no member named 'ackSize'
+  388 |                 uart->ackSize = strlen("+WIFICFGUPDATE:<TP-LINK_342B>,<88888888>,<192.168.0.103>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:393:28: error: 'Uart' has no member named 'uartAck'
+  393 |                 strcpy(uart->uartAck, "+MQTTCFGUPDATE:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n");
+      |                            ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:394:21: error: 'Uart' has no member named 'ackSize'
+  394 |                 uart->ackSize = strlen("+MQTTCFGUPDATE:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n") + 1;
+      |                     ^~
+/home/zeng/share/gateway/LowConfGateway/main/uart.c: In function 'UartInit':
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:475:5: error: 'status' undeclared (first use in this function); did you mean 'stat'?
+  475 |     status = uart_driver_install(config->uartIndex, 2048, 2048, 0, NULL, 0);
+      |     ^~~~~~
+      |     stat
+/home/zeng/share/gateway/LowConfGateway/main/uart.c:475:5: note: each undeclared identifier is reported only once for each function it appears in
+make[3]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/build.make:146：esp-idf/main/CMakeFiles/__idf_main.dir/uart.c.obj] 错误 1
+make[3]: *** 正在等待未完成的任务....
+make[2]: *** [CMakeFiles/Makefile2:5751：esp-idf/main/CMakeFiles/__idf_main.dir/all] 错误 2
+make[1]: *** [CMakeFiles/Makefile2:2455：CMakeFiles/flash.dir/rule] 错误 2
+make: *** [Makefile:312：flash] 错误 2

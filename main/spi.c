@@ -86,6 +86,9 @@ typedef struct {
     SpiSigRecv recv;
     SpiSigRequest request;
     SpiSigRelease release;
+
+    esp_timer_handle_t timer;
+    int32_t signals;
 } Spi;
 
 //设置日志输出对象，主要看你想输出到哪里，就对应填充回调
@@ -104,10 +107,12 @@ int32_t SpiSetLogLevel(LogSpi level) {
 }
 
 #define GPIO_HANDSHAKE      2
-#define GPIO_MOSI           12
+#define GPIO_MOSI           38
 #define GPIO_MISO           13
-#define GPIO_SCLK           15
-#define GPIO_CS             14
+#define GPIO_SCLK           39
+#define GPIO_CS             37
+#define GPIO_INIT           34
+#define GPIO_TRIGGER        4
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define RCV_HOST    HSPI_HOST
@@ -134,7 +139,6 @@ void SpiRecvTask(void *args) {
 
 
     WORD_ALIGNED_ATTR char sendbuf[SPI_DATA_LENGTH + 1] = "";
-    /* WORD_ALIGNED_ATTR char recvbuf[SPI_DATA_LENGTH + 1] = ""; */
     spi_slave_transaction_t t;
     memset(&t, 0, sizeof(t));
 
@@ -142,13 +146,13 @@ void SpiRecvTask(void *args) {
         if (spi->request) {
             status = spi->request(gPriv, DataAttr_SpiToMqtt, &message, SPI_DATA_LENGTH);
             if (!status) {
-                if (message->data)
+                /* if (message->data) */
                     //Clear receive buffer, set send buffer to something sane
                     /* memset(recvbuf, 0xA5, 129); */
                     /* sprintf(sendbuf, "This is the receiver, sending data for transmission number %04d.", n); */
 
-                    //Set up a transaction of 128 bytes to send/receive
-                    t.length = SPI_DATA_LENGTH * 8;
+                //Set up a transaction of 128 bytes to send/receive
+                t.length = SPI_DATA_LENGTH * 8;
                 t.tx_buffer = sendbuf;
                 t.rx_buffer = (char *)message->data;//recvbuf;
                 /* This call enables the SPI slave interface to send/receive to the sendbuf and recvbuf. The transaction is
@@ -157,7 +161,7 @@ void SpiRecvTask(void *args) {
                    .post_setup_cb callback that is called as soon as a transaction is ready, to let the master know it is free to transfer
                    data.
                    */
-#define USE_SPI_TEST 
+                /* #define USE_SPI_TEST  */
 #ifndef USE_SPI_TEST
                 status = spi_slave_transmit(RCV_HOST, &t, portMAX_DELAY);
 #else 
@@ -171,16 +175,28 @@ void SpiRecvTask(void *args) {
                 if (ESP_OK == status) {
                     //spi_slave_transmit does not return until the master has done a transmission, so by here we have sent our data and
                     //received data from the master. Print it.
-                    /* printf("Received: %s\n", (char *)t.rx_buffer);//recvbuf); */
+                    int32_t jindex = 0;
+                    printf("Received: ");
+                    for (jindex = 0; jindex < 41; jindex++) {
+                        printf("%02x ", ((char *)t.rx_buffer)[jindex]);//recvbuf);
+                    }
+                    printf ("\n");
                     /* n++; */
                     if (spi->send) {
                         /* spi->send(gPriv, DataAttr_SpiToMqtt,  */
-                                /* message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK); */
+                        /* message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK); */
                     }
                 }
             }
         }
     }
+}
+
+static void timer_cb(void *arg) {
+    Spi *spi = (Spi *)arg;
+
+    gpio_set_level(GPIO_TRIGGER, !spi->signals);
+    spi->signals = !spi->signals;
 }
 
 void *SpiInit(SpiConfig *config) {
@@ -216,23 +232,50 @@ void *SpiInit(SpiConfig *config) {
     };
 
     //Configuration for the handshake line
-    gpio_config_t io_conf = {
-        .intr_type = GPIO_INTR_DISABLE,
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = BIT64(GPIO_HANDSHAKE),
-    };
+    /* gpio_config_t io_conf = { */
+        /* .intr_type = GPIO_INTR_DISABLE, */
+        /* .mode = GPIO_MODE_OUTPUT, */
+        /* .pin_bit_mask = BIT64(GPIO_HANDSHAKE), */
+    /* }; */
 
 #ifndef USE_SPI_TEST
     //Configure handshake line as output
-    gpio_config(&io_conf);
+    /* gpio_config(&io_conf); */
     //Enable pull-ups on SPI lines so we don't detect rogue pulses when no master is connected.
+    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_MOSI, GPIO_PULLUP_ONLY);
+    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_SCLK, GPIO_PULLUP_ONLY);
+    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_CS, GPIO_PULLUP_ONLY);
+    printf ("%s %d\n", __func__, __LINE__);
+
+    /* gpio_set_pull_mode(GPIO_INIT, GPIO_PULLUP_ONLY); */
+    printf ("%s %d\n", __func__, __LINE__);
+    gpio_set_pull_mode(GPIO_TRIGGER, GPIO_PULLUP_PULLDOWN);
+    printf ("%s %d\n", __func__, __LINE__);
+
+    gpio_set_direction(GPIO_INIT, GPIO_MODE_INPUT);
+    printf ("%s %d\n", __func__, __LINE__);
+    gpio_set_level(GPIO_INIT, 1);
+    printf ("%s %d\n", __func__, __LINE__);
+
+    gpio_set_direction(GPIO_TRIGGER, GPIO_MODE_INPUT);
+    printf ("%s %d\n", __func__, __LINE__);
 
     //Initialize SPI slave interface
     status = spi_slave_initialize(RCV_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);
     assert(status == ESP_OK);
+
+    const esp_timer_create_args_t timer_args = {
+        timer_cb,
+        spi,
+        ESP_TIMER_TASK,
+        "spi_timer",
+        true,
+    };
+    esp_timer_create(&timer_args, &spi->timer);
+    esp_timer_start_periodic(spi->timer, 1000000);//10000);//10ms
 #endif
 
     baseType = xTaskCreate(SpiRecvTask, 

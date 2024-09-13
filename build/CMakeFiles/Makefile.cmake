@@ -204,7 +204,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "/home/zeng/share/espdemo/esp-idf/tools/kconfig_new/confgen.py"
   "/home/zeng/share/espdemo/esp-idf/tools/kconfig_new/config.env.in"
   "/home/zeng/share/gateway/LowConfGateway/.git/HEAD"
-  "/home/zeng/share/gateway/LowConfGateway/.git/logs/refs/heads/main"
+  "/home/zeng/share/gateway/LowConfGateway/.git/refs/heads/main"
   "/home/zeng/share/gateway/LowConfGateway/CMakeLists.txt"
   "CMakeFiles/3.28.3/CMakeASMCompiler.cmake"
   "CMakeFiles/3.28.3/CMakeCCompiler.cmake"

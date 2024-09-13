@@ -19,6 +19,7 @@ typedef enum {
 typedef enum {
     UartNUM_0,
     UartNUM_1, //暂时先定两个，后面看实际的情况调整
+    UartNUM_2, //暂时先定两个，后面看实际的情况调整
 } UartNUM;
 
 typedef int32_t (*UartPrint)(void *, const char *);
