@@ -39,3 +39,20 @@ int32_t MQTTGetEthCfg(char *address, char *netmask, char *gateway, int32_t size)
     strcpy(gateway, "192.168.0.1");
     return 0;
 }
+
+
+int32_t MQTTGetWifiCfg(char *ssid, char *password, char *address, char *netmask, char *gateway, int32_t size) {
+    strcpy(ssid, "TP-LINK_342B");
+    strcpy(password, "88888888");
+    strcpy(address, "192.168.0.108");
+    strcpy(netmask, "255.255.255.0");
+    strcpy(gateway, "192.168.0.1");
+    return 0;
+}
+
+int32_t MQTTGetMQTTCfg(char *user, char *password, char *url, int32_t size) {
+    strcpy(user, "admin");
+    strcpy(password, "123456");
+    strcpy(url, "mqtt://192.168.0.107:1884");
+    return 0;
+}

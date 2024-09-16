@@ -11,7 +11,7 @@ void QNavigationWidget::paintEvent(QPaintEvent *)
     int32_t w = width();
     int32_t h = height();
     int32_t size = h / rowHeight; //display item num
-    printf ("w:%d h:%d size:%d\n", w, h, size);
+    //printf ("w:%d h:%d size:%d\n", w, h, size);
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, true);
 
@@ -19,14 +19,16 @@ void QNavigationWidget::paintEvent(QPaintEvent *)
     painter.setPen(Qt::NoPen);
     painter.setBrush(backgroundColor);
     painter.drawRect(rect());
-
+printf ("currentIndex:%d size:%d\n", currentIndex, size);
     // Draw Items
     int count = 0;
     int first = 0;
+    offset = 0;
     for (const QString &str : listItems) {
         if (count <= currentIndex - size) {
             //whell
             count++;
+            offset++;
             continue;
         }
         if (first >= size) {
@@ -43,7 +45,7 @@ void QNavigationWidget::paintEvent(QPaintEvent *)
             painter.setPen("#FFFFFF");
             painter.fillPath(itemPath, selectedColor);
         }
-        else if(mouseMoveIndex == count)
+        else if(mouseMoveIndex + offset == count)
         {
             painter.setPen("#FFFFFF");
             painter.fillPath(itemPath, mouseInColor);
@@ -71,6 +73,7 @@ QNavigationWidget::QNavigationWidget(QWidget *parent) : QWidget(parent)
     rowHeight = 40;
     currentIndex = 0;
     mouseMoveIndex = -1;
+    offset = 0;
 
     setMouseTracking(true);
     setFixedWidth(150);
@@ -137,9 +140,14 @@ void QNavigationWidget::mouseMoveEvent(QMouseEvent *e)
 
 void QNavigationWidget::mousePressEvent(QMouseEvent *e)
 {
+    int32_t w = width();
+    int32_t h = height();
+    int32_t size = h / rowHeight; //display item num
     if (e->y() / rowHeight < listItems.count())
     {
-        currentIndex = e->y() / rowHeight;
+        printf ("curreintIndex:%d size:%d ==> %d\n", currentIndex, size, currentIndex - size);
+        currentIndex = e->y() / rowHeight + ((currentIndex - size >= 0) ? (currentIndex - size + 1) : 0);
+        printf ("e->y() / rowHeight:%d currindex......:%d\n", e->y() / rowHeight, currentIndex);
         emit currentItemChanged(currentIndex);
         update();
     }
@@ -158,7 +166,7 @@ void QNavigationWidget::wheelEvent(QWheelEvent *event) {
     QPoint delta = event->angleDelta();
     if (delta.y() > 0) {
         // 处理向上滚动
-        printf ("delta.y:%d\n", delta.y());
+        //printf ("delta.y:%d\n", delta.y());
         currentIndex--;
         if (currentIndex <= 0) {
             currentIndex = 0;
@@ -167,7 +175,7 @@ void QNavigationWidget::wheelEvent(QWheelEvent *event) {
         update();
     } else if (delta.y() < 0) {
         // 处理向下滚动
-         printf ("1delta.y:%d\n", delta.y());
+         //printf ("1delta.y:%d\n", delta.y());
         currentIndex++;
         if (currentIndex >= listItems.size()) {
             currentIndex = listItems.size() - 1;

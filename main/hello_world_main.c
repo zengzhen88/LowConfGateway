@@ -561,7 +561,7 @@ void app_main(void) {
 
         }
 
-#if 0
+#if 1
         {
             /*uart*/
             UartConfig config;
@@ -585,34 +585,33 @@ void app_main(void) {
         }
 
         {
-            ModuleMessage message;
-            message.attr = ModuleDataAttr_GetTemperature;
-            appSearchConfig(gateway, &message);
-
             /*
              * ModuleMessage message;
              * message.attr = ModuleDataAttr_GetTemperature;
              * appSearchConfig(gateway, &message);
              */
-/*
- *             message.attr = ModuleDataAttr_GetModuleVersion;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleInfo;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetPower;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetWifiCfg;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetEthCfg;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetMqttCfg;
- *             appSearchConfig(gateway, &message);
- */
+
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_GetTemperature;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetModuleVersion;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetModuleInfo;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetPower;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetWifiCfg;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetEthCfg;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetMqttCfg;
+            appSearchConfig(gateway, &message);
         }
 
         running = 1;
@@ -699,21 +698,23 @@ void app_main(void) {
 
 #endif
         printf ("%s %d\n", __func__, __LINE__);
-        {
-            /*spi*/
-            SpiConfig config;
-            memset(&config, 0x0, sizeof(config));
-
-            SpiInitLog(gateway, appPrint);
-            SpiSetLogLevel(LogSpi_Info);
-
-            config.send     = appSend;
-            config.recv     = appRecv;
-            config.request  = appDataRequest;
-            config.release  = appDataRelease;
-
-            gateway->spi = SpiInit(&config);
-        }
+/*
+ *         {
+ *             [>spi<]
+ *             SpiConfig config;
+ *             memset(&config, 0x0, sizeof(config));
+ * 
+ *             SpiInitLog(gateway, appPrint);
+ *             SpiSetLogLevel(LogSpi_Info);
+ * 
+ *             config.send     = appSend;
+ *             config.recv     = appRecv;
+ *             config.request  = appDataRequest;
+ *             config.release  = appDataRelease;
+ * 
+ *             gateway->spi = SpiInit(&config);
+ *         }
+ */
 
         printf ("%s %d\n", __func__, __LINE__);
         /*

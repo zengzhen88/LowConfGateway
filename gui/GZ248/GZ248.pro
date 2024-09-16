@@ -11,18 +11,18 @@ CONFIG += c++11
 SOURCES += \
     common.cpp \
     main.cpp \
-    mainwindow.cpp \
     message.cpp \
     mqtt.cpp \
     qnavigationwidget.cpp \
+    subwindow.cpp \
     transmit.cpp
 
 HEADERS += \
-    mainwindow.h \
     mqtt.h \
     qnavigationwidget.h \
     common.h \
     message.h \
+    subwindow.h \
     transmit.h
 
 
@@ -33,7 +33,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    image.qrc
+    image.qrc \
+    res/background.qrc
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/thirdlib/lib/release/ -lcjson
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/thirdlib/lib/debug/ -lcjson

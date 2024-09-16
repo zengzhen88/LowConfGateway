@@ -87,7 +87,7 @@ typedef struct {
 
     TaskHandle_t uartTask;
 
-/* #define Uart_TEST */
+#define Uart_TEST
 #ifdef Uart_TEST
     char *uartAck;
     int ackSize;
@@ -274,8 +274,8 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         snprintf (uart->buffer, uart->bufSize, "AT+MQTTCFG?\r\n"); 
                         uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                        strcpy(uart->uartAck, "+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.104:1883>\r\n");
-                        uart->ackSize = strlen("+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.104:1883>\r\n") + 1;
+                        strcpy(uart->uartAck, "+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n");
+                        uart->ackSize = strlen("+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.107:1883>\r\n") + 1;
 #endif
                         break;
                     }

@@ -37,6 +37,7 @@ private:
     int rowHeight;
     int currentIndex;
     int mouseMoveIndex;
+    int offset;
     //QProgressBar *progressBar;
 
 signals:
