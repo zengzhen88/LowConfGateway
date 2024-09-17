@@ -16,10 +16,22 @@
 #include <QColor>
 #include "qnavigationwidget.h"
 
+enum SubWindowType {
+    SubWindowType_Login,
+    SubWindowType_ServerList,
+    SubWindowType_MainContext,
+    SubWindowType_Context,
+    SubWindowType_Cnt
+};
+
 class SubWindow : public QMainWindow
 {
-    Q_OBJECT
+    Q_OBJECT   
 
+protected:
+    void paintEvent(QPaintEvent *);
+    void changeEvent(QEvent *event);
+    void resizeEvent(QResizeEvent * resizeEvent);
 public:
     SubWindow(QWidget *parent = nullptr);
     int32_t JumpWindowToMainContext(void);
@@ -29,6 +41,7 @@ public:
     int32_t JumpMainWindow(void);
     int32_t JumpWindowToLogin();
     int32_t JumpWindowToServerList();
+    int32_t ClearQnavigationWidget(void);
     void ClearWidget(void);
     ~SubWindow();
     QVBoxLayout *rightLayout;
@@ -57,13 +70,15 @@ public:
     QWidget *subHWidget;
     QNavigationWidget *navigationWidget;
     QTableWidget *serverTable;
-    QTableWidget *itemTable;
+    QTableWidget *contextTable;
     QCheckBox *allCheck;
     const QPalette *palettes;
     QColor *color;
-
+    QColor backgroundColor;
     /*second window*/
     QMainWindow *secondWindow;
+
+    SubWindowType windowType;
 
 //private slots:
 //    void lineEdit0Draw(QString str);

@@ -11,15 +11,131 @@
 #include <QRegExpValidator>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QPainter>
+#include <QScreen>
+#include <QPainterPath>
+#include <mqtt.h>
+
 
 const char *PowerMode2Name[] = {
     "DC",
     "BAT"
 };
 
+const char *SubWindow2Name[] = {
+    "Login",
+    "ServerList",
+    "MainContext",
+    "Context",
+};
+
+void SubWindow::resizeEvent(QResizeEvent * resizeEvent) {
+    QSize newSize = resizeEvent->size();
+    printf ("newSize.width:%d height:%d\n", newSize.width(), newSize.height());
+
+    printf (">>>>>>>>>>>>>>> windowType:%s\n", SubWindow2Name[windowType]);
+    // 窗口已最大化，执行相应操作
+    switch (windowType) {
+    case SubWindowType_Login:
+    {
+        JumpWindowToLogin();
+        break;
+    }
+    case SubWindowType_ServerList:
+    {
+        ClearQnavigationWidget();
+        JumpWindowToServerList();
+        break;
+    }
+    case SubWindowType_MainContext:
+    {
+        JumpWindowToMainContext();
+        break;
+    }
+    case SubWindowType_Context:
+    {
+        JumpWindowToContext(currentIndex);
+        break;
+    }
+    default:break;
+    }
+}
+
+// 重写showEvent事件处理函数
+void SubWindow::changeEvent(QEvent *event) {
+    printf ("event->type():%d\n", event->type());
+    QRect screenGeometry = this->screen()->geometry();
+    printf ("x:%d y:%d w:%d h:%d\n", screenGeometry.x(), screenGeometry.y(), screenGeometry.width(), screenGeometry.height());
+    QRect screenGeometry1 = this->geometry();
+    printf ("x:%d y:%d w:%d h:%d\n", screenGeometry1.x(), screenGeometry1.y(), screenGeometry1.width(), screenGeometry1.height());
+    printf ("w:%d y:%d\n", width(), height());
+    if (event->type() == QEvent::WindowStateChange) {
+        // 当窗口状态改变时（如最大化），此分支会被触发
+        if (isMaximized()) {
+            printf (">>>>>>>>>>>>>>> windowType:%s\n", SubWindow2Name[windowType]);
+            // 窗口已最大化，执行相应操作
+            switch (windowType) {
+            case SubWindowType_Login:
+            {
+                JumpWindowToLogin();
+                break;
+            }
+            case SubWindowType_ServerList:
+            {
+                break;
+            }
+            case SubWindowType_MainContext:
+            {
+                break;
+            }
+            case SubWindowType_Context:
+            {
+                break;
+            }
+            default:break;
+            }
+        }
+    }
+    QWidget::changeEvent(event);
+}
+
+void SubWindow::paintEvent(QPaintEvent *event) {
+    #if 0
+    static int32_t ref = 0;
+    printf ("sdfasdfasdfasdfasd:%d\n", ref++);
+    int32_t qnavigationX = navigationWidget->x();
+    int32_t qnavigationY = navigationWidget->y();
+    int32_t qnavigationW = navigationWidget->width();
+    int32_t qnavigationH = navigationWidget->height();
+
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    // Draw background color.
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(backgroundColor);
+    painter.drawRect(rect());
+
+    QPainterPath itemPath;
+    //QPainterPath *itemPath = QPainterPath();
+    itemPath.addRect(QRect(qnavigationX, qnavigationY, qnavigationW, qnavigationH));
+
+    painter.setPen("#202020");
+    painter.fillPath(itemPath, backgroundColor);
+#endif
+}
+
+int32_t SubWindow::ClearQnavigationWidget(void) {
+    //repaint();
+    //mainLayout->removeWidget(navigationWidget);
+    //mainLayout->removeWidget(rightWidget);
+    contextTable->disconnect();
+    return 0;
+}
+
 void SubWindow::ClearWidget(void) {
-    //setPalette(*palette);
-    //this->palette().setColor(this->backgroundRole(), this->palette().color(this->backgroundRole()));
+
+    //navigationWidget->hide();
     enter->hide();
     cancel->hide();
     search->hide();
@@ -43,11 +159,13 @@ void SubWindow::ClearWidget(void) {
     label5->hide();
     allCheck->hide();
     serverTable->hide();
+    contextTable->hide();
     enter->disconnect();
     cancel->disconnect();
     search->disconnect();
     allCheck->disconnect();
     //serverTable->disconnect();
+    //contextTable->disconnect();
 }
 
 int32_t SubWindow::SetCurrentIndex(int32_t number) {
@@ -123,40 +241,56 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number) {
     return 0;
 }
 
+#define COMMON_WIDTH (200)
+#define COMMON_HEIGHT (40)
 
 int32_t SubWindow::JumpWindowToContext(int32_t number) {
+    windowType = SubWindowType_Context;
     switch (number) {
     case ModuleDataAttr_GetTemperature:
     {
+        //printf ("SSSSSSSSSSSSSSSSSSSSSSSs\n");
         ClearWidget();
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("温度:");
         QString temperature(QString::number(MQTTGetTemperature()));
         label->setText(strings + temperature);
         label->adjustSize();
         label->show();
+        contextTable->show();
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        label->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_GetModuleVersion:
     {
         ClearWidget();
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("模块版本:");
         char sVersion[128];
         MQTTGetModuleVersion(sVersion, sizeof(sVersion));
@@ -165,16 +299,23 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label->adjustSize();
         label->show();
         cancel->setText("返回");
+        contextTable->show();
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        label->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -183,8 +324,11 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_GetModuleInfo:
     {
         ClearWidget();
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("模块信息:");
         char sInfo[128];
         MQTTGetModuleInfo(sInfo, sizeof(sInfo));
@@ -193,17 +337,24 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label->setText(strings + info);
         label->adjustSize();
         label->show();
+        contextTable->show();
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        label->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -212,11 +363,13 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_SetModuleInfo:
     {
         ClearWidget();
+        //navigationWidget->show();
         //subHLayout->addWidget(label, 0, Qt::AlignTop);
-        subHLayout->addWidget(lineEdit0, 0, Qt::AlignTop);
-        subHLayout->addWidget(enter, 0, Qt::AlignTop);
-        rightLayout->addLayout(subHLayout);
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         enter->setText("确定");
         //label->setText("请输入模块版本:");
         lineEdit0->setPlaceholderText("请输入模块版本:");
@@ -224,21 +377,32 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         lineEdit0->clear();
         lineEdit0->show();
         enter->show();
+        contextTable->show();
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
         rightLayout->removeWidget(cancel);
-        rightLayout->removeItem(subHLayout);
-        subHLayout->removeWidget(lineEdit0);
-        //subHLayout->removeWidget(label);
-        subHLayout->removeWidget(enter);
+        rightLayout->removeWidget(lineEdit0);
+        rightLayout->removeWidget(enter);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        lineEdit0->setGeometry(labelX, labelY, labelW, labelH);
+        labelX = 2, labelY += labelH, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
+        });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex);
         });
 
         break;
@@ -248,8 +412,11 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         PowerSupplyMode mode;
         int level;
         ClearWidget();
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("模块信息:");
         MQTTGetPower(&mode, &level);
         QString info((QString)"PowerMode<" + (QString)PowerMode2Name[mode] + (QString)">  PowerLevel<" + QString::number(level) + (QString)">");
@@ -257,17 +424,23 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label->setText(strings + info);
         label->adjustSize();
         label->show();
+        contextTable->show();
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+        mainLayout->removeWidget(contextTable);
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -276,22 +449,36 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_Reboot:
     {
         ClearWidget();
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         enter->setText("重启");
         enter->show();
         cancel->setText("返回");
+        contextTable->show();
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
+        });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex);
         });
 
         break;
@@ -299,8 +486,11 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_NetState:
     {
         ClearWidget();
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("网络状态:");
         QString netState((MQTTGetNetState()));
         //printf ("netState:%s\n", strings + netState);
@@ -308,16 +498,22 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label->adjustSize();
         label->show();
         cancel->setText("返回");
+        contextTable->show();
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
+        mainLayout->removeWidget(rightWidget);
+        mainLayout->removeWidget(contextTable);
+
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -326,12 +522,14 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_GetEthCfg:
     {
         ClearWidget();
-        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addLayout(subVLayout);
-        rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
+        mainLayout->addWidget(rightWidget);
         QString strings("<有线配置>");
         char sAddress[128];
         char sNetmask[128];
@@ -347,35 +545,38 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label1->show();
         label2->show();
         label3->show();
-        int32_t left, right, top, bottom;
-        subVLayout->setContentsMargins(2, 2, 2, 2);
-        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
-        //printf ("left:%d top:%d right:%d bottom:%d\n",
-        //        left, top, right, bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
-        label->setGeometry(labelX, labelY, labelW, labelH);
-        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
-        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = 200, label1H = 20;
-        label1->setGeometry(label1X, label1Y, label1W, label1H);
-        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = 200, label2H = 20;
-        label2->setGeometry(label2X, label2Y, label2W, label2H);
-        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = 200, label3H = 20;
-        label3->setGeometry(label3X, label3Y, label3W, label3H);
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
-        cancel->setGeometry(returnX, returnY, returnW, returnH);
+        contextTable->show();
+
         rightLayout->removeWidget(cancel);
-        subVLayout->removeWidget(label);
-        subVLayout->removeWidget(label1);
-        subVLayout->removeWidget(label2);
-        subVLayout->removeWidget(label3);
-        rightLayout->removeItem(subVLayout);
+        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(label1);
+        rightLayout->removeWidget(label2);
+        rightLayout->removeWidget(label3);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t left, right, top, bottom;
+        rightLayout->setContentsMargins(2, 2, 2, 2);
+        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
+        //printf ("left:%d top:%d right:%d bottom:%d\n",
+        //        left, top, right, bottom);
+        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        label->setGeometry(labelX, labelY, labelW, labelH);
+        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
+        int32_t label1X = labelX, label1Y = labelY + labelH, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
+        label1->setGeometry(label1X, label1Y, label1W, label1H);
+        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
+        label2->setGeometry(label2X, label2Y, label2W, label2H);
+        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = COMMON_WIDTH, label3H = COMMON_HEIGHT;
+        label3->setGeometry(label3X, label3Y, label3W, label3H);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -384,13 +585,14 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_SetEthCfg:
     {
         ClearWidget();
-        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addLayout(subVLayout);
-        rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
+        mainLayout->addWidget(rightWidget);
         enter->setText("确定");
         label->setText("请输入有线配置:");
         lineEdit0->setPlaceholderText("网络地址");
@@ -403,41 +605,58 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         lineEdit0->show();
         lineEdit1->show();
         lineEdit2->show();
+        contextTable->show();
         enter->show();
+
+        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(lineEdit0);
+        rightLayout->removeWidget(lineEdit1);
+        rightLayout->removeWidget(lineEdit2);
+        rightLayout->removeWidget(enter);
+        rightLayout->removeWidget(cancel);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        printf ("contextTable->x:%d y:%d w:%d h:%d\n", contextTable->x(), contextTable->y(), contextTable->width(), contextTable->height());
+        printf ("rightWidget x:%d y:%d w:%d h:%d\n", rightWidget->x(), rightWidget->y(), rightWidget->width(), rightWidget->height());
         int32_t left, right, top, bottom;
-        subVLayout->setContentsMargins(2, 2, 2, 2);
-        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
-        //printf ("left:%d top:%d right:%d bottom:%d\n",
-        //        left, top, right, bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
+        rightLayout->setContentsMargins(2, 2, 2, 2);
+        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
+        printf ("left:%d top:%d right:%d bottom:%d\n",
+                left, top, right, bottom);
+        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
-        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = 200, lineEdit0H = 20;
+        printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
+        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
-        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = 200, lineEdit1H = 20;
+        printf ("label->x():%d label->y():%d width():%d height():%d\n", lineEdit0->x(), lineEdit0->y(), lineEdit0->width(), lineEdit0->height());
+        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = COMMON_WIDTH, lineEdit1H = COMMON_HEIGHT;
         lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
-        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = 200, lineEdit2H = 20;
+        printf ("label->x():%d label->y():%d width():%d height():%d\n", lineEdit1->x(), lineEdit1->y(), lineEdit1->width(), lineEdit1->height());
+        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = COMMON_WIDTH, lineEdit2H = COMMON_HEIGHT;
         lineEdit2->setGeometry(lineEdit2X, lineEdit2Y, lineEdit2W, lineEdit2H);
-        int32_t enterX = labelX, enterY = lineEdit2Y + lineEdit1H, enterW = 40, enterH = 20;
+        printf ("label->x():%d label->y():%d width():%d height():%d\n", lineEdit2->x(), lineEdit2->y(), lineEdit2->width(), lineEdit2->height());
+        int32_t enterX = labelX, enterY = lineEdit2Y + lineEdit1H, enterW = 40, enterH = COMMON_HEIGHT;
         enter->setGeometry(enterX, enterY, enterW, enterH);
+        printf ("label->x():%d label->y():%d width():%d height():%d\n", enter->x(), enter->y(), enter->width(), enter->height());
 
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
         //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-        rightLayout->removeWidget(cancel);
-        subVLayout->removeWidget(label);
-        subVLayout->removeWidget(lineEdit0);
-        subVLayout->removeWidget(lineEdit1);
-        subVLayout->removeWidget(lineEdit2);
-        rightLayout->removeItem(subVLayout);
-        subVLayout->removeWidget(enter);
+update();
+
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
+        });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex);
         });
 
         break;
@@ -445,14 +664,16 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_GetWifiCfg:
     {
         ClearWidget();
-        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label4, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label5, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addLayout(subVLayout);
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label4, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label5, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("<无线配置>");
         char sSsid[128];
         char sPassword[128];
@@ -474,41 +695,46 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label3->show();
         label4->show();
         label5->show();
+        contextTable->show();
+
+        rightLayout->removeWidget(cancel);
+        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(label1);
+        rightLayout->removeWidget(label2);
+        rightLayout->removeWidget(label3);
+        mainLayout->removeWidget(contextTable);
+        rightLayout->removeWidget(label4);
+        rightLayout->removeWidget(label5);
+        mainLayout->removeWidget(rightWidget);
+
         int32_t left, right, top, bottom;
-        subVLayout->setContentsMargins(2, 2, 2, 2);
-        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
+        rightLayout->setContentsMargins(2, 2, 2, 2);
+        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
         //printf ("left:%d top:%d right:%d bottom:%d\n",
         //        left, top, right, bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
+        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
         //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
-        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = 200, label1H = 20;
+        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
         label1->setGeometry(label1X, label1Y, label1W, label1H);
-        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = 200, label2H = 20;
+        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
         label2->setGeometry(label2X, label2Y, label2W, label2H);
-        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = 200, label3H = 20;
+        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = COMMON_WIDTH, label3H = COMMON_HEIGHT;
         label3->setGeometry(label3X, label3Y, label3W, label3H);
-        int32_t label4X = label3X, label4Y = label3Y + label3H, label4W = 200, label4H = 20;
+        int32_t label4X = label3X, label4Y = label3Y + label3H, label4W = COMMON_WIDTH, label4H = COMMON_HEIGHT;
         label4->setGeometry(label4X, label4Y, label4W, label4H);
-        int32_t label5X = label4X, label5Y = label4Y + label4H, label5W = 200, label5H = 20;
+        int32_t label5X = label4X, label5Y = label4Y + label4H, label5W = COMMON_WIDTH, label5H = COMMON_HEIGHT;
         label5->setGeometry(label5X, label5Y, label5W, label5H);
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
         //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-        rightLayout->removeWidget(cancel);
-        subVLayout->removeWidget(label);
-        subVLayout->removeWidget(label1);
-        subVLayout->removeWidget(label2);
-        subVLayout->removeWidget(label3);
-        subVLayout->removeWidget(label4);
-        subVLayout->removeWidget(label5);
-        rightLayout->removeItem(subVLayout);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -517,15 +743,17 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_SetWifiCfg:
     {
         ClearWidget();
-        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit3, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit4, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addLayout(subVLayout);
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit3, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit4, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         enter->setText("确定");
         label->setText("请输入无线配置:");
         lineEdit0->setPlaceholderText("无线账号");
@@ -544,47 +772,56 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         lineEdit2->show();
         lineEdit3->show();
         lineEdit4->show();
+        contextTable->show();
         enter->show();
+
+        rightLayout->removeWidget(cancel);
+        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(lineEdit0);
+        rightLayout->removeWidget(lineEdit1);
+        rightLayout->removeWidget(lineEdit2);
+        rightLayout->removeWidget(lineEdit3);
+        mainLayout->removeWidget(contextTable);
+        rightLayout->removeWidget(lineEdit4);
+        rightLayout->removeWidget(enter);
+        mainLayout->removeWidget(rightWidget);
+
         int32_t left, right, top, bottom;
-        subVLayout->setContentsMargins(2, 2, 2, 2);
-        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
+        rightLayout->setContentsMargins(2, 2, 2, 2);
+        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
         //printf ("left:%d top:%d right:%d bottom:%d\n",
         //        left, top, right, bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
+        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
         //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
-        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = 200, lineEdit0H = 20;
+        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
-        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = 200, lineEdit1H = 20;
+        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = COMMON_WIDTH, lineEdit1H = COMMON_HEIGHT;
         lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
-        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = 200, lineEdit2H = 20;
+        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = COMMON_WIDTH, lineEdit2H = COMMON_HEIGHT;
         lineEdit2->setGeometry(lineEdit2X, lineEdit2Y, lineEdit2W, lineEdit2H);
-        int32_t lineEdit3X = lineEdit2X, lineEdit3Y = lineEdit2Y + lineEdit2H, lineEdit3W = 200, lineEdit3H = 20;
+        int32_t lineEdit3X = lineEdit2X, lineEdit3Y = lineEdit2Y + lineEdit2H, lineEdit3W = COMMON_WIDTH, lineEdit3H = COMMON_HEIGHT;
         lineEdit3->setGeometry(lineEdit3X, lineEdit3Y, lineEdit3W, lineEdit3H);
-        int32_t lineEdit4X = lineEdit3X, lineEdit4Y = lineEdit3Y + lineEdit3H, lineEdit4W = 200, lineEdit4H = 20;
+        int32_t lineEdit4X = lineEdit3X, lineEdit4Y = lineEdit3Y + lineEdit3H, lineEdit4W = COMMON_WIDTH, lineEdit4H = COMMON_HEIGHT;
         lineEdit4->setGeometry(lineEdit4X, lineEdit4Y, lineEdit4W, lineEdit4H);
-        int32_t enterX = lineEdit4X, enterY = lineEdit4Y + lineEdit4H, enterW = 40, enterH = 20;
+        int32_t enterX = lineEdit4X, enterY = lineEdit4Y + lineEdit4H, enterW = 40, enterH = COMMON_HEIGHT;
         enter->setGeometry(enterX, enterY, enterW, enterH);
 
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
         //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-        rightLayout->removeWidget(cancel);
-        subVLayout->removeWidget(label);
-        subVLayout->removeWidget(lineEdit0);
-        subVLayout->removeWidget(lineEdit1);
-        subVLayout->removeWidget(lineEdit2);
-        subVLayout->removeWidget(lineEdit3);
-        subVLayout->removeWidget(lineEdit4);
-        rightLayout->removeItem(subVLayout);
-        subVLayout->removeWidget(enter);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
+        });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex);
         });
 
         break;
@@ -592,12 +829,14 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_GetMqttCfg:
     {
         ClearWidget();
-        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addLayout(subVLayout);
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         QString strings("<MQTT配置>");
         char sUser[128];
         char sPassword[128];
@@ -613,35 +852,40 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label1->show();
         label2->show();
         label3->show();
+        contextTable->show();
+
+        rightLayout->removeWidget(cancel);
+        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(label1);
+        rightLayout->removeWidget(label2);
+        rightLayout->removeWidget(label3);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
         int32_t left, right, top, bottom;
-        subVLayout->setContentsMargins(2, 2, 2, 2);
-        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
+        rightLayout->setContentsMargins(2, 2, 2, 2);
+        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
         //printf ("left:%d top:%d right:%d bottom:%d\n",
         //        left, top, right, bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
+        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
         //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
-        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = 200, label1H = 20;
+        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
         label1->setGeometry(label1X, label1Y, label1W, label1H);
-        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = 200, label2H = 20;
+        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
         label2->setGeometry(label2X, label2Y, label2W, label2H);
-        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = 200, label3H = 20;
+        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = COMMON_WIDTH, label3H = COMMON_HEIGHT;
         label3->setGeometry(label3X, label3Y, label3W, label3H);
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
         //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-        rightLayout->removeWidget(cancel);
-        subVLayout->removeWidget(label);
-        subVLayout->removeWidget(label1);
-        subVLayout->removeWidget(label2);
-        subVLayout->removeWidget(label3);
-        rightLayout->removeItem(subVLayout);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
         });
 
@@ -650,13 +894,15 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
     case ModuleDataAttr_SetMqttCfg:
     {
         ClearWidget();
-        subVLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
-        subVLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addLayout(subVLayout);
+        //navigationWidget->show();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
         enter->setText("确定");
         label->setText("请输入MQTT配置:");
         lineEdit0->setPlaceholderText("用户账号");
@@ -669,38 +915,48 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         lineEdit0->show();
         lineEdit1->show();
         lineEdit2->show();
+        contextTable->show();
         enter->show();
+
+        rightLayout->removeWidget(cancel);
+        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(lineEdit0);
+        rightLayout->removeWidget(lineEdit1);
+        rightLayout->removeWidget(lineEdit2);
+        mainLayout->removeWidget(contextTable);
+        rightLayout->removeWidget(enter);
+        mainLayout->removeWidget(rightWidget);
+
+
         int32_t left, right, top, bottom;
-        subVLayout->setContentsMargins(2, 2, 2, 2);
-        subVLayout->getContentsMargins(&left, &top, &right, &bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = 200, labelH = 20;
+        rightLayout->setContentsMargins(2, 2, 2, 2);
+        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
+        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = 200, lineEdit0H = 20;
+        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
-        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = 200, lineEdit1H = 20;
+        int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = COMMON_WIDTH, lineEdit1H = COMMON_HEIGHT;
         lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
-        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = 200, lineEdit2H = 20;
+        int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = COMMON_WIDTH, lineEdit2H = COMMON_HEIGHT;
         lineEdit2->setGeometry(lineEdit2X, lineEdit2Y, lineEdit2W, lineEdit2H);
-        int32_t enterX = lineEdit2X, enterY = lineEdit2Y + lineEdit2H, enterW = 40, enterH = 20;
+        int32_t enterX = lineEdit2X, enterY = lineEdit2Y + lineEdit2H, enterW = 40, enterH = COMMON_HEIGHT;
         enter->setGeometry(enterX, enterY, enterW, enterH);
 
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = 20;
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
         //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-        rightLayout->removeWidget(cancel);
-        subVLayout->removeWidget(label);
-        subVLayout->removeWidget(lineEdit0);
-        subVLayout->removeWidget(lineEdit1);
-        subVLayout->removeWidget(lineEdit2);
-        rightLayout->removeItem(subVLayout);
-        subVLayout->removeWidget(enter);
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
             JumpWindowToServerList();
+        });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex);
         });
 
         break;
@@ -721,27 +977,35 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
 
 int32_t SubWindow::JumpWindowToMainContext(void) {
     ClearWidget();
-    navigationWidget->setRowHeight(30);
-    for (int32_t index = 0; index < ModuleDataAttr_Cnt; index++) {
-        if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
-        navigationWidget->addItem("GZ248", toEnumChineseString((ModuleDataAttr)index));
-    }
 
-    //设置内部控件或子布局器距离四个边的边距
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(navigationWidget);
+    mainLayout->addWidget(contextTable);
     mainLayout->addWidget(rightWidget);
+    windowType = SubWindowType_MainContext;
 
     setCentralWidget(mainWidget);
 
-    //JumpWindowToContext(0);
-    connect(navigationWidget, &QNavigationWidget::currentItemChanged, this, [=](const int &current){
-        SetCurrentIndex(current);
-        JumpWindowToContext(current);
-    });
+    for (int32_t index = 0; index < ModuleDataAttr_Cnt; index++) {
+        if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
+        int32_t rowCount = contextTable->rowCount();
+        contextTable->insertRow(rowCount);
+        printf ("rowCount:%d\n", rowCount);
+        printf ("label:%s\n", toEnumChineseString((ModuleDataAttr)index));
+        QTableWidgetItem *item = new QTableWidgetItem(QString::fromUtf8(toEnumChineseString((ModuleDataAttr)index)));
+        contextTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        contextTable->setItem(rowCount, 0, item);
 
-    connect(enter, &QPushButton::clicked, this, [=](){
-        JumpWindowToContextTransmit(currentIndex);
+    }
+
+    contextTable->show();
+
+    mainLayout->removeWidget(rightWidget);
+    mainLayout->removeWidget(contextTable);
+
+    //单元格被点击处理
+    connect(contextTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
+        //rightWidget->resize(this->width() - contextTable->width(), this->height());
+        JumpWindowToContext(row);
+        contextTable->selectRow(row);
     });
 
     return 0;
@@ -749,15 +1013,16 @@ int32_t SubWindow::JumpWindowToMainContext(void) {
 
 int32_t SubWindow::JumpWindowToServerList(void) {
     ClearWidget();
-    subVLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(serverTable, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(lineEdit3, 0, Qt::AlignTop | Qt::AlignLeft);
-    subVLayout->addWidget(allCheck);
-    mainLayout->addLayout(subVLayout);
+    rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(serverTable, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(lineEdit3, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(allCheck);
+    mainLayout->addWidget(rightWidget);
+    windowType = SubWindowType_ServerList;
 
     lineEdit3->setPlaceholderText("请输入要搜索的内容...");
     lineEdit0->setPlaceholderText("用户账号");
@@ -798,14 +1063,15 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     int32_t searchX = left + 2, searchY = mainWidget->height() - 20, searchW = 200, searchH = 20;
     lineEdit3->setGeometry(searchX, searchY, searchW, searchH);
 
-    subVLayout->removeWidget(lineEdit0);
-    subVLayout->removeWidget(lineEdit1);
-    subVLayout->removeWidget(lineEdit2);
-    subVLayout->removeWidget(lineEdit3);
-    subVLayout->removeWidget(enter);
-    subVLayout->removeWidget(cancel);
-    subVLayout->removeWidget(allCheck);
-    mainLayout->removeItem(subVLayout);
+    rightLayout->removeWidget(lineEdit0);
+    rightLayout->removeWidget(lineEdit1);
+    rightLayout->removeWidget(lineEdit2);
+    rightLayout->removeWidget(lineEdit3);
+    rightLayout->removeWidget(enter);
+    rightLayout->removeWidget(cancel);
+    rightLayout->removeWidget(allCheck);
+    rightLayout->removeWidget(serverTable);
+    mainLayout->removeWidget(rightWidget);
 
     //添加客户端列表成员
     connect(enter, &QPushButton::clicked, this, [=](){
@@ -828,6 +1094,8 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         item = new QTableWidgetItem(QString("进入"));
         //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 3, item);
+        //serverTable->setProperty("MQTTSubscribe", );
+        //serverTable->setProperty(MQTTNewPublish);
     });
     //删除客户端列表成员
     connect(cancel, &QPushButton::clicked, this, [=](){
@@ -846,6 +1114,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             }
         }
     });
+
     //复选框状态变化
     connect(allCheck, &QCheckBox::stateChanged, this, [=](int32_t state){
         int32_t sRow = serverTable->rowCount();
@@ -864,8 +1133,8 @@ int32_t SubWindow::JumpWindowToServerList(void) {
 
     //单元格被点击处理
     connect(serverTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
+        //printf (">>>>>>>>>>>>>>> row:%d col:%d\n", row, col);
         if (col == 3) {//只有第3列需要有点击响应
-            QTableWidgetItem *item = serverTable->item(row, col);
             JumpWindowToMainContext();
         }
     });
@@ -891,6 +1160,7 @@ int32_t SubWindow::JumpWindowToLogin(void) {
     lineEdit1->setEchoMode(QLineEdit::Password);
     mainLayout->addWidget(rightWidget);
     setCentralWidget(mainWidget);
+    windowType = SubWindowType_Login;
 
 
     lineEdit0->show();
@@ -929,7 +1199,7 @@ int32_t SubWindow::JumpWindowToLogin(void) {
                 && !strcmp(lineEdit1->text().toStdString().c_str(), "123456")) {
             //printf ("enter\n");
             //创建客户端列表
-            serverTable = new QTableWidget(this);
+            //serverTable = new QTableWidget(this);
             serverTable->setRowCount(0); // 初始不设置行，动态添加
             serverTable->setColumnCount(4);
             serverTable->setHorizontalHeaderLabels(QStringList() << "用户账号" << "用户密码" << "服务地址" << "操作方式");
@@ -942,6 +1212,11 @@ int32_t SubWindow::JumpWindowToLogin(void) {
         }
     });
 
+    return 0;
+}
+
+int32_t subWindowPrintf(void *oObj, const char *strings) {
+    printf ("%s", strings);
     return 0;
 }
 
@@ -980,14 +1255,29 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     label3 = new QLabel();
     label4 = new QLabel();
     label5 = new QLabel();
-    serverTable = new QTableWidget();
-    itemTable = new QTableWidget();
+    serverTable = new QTableWidget(this);
+    contextTable = new QTableWidget(this);
+    contextTable->setFixedWidth(150);
     allCheck = new QCheckBox("全选");
+    backgroundColor = "#E4E4E4";
+    windowType = SubWindowType_Login;
     //palette = new QPalette();
     //QPixmap pixmap(QString(":/background.png"));
     //palette->setBrush(QPalette::Background, QBrush(pixmap));
     //*palettes = this->palette();
     //*color = palettes->color(this->backgroundRole());
+
+    contextTable->setRowCount(0); // 初始不设置行，动态添加
+    contextTable->setColumnCount(1);
+    contextTable->setHorizontalHeaderLabels(QStringList() << "功能列表");
+    // 启用拖拽
+    contextTable->setDragEnabled(true);
+    contextTable->setAcceptDrops(true);
+    contextTable->setDropIndicatorShown(true);
+
+    MQTTInitLog(this, subWindowPrintf);
+    MQTTInit();
+
     //跳转到登陆界面
     JumpWindowToLogin();
 }
