@@ -15,6 +15,7 @@
 #include <QScreen>
 #include <QPainterPath>
 #include <mqtt.h>
+#include <QMap>
 
 
 const char *PowerMode2Name[] = {
@@ -1072,7 +1073,20 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     rightLayout->removeWidget(allCheck);
     rightLayout->removeWidget(serverTable);
     mainLayout->removeWidget(rightWidget);
-
+#if 0
+    void *CreateMQTTCollection(const char *username,
+                               const char *password,
+                               const char *hostname,
+                               int32_t port,
+                               int32_t qos,
+                               MQTTConnect pushConnect,
+                               MQTTDisconnect pushDisconnect,
+                               MQTTPushlish pushPushlish,
+                               MQTTConnect scribeConnect,
+                               MQTTDisconnect scribeDisconnect,
+                               MQTTSubscribe scribeScribe,
+                               MQTTMessage scribeMessage);
+#endif
     //添加客户端列表成员
     connect(enter, &QPushButton::clicked, this, [=](){
         QString userString = lineEdit0->text();
@@ -1081,6 +1095,15 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         int rowCount = serverTable->rowCount();
         serverTable->insertRow(rowCount);
         QTableWidgetItem *item = new QTableWidgetItem(userString);
+#if 0
+        collect = CreateMQTTCollection(userString.toStdString().c_str(),
+                                       passwordString.toStdString().c_str(),
+                                       netString.toStdString().c_str(),
+                                       )
+        serverTableMap.insert((long)item, )
+     #endif
+        //char buffer[128];
+        //snprintf (buffer, sizeof(buffer) - 1, "%p", item);
         //serverTable->setSelectionMode(QAbstractItemView::SingleSelection);
         serverTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
         serverTable->setItem(rowCount, 0, item);
@@ -1096,6 +1119,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         serverTable->setItem(rowCount, 3, item);
         //serverTable->setProperty("MQTTSubscribe", );
         //serverTable->setProperty(MQTTNewPublish);
+
     });
     //删除客户端列表成员
     connect(cancel, &QPushButton::clicked, this, [=](){

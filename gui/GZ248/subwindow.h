@@ -15,6 +15,7 @@
 #include <QPalette>
 #include <QColor>
 #include "qnavigationwidget.h"
+#include <QMap>
 
 enum SubWindowType {
     SubWindowType_Login,
@@ -70,6 +71,7 @@ public:
     QWidget *subHWidget;
     QNavigationWidget *navigationWidget;
     QTableWidget *serverTable;
+    QMap<long, long> serverTableMap;
     QTableWidget *contextTable;
     QCheckBox *allCheck;
     const QPalette *palettes;

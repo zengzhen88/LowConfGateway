@@ -13,12 +13,14 @@ SOURCES += \
     main.cpp \
     message.cpp \
     mqtt.cpp \
+    mqttcollection.cpp \
     qnavigationwidget.cpp \
     subwindow.cpp \
     transmit.cpp
 
 HEADERS += \
     mqtt.h \
+    mqttcollection.h \
     qnavigationwidget.h \
     common.h \
     message.h \
@@ -51,18 +53,6 @@ else:unix: PRE_TARGETDEPS += $$PWD/thirdlib/lib/libcjson.a
 
 DISTFILES +=
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/thirdlib/lib/release/ -lcrypto
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/thirdlib/lib/debug/ -lcrypto
-else:unix: LIBS += -L$$PWD/thirdlib/lib/ -lcrypto
-
-INCLUDEPATH += $$PWD/thirdlib
-DEPENDPATH += $$PWD/thirdlib
-
-win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/release/libcrypto.a
-else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/libcrypto.a
-else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/release/crypto.lib
-else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/crypto.lib
-else:unix: PRE_TARGETDEPS += $$PWD/thirdlib/lib/libcrypto.a
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/thirdlib/lib/release/ -lmosquitto
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/thirdlib/lib/debug/ -lmosquitto
@@ -103,3 +93,16 @@ else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/th
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/ssl.lib
 else:unix: PRE_TARGETDEPS += $$PWD/thirdlib/lib/libssl.a
 
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/thirdlib/lib/release/ -lcrypto
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/thirdlib/lib/debug/ -lcrypto
+else:unix: LIBS += -L$$PWD/thirdlib/lib/ -lcrypto
+
+INCLUDEPATH += $$PWD/thirdlib
+DEPENDPATH += $$PWD/thirdlib
+
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/release/libcrypto.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/libcrypto.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/release/crypto.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/crypto.lib
+else:unix: PRE_TARGETDEPS += $$PWD/thirdlib/lib/libcrypto.a
