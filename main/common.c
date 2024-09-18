@@ -110,6 +110,56 @@ const char *toAckEnumString(ModuleDataAttr attr) {
     }
 }
 
+ModuleDataAttr toAckStringEnum(const char *strings) {
+    if (strstr(strings, "UpdateAck")) {
+        return ModuleDataAttr_Update;
+    }
+    else if (strstr(strings, "ReportDataAck")) {
+        return ModuleDataAttr_ReportData;
+    }
+    else if (strstr(strings, "GetTemperatureAck")) {
+        return ModuleDataAttr_GetTemperature;
+    }
+    else if (strstr(strings, "GetModuleVersionAck")) {
+        return ModuleDataAttr_GetModuleVersion;
+    }
+    else if (strstr(strings, "GetModuleInfoAck")) {
+        return ModuleDataAttr_GetModuleInfo;
+    }
+    else if (strstr(strings, "SetModuleInfoAck")) {
+        return ModuleDataAttr_SetModuleInfo;
+    }
+    else if (strstr(strings, "GetPowerAck")) {
+        return ModuleDataAttr_GetPower;
+    }
+    else if (strstr(strings, "RebootAck")) {
+        return ModuleDataAttr_Reboot;
+    }
+    else if (strstr(strings, "NetStateAck")) {
+        return ModuleDataAttr_NetState;
+    }
+    else if (strstr(strings, "GetWifiCfgAck")) {
+        return ModuleDataAttr_GetWifiCfg;
+    }
+    else if (strstr(strings, "SetWifiCfgAck")) {
+        return ModuleDataAttr_SetWifiCfg;
+    }
+    else if (strstr(strings, "GetEthCfgAck")) {
+        return ModuleDataAttr_GetEthCfg;
+    }
+    else if (strstr(strings, "SetEthCfgAck")) {
+        return ModuleDataAttr_SetEthCfg;
+    }
+    else if (strstr(strings, "PtSendAck")) {
+        return ModuleDataAttr_PtSend;
+    }
+    else {
+        return ModuleDataAttr_Cnt;
+    }
+
+    return ModuleDataAttr_Cnt;
+}
+
 ModuleDataAttr toStringEnum(const char *strings) {
     if (strstr(strings, "Update")) {
         return ModuleDataAttr_Update;

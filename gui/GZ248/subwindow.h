@@ -16,6 +16,10 @@
 #include <QColor>
 #include "qnavigationwidget.h"
 #include <QMap>
+#define QTMQTT_
+#ifdef QTMQTT_
+#include <QtMqtt/qmqttclient.h>
+#endif
 
 enum SubWindowType {
     SubWindowType_Login,
@@ -35,8 +39,8 @@ protected:
     void resizeEvent(QResizeEvent * resizeEvent);
 public:
     SubWindow(QWidget *parent = nullptr);
-    int32_t JumpWindowToMainContext(void);
-    int32_t JumpWindowToContext(int32_t number);
+    int32_t JumpWindowToMainContext(QMqttClient *client);
+    int32_t JumpWindowToContext(int32_t number, QMqttClient *client);
     int32_t JumpWindowToContextTransmit(int32_t number);
     int32_t SetCurrentIndex(int32_t number);
     int32_t JumpMainWindow(void);
@@ -44,6 +48,7 @@ public:
     int32_t JumpWindowToServerList();
     int32_t ClearQnavigationWidget(void);
     void ClearWidget(void);
+    int32_t RecvMqttMessage(const QByteArray message, const QMqttTopicName topic);
     ~SubWindow();
     QVBoxLayout *rightLayout;
     QHBoxLayout *mainLayout;
@@ -71,7 +76,7 @@ public:
     QWidget *subHWidget;
     QNavigationWidget *navigationWidget;
     QTableWidget *serverTable;
-    QMap<long, long> serverTableMap;
+    QMap<void *, void *> serverTableMap;
     QTableWidget *contextTable;
     QCheckBox *allCheck;
     const QPalette *palettes;
@@ -81,6 +86,12 @@ public:
     QMainWindow *secondWindow;
 
     SubWindowType windowType;
+
+    //QMqttClient *client;
+
+    float temperature;
+    QString version;
+    QString info;
 
 //private slots:
 //    void lineEdit0Draw(QString str);

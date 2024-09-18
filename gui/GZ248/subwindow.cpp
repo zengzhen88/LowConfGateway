@@ -14,8 +14,11 @@
 #include <QPainter>
 #include <QScreen>
 #include <QPainterPath>
-#include <mqtt.h>
 #include <QMap>
+#include <QJsonParseError>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 
 const char *PowerMode2Name[] = {
@@ -50,12 +53,12 @@ void SubWindow::resizeEvent(QResizeEvent * resizeEvent) {
     }
     case SubWindowType_MainContext:
     {
-        JumpWindowToMainContext();
+        //JumpWindowToMainContext();
         break;
     }
     case SubWindowType_Context:
     {
-        JumpWindowToContext(currentIndex);
+        //JumpWindowToContext(currentIndex);
         break;
     }
     default:break;
@@ -101,36 +104,9 @@ void SubWindow::changeEvent(QEvent *event) {
 }
 
 void SubWindow::paintEvent(QPaintEvent *event) {
-    #if 0
-    static int32_t ref = 0;
-    printf ("sdfasdfasdfasdfasd:%d\n", ref++);
-    int32_t qnavigationX = navigationWidget->x();
-    int32_t qnavigationY = navigationWidget->y();
-    int32_t qnavigationW = navigationWidget->width();
-    int32_t qnavigationH = navigationWidget->height();
-
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-
-    // Draw background color.
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(backgroundColor);
-    painter.drawRect(rect());
-
-    QPainterPath itemPath;
-    //QPainterPath *itemPath = QPainterPath();
-    itemPath.addRect(QRect(qnavigationX, qnavigationY, qnavigationW, qnavigationH));
-
-    painter.setPen("#202020");
-    painter.fillPath(itemPath, backgroundColor);
-#endif
 }
 
 int32_t SubWindow::ClearQnavigationWidget(void) {
-    //repaint();
-    //mainLayout->removeWidget(navigationWidget);
-    //mainLayout->removeWidget(rightWidget);
-    contextTable->disconnect();
     return 0;
 }
 
@@ -165,8 +141,6 @@ void SubWindow::ClearWidget(void) {
     cancel->disconnect();
     search->disconnect();
     allCheck->disconnect();
-    //serverTable->disconnect();
-    //contextTable->disconnect();
 }
 
 int32_t SubWindow::SetCurrentIndex(int32_t number) {
@@ -245,14 +219,37 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number) {
 #define COMMON_WIDTH (200)
 #define COMMON_HEIGHT (40)
 
-int32_t SubWindow::JumpWindowToContext(int32_t number) {
+int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
     windowType = SubWindowType_Context;
     switch (number) {
     case ModuleDataAttr_GetTemperature:
     {
-        //printf ("SSSSSSSSSSSSSSSSSSSSSSSs\n");
+#if 1
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetTemperature));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetTemperature));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            //if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                temperature = root.value("temperature").toDouble();
+
+                printf ("111htype:%s\n", name.toStdString().c_str());
+                printf ("111temperature:%lf\n", temperature);
+            //}
+        }
+#else
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
@@ -276,12 +273,12 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
-
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
+#endif
         break;
     }
     case ModuleDataAttr_GetModuleVersion:
@@ -312,7 +309,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
@@ -351,7 +347,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         label->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
@@ -394,7 +389,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
@@ -444,7 +438,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_Reboot:
@@ -471,7 +464,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
-
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
             ClearQnavigationWidget();
@@ -481,7 +473,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         connect(enter, &QPushButton::clicked, this, [=](){
             JumpWindowToContextTransmit(currentIndex);
         });
-
         break;
     }
     case ModuleDataAttr_NetState:
@@ -517,7 +508,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_GetEthCfg:
@@ -580,7 +570,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_SetEthCfg:
@@ -618,37 +607,24 @@ int32_t SubWindow::JumpWindowToContext(int32_t number) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        printf ("contextTable->x:%d y:%d w:%d h:%d\n", contextTable->x(), contextTable->y(), contextTable->width(), contextTable->height());
-        printf ("rightWidget x:%d y:%d w:%d h:%d\n", rightWidget->x(), rightWidget->y(), rightWidget->width(), rightWidget->height());
         int32_t left, right, top, bottom;
         rightLayout->setContentsMargins(2, 2, 2, 2);
         rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        printf ("left:%d top:%d right:%d bottom:%d\n",
-                left, top, right, bottom);
         int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
         int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
-        printf ("label->x():%d label->y():%d width():%d height():%d\n", lineEdit0->x(), lineEdit0->y(), lineEdit0->width(), lineEdit0->height());
         int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = COMMON_WIDTH, lineEdit1H = COMMON_HEIGHT;
         lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
-        printf ("label->x():%d label->y():%d width():%d height():%d\n", lineEdit1->x(), lineEdit1->y(), lineEdit1->width(), lineEdit1->height());
         int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = COMMON_WIDTH, lineEdit2H = COMMON_HEIGHT;
         lineEdit2->setGeometry(lineEdit2X, lineEdit2Y, lineEdit2W, lineEdit2H);
-        printf ("label->x():%d label->y():%d width():%d height():%d\n", lineEdit2->x(), lineEdit2->y(), lineEdit2->width(), lineEdit2->height());
         int32_t enterX = labelX, enterY = lineEdit2Y + lineEdit1H, enterW = 40, enterH = COMMON_HEIGHT;
         enter->setGeometry(enterX, enterY, enterW, enterH);
-        printf ("label->x():%d label->y():%d width():%d height():%d\n", enter->x(), enter->y(), enter->width(), enter->height());
 
         cancel->setText("返回");
         cancel->show();
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
-update();
-
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
@@ -659,7 +635,6 @@ update();
         connect(enter, &QPushButton::clicked, this, [=](){
             JumpWindowToContextTransmit(currentIndex);
         });
-
         break;
     }
     case ModuleDataAttr_GetWifiCfg:
@@ -682,9 +657,7 @@ update();
         char sNetmask[128];
         char sGateway[128];
         MQTTGetWifiCfg(sSsid, sPassword, sAddress, sNetmask, sGateway, sizeof(sAddress));
-        //QString ethCfg("<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
-        //printf ("netState:%s\n", strings + netState);
-        label->setText(strings);// + "<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
+        label->setText(strings);
         label1->setText((QString)"无线账号:" + (QString)sSsid);
         label2->setText((QString)"无线密码:" + (QString)sPassword);
         label3->setText((QString)"网络地址:" + (QString)sAddress);
@@ -711,11 +684,8 @@ update();
         int32_t left, right, top, bottom;
         rightLayout->setContentsMargins(2, 2, 2, 2);
         rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        //printf ("left:%d top:%d right:%d bottom:%d\n",
-        //        left, top, right, bottom);
         int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
         int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
         label1->setGeometry(label1X, label1Y, label1W, label1H);
         int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
@@ -729,8 +699,6 @@ update();
         cancel->setText("返回");
         cancel->show();
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
@@ -738,7 +706,6 @@ update();
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_SetWifiCfg:
@@ -790,11 +757,8 @@ update();
         int32_t left, right, top, bottom;
         rightLayout->setContentsMargins(2, 2, 2, 2);
         rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        //printf ("left:%d top:%d right:%d bottom:%d\n",
-        //        left, top, right, bottom);
         int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
         int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
         int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = COMMON_WIDTH, lineEdit1H = COMMON_HEIGHT;
@@ -811,8 +775,6 @@ update();
         cancel->setText("返回");
         cancel->show();
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
@@ -824,13 +786,11 @@ update();
         connect(enter, &QPushButton::clicked, this, [=](){
             JumpWindowToContextTransmit(currentIndex);
         });
-
         break;
     }
     case ModuleDataAttr_GetMqttCfg:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
@@ -843,9 +803,7 @@ update();
         char sPassword[128];
         char sUrl[128];
         MQTTGetMQTTCfg(sUser, sPassword, sUrl, sizeof(sUser));
-        //QString ethCfg("<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
-        //printf ("netState:%s\n", strings + netState);
-        label->setText(strings);// + "<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
+        label->setText(strings);
         label1->setText((QString)"用户账号:" + (QString)sUser);
         label2->setText((QString)"用户密码:" + (QString)sPassword);
         label3->setText((QString)"服务地址:" + (QString)sUrl);
@@ -866,11 +824,8 @@ update();
         int32_t left, right, top, bottom;
         rightLayout->setContentsMargins(2, 2, 2, 2);
         rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        //printf ("left:%d top:%d right:%d bottom:%d\n",
-        //        left, top, right, bottom);
         int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
         int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
         label1->setGeometry(label1X, label1Y, label1W, label1H);
         int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
@@ -879,9 +834,7 @@ update();
         label3->setGeometry(label3X, label3Y, label3W, label3H);
         cancel->setText("返回");
         cancel->show();
-        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
@@ -889,7 +842,6 @@ update();
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_SetMqttCfg:
@@ -946,8 +898,6 @@ update();
         cancel->setText("返回");
         cancel->show();
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
-        //printf ("w:%d h:%d\n", rightWidget->width(), rightWidget->height());
-        //printf ("returnx:%d returny:%d returnw:%d returnh:%d\n", returnX, returnY, returnW, returnH);
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
         //返回到客户端列表成员
@@ -959,7 +909,6 @@ update();
         connect(enter, &QPushButton::clicked, this, [=](){
             JumpWindowToContextTransmit(currentIndex);
         });
-
         break;
     }
     case ModuleDataAttr_Update:
@@ -976,7 +925,179 @@ update();
     return 0;
 }
 
-int32_t SubWindow::JumpWindowToMainContext(void) {
+int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicName topic) {
+#if 1
+    QString topicString = topic.name();
+
+    switch (toAckStringEnum(topicString.toStdString().c_str())) {
+    case ModuleDataAttr_GetTemperature:
+    {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                temperature = root.value("temperature").toDouble();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("temperature:%lf\n", temperature);
+
+
+                ClearWidget();
+                mainLayout->addWidget(contextTable);
+                rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+                rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+                mainLayout->addWidget(rightWidget);
+                QString strings("温度:");
+                QString stemperature(QString::number(temperature));
+                label->setText(strings + stemperature);
+                label->adjustSize();
+                label->show();
+                contextTable->show();
+                cancel->setText("返回");
+                cancel->show();
+
+                rightLayout->removeWidget(cancel);
+                rightLayout->removeWidget(label);
+                mainLayout->removeWidget(contextTable);
+                mainLayout->removeWidget(rightWidget);
+
+                int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+                label->setGeometry(labelX, labelY, labelW, labelH);
+                int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+                cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+                //返回到客户端列表成员
+                connect(cancel, &QPushButton::clicked, this, [=](){
+                    ClearQnavigationWidget();
+                    JumpWindowToServerList();
+                });
+            }
+        }
+        break;
+    }
+    case ModuleDataAttr_GetModuleVersion:
+    {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                version = root.value("ver").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("version:%s\n", version.toStdString().c_str());
+            }
+        }
+        break;
+    }
+    case ModuleDataAttr_GetModuleInfo:
+    {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                info = root.value("info").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("info:%s\n", info.toStdString().c_str());
+            }
+        }
+        break;
+    }
+    case ModuleDataAttr_SetModuleInfo:
+    {
+        printf ("mqtt set module info\n");
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                QString ack = root.value("status").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("status:%s\n", ack.toStdString().c_str());
+            }
+        }
+        break;
+    }
+    case ModuleDataAttr_GetPower:
+    {
+        break;
+    }
+    case ModuleDataAttr_Reboot:
+    {
+        break;
+    }
+    case ModuleDataAttr_NetState:
+    {
+        break;
+    }
+    case ModuleDataAttr_GetEthCfg:
+    {
+        break;
+    }
+    case ModuleDataAttr_SetEthCfg:
+    {
+        break;
+    }
+    case ModuleDataAttr_GetWifiCfg:
+    {
+        break;
+    }
+    case ModuleDataAttr_SetWifiCfg:
+    {
+        break;
+    }
+    case ModuleDataAttr_GetMqttCfg:
+    {
+        break;
+    }
+    case ModuleDataAttr_SetMqttCfg:
+    {
+        break;
+    }
+    case ModuleDataAttr_Update:
+    {
+        break;
+    }
+    case ModuleDataAttr_ReportData:
+    {
+        break;
+    }
+    default:break;
+    }
+
+#else
+    QJsonObject object;
+    QJsonDocument doc = QJsonDocument::fromJson(message);
+    QJsonArray roots = doc.array();
+    for (int32_t index = 0; index < roots.size; index++) {
+        QJsonObject root = roots.at(index).toObject();
+        QString name = root.value("name").toString();
+        QJsonObject info = root.value("info").toObject();
+
+        int32_t age = info.value("age").toInt();
+        int32_t height = info.value("height").toInt();
+
+        printf ("name:%s\n", name);
+        printf ("info.age:%d\n", age);
+        printf ("info.height:%d\n", height);
+    }
+#endif
+    return 0;
+}
+
+int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
     ClearWidget();
 
     mainLayout->addWidget(contextTable);
@@ -1005,18 +1126,21 @@ int32_t SubWindow::JumpWindowToMainContext(void) {
     //单元格被点击处理
     connect(contextTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
         //rightWidget->resize(this->width() - contextTable->width(), this->height());
-        JumpWindowToContext(row);
+        SetCurrentIndex(row);
+        JumpWindowToContext(row, client);
         contextTable->selectRow(row);
     });
 
     return 0;
 }
 
+
 int32_t SubWindow::JumpWindowToServerList(void) {
     ClearWidget();
     rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
     rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
     rightLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(lineEdit4, 0, Qt::AlignTop | Qt::AlignLeft);
     rightLayout->addWidget(serverTable, 0, Qt::AlignTop | Qt::AlignLeft);
     rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
     rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
@@ -1028,17 +1152,20 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     lineEdit3->setPlaceholderText("请输入要搜索的内容...");
     lineEdit0->setPlaceholderText("用户账号");
     lineEdit1->setPlaceholderText("用户密码");
-    lineEdit2->setPlaceholderText("服务地址");
+    lineEdit2->setPlaceholderText("主机地址");
+    lineEdit4->setPlaceholderText("主机端口");
     allCheck->setText("全选");
     allCheck->show();
     lineEdit0->clear();
     lineEdit1->clear();
     lineEdit2->clear();
     lineEdit3->clear();
+    lineEdit4->clear();
     lineEdit0->show();
     lineEdit1->show();
     lineEdit2->show();
     lineEdit3->show();
+    lineEdit4->show();
     serverTable->show();
     enter->setText("添加");
     enter->show();
@@ -1053,58 +1180,92 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     lineEdit1->setGeometry(label1X, label1Y, label1W, label1H);
     int32_t label2X = left + 2, label2Y = label1Y + label1H, label2W = 200, label2H = 20;
     lineEdit2->setGeometry(label2X, label2Y, label2W, label2H);
-    int32_t enterX = label2W + 10, enterY = label2Y, enterW = 100, enterH = 20;
+    int32_t label3X = left + 2, label3Y = label2Y + label2H, label3W = 200, label3H = 20;
+    lineEdit4->setGeometry(label3X, label3Y, label3W, label3H);
+    int32_t enterX = label3W + 10, enterY = label3Y, enterW = 100, enterH = 20;
     enter->setGeometry(enterX, enterY, enterW, enterH);
-    int32_t cancelX = enterX + enterW + 10, cancelY = label2Y, cancelW = 100, cancelH = 20;
+    int32_t cancelX = enterX + enterW + 10, cancelY = label3Y, cancelW = 100, cancelH = 20;
     cancel->setGeometry(cancelX, cancelY, cancelW, cancelH);
     int32_t checkX = cancelX + cancelW + 10, checkY = cancelY, checkW = 50, checkH = 20;
     allCheck->setGeometry(checkX, checkY, checkW, checkH);
-    int32_t tableX = left + 2, tableY = cancelY + cancelH, tableW = mainWidget->width() - 10, tableH = mainWidget->height() - labelH - label1H - label2H - enterH;
+    int32_t searchH = 20;
+    int32_t tableX = left + 2, tableY = cancelY + cancelH, tableW = mainWidget->width() - 10, tableH = mainWidget->height() - labelH - label1H - label2H - label3H - enterH - searchH;
+    int32_t searchX = left + 2, searchY = tableY + tableH, searchW = 200;//, searchH = 20;
     serverTable->setGeometry(tableX, tableY, tableW, tableH);
-    int32_t searchX = left + 2, searchY = mainWidget->height() - 20, searchW = 200, searchH = 20;
     lineEdit3->setGeometry(searchX, searchY, searchW, searchH);
 
     rightLayout->removeWidget(lineEdit0);
     rightLayout->removeWidget(lineEdit1);
     rightLayout->removeWidget(lineEdit2);
     rightLayout->removeWidget(lineEdit3);
+    rightLayout->removeWidget(lineEdit4);
     rightLayout->removeWidget(enter);
     rightLayout->removeWidget(cancel);
     rightLayout->removeWidget(allCheck);
     rightLayout->removeWidget(serverTable);
     mainLayout->removeWidget(rightWidget);
-#if 0
-    void *CreateMQTTCollection(const char *username,
-                               const char *password,
-                               const char *hostname,
-                               int32_t port,
-                               int32_t qos,
-                               MQTTConnect pushConnect,
-                               MQTTDisconnect pushDisconnect,
-                               MQTTPushlish pushPushlish,
-                               MQTTConnect scribeConnect,
-                               MQTTDisconnect scribeDisconnect,
-                               MQTTSubscribe scribeScribe,
-                               MQTTMessage scribeMessage);
-#endif
+
     //添加客户端列表成员
     connect(enter, &QPushButton::clicked, this, [=](){
         QString userString = lineEdit0->text();
         QString passwordString = lineEdit1->text();
         QString netString = lineEdit2->text();
+        QString portString = lineEdit4->text();
         int rowCount = serverTable->rowCount();
         serverTable->insertRow(rowCount);
         QTableWidgetItem *item = new QTableWidgetItem(userString);
-#if 0
-        collect = CreateMQTTCollection(userString.toStdString().c_str(),
-                                       passwordString.toStdString().c_str(),
-                                       netString.toStdString().c_str(),
-                                       )
-        serverTableMap.insert((long)item, )
-     #endif
-        //char buffer[128];
-        //snprintf (buffer, sizeof(buffer) - 1, "%p", item);
-        //serverTable->setSelectionMode(QAbstractItemView::SingleSelection);
+#ifdef QTMQTT_
+        QMqttClient *client = new QMqttClient(this);
+        client->setHostname(netString);
+        client->setPort(portString.toInt());
+        client->setUsername(userString);
+        client->setPassword(passwordString);
+
+        serverTableMap.insert(item, client);
+        connect(client, &QMqttClient::stateChanged, this, [=](QMqttClient::ClientState state){
+            printf ("stateChanged:%d client->state:%d\n", state, client->state());
+        });
+
+        connect(client, &QMqttClient::disconnected, this, [=](){
+            printf ("client->disconnect\n");
+        });
+        connect(client, &QMqttClient::connected, this, [=](){
+            printf ("client->connect\n");
+            for (int32_t index = 0; index < ModuleDataAttr_Cnt; index++) {
+                if (!strcmp(toEnumString((ModuleDataAttr)index), "Ack")) continue;
+                QMqttTopicFilter topic;
+                topic.setFilter(QString(toAckEnumString((ModuleDataAttr)index)));
+                client->subscribe(topic, 0);
+            }
+        });
+        connect(client, &QMqttClient::messageReceived, this, [=](const QByteArray &message, const QMqttTopicName &topic){
+#if 1
+            printf ("rcv message\n");
+            RecvMqttMessage(message, topic);
+#else
+            QJsonObject object;
+            QJsonDocument doc = QJsonDocument::fromJson(message);
+            QJsonArray roots = doc.array();
+            for (int32_t index = 0; index < roots.size; index++) {
+                QJsonObject root = roots.at(index).toObject();
+                QString name = root.value("name").toString();
+                QJsonObject info = root.value("info").toObject();
+
+                int32_t age = info.value("age").toInt();
+                int32_t height = info.value("height").toInt();
+
+                printf ("name:%s\n", name);
+                printf ("info.age:%d\n", age);
+                printf ("info.height:%d\n", height);
+            }
+#endif
+        });
+        connect(client, &QMqttClient::pingResponseReceived, this, [=](){
+            printf ("client->ping server trigger\n");
+        });
+        client->setKeepAlive(60);
+        client->connectToHost();
+#endif
         serverTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
         serverTable->setItem(rowCount, 0, item);
         item->setCheckState(Qt::Unchecked);
@@ -1114,12 +1275,14 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         item = new QTableWidgetItem(netString);
         //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 2, item);
-        item = new QTableWidgetItem(QString("进入"));
+        item = new QTableWidgetItem(portString);
         //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 3, item);
+        item = new QTableWidgetItem(QString("进入"));
+        //item->setFlags(Qt::ItemIsEnabled);
+        serverTable->setItem(rowCount, 4, item);
         //serverTable->setProperty("MQTTSubscribe", );
         //serverTable->setProperty(MQTTNewPublish);
-
     });
     //删除客户端列表成员
     connect(cancel, &QPushButton::clicked, this, [=](){
@@ -1129,6 +1292,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             QTableWidgetItem *item = serverTable->item(row, 0);
             if (item->checkState() == Qt::Checked) {
                 serverTable->removeRow(row);
+                QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
             }
         }
         if (serverTable->rowCount() == 0) {
@@ -1158,8 +1322,10 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     //单元格被点击处理
     connect(serverTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
         //printf (">>>>>>>>>>>>>>> row:%d col:%d\n", row, col);
-        if (col == 3) {//只有第3列需要有点击响应
-            JumpWindowToMainContext();
+        if (col == 4) {//只有第3列需要有点击响应
+            QTableWidgetItem *item = serverTable->item(row, 0);
+            QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
+            JumpWindowToMainContext(client);
         }
     });
 
@@ -1225,8 +1391,8 @@ int32_t SubWindow::JumpWindowToLogin(void) {
             //创建客户端列表
             //serverTable = new QTableWidget(this);
             serverTable->setRowCount(0); // 初始不设置行，动态添加
-            serverTable->setColumnCount(4);
-            serverTable->setHorizontalHeaderLabels(QStringList() << "用户账号" << "用户密码" << "服务地址" << "操作方式");
+            serverTable->setColumnCount(5);
+            serverTable->setHorizontalHeaderLabels(QStringList() << "用户账号" << "用户密码" << "主机地址" << "主机端口" << "操作方式");
             // 启用拖拽
             serverTable->setDragEnabled(true);
             serverTable->setAcceptDrops(true);
@@ -1298,9 +1464,6 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     contextTable->setDragEnabled(true);
     contextTable->setAcceptDrops(true);
     contextTable->setDropIndicatorShown(true);
-
-    MQTTInitLog(this, subWindowPrintf);
-    MQTTInit();
 
     //跳转到登陆界面
     JumpWindowToLogin();

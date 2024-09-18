@@ -59,6 +59,7 @@ const char *toEnumString(ModuleDataAttr attr);
 const char *toAckEnumString(ModuleDataAttr attr);
 ModuleDataAttr toStringEnum(const char *strings);
 const char *toEnumChineseString(ModuleDataAttr attr);
+ModuleDataAttr toAckStringEnum(const char *strings);
 
 typedef enum {
     DataTimeStatus_BLOCK = -1,

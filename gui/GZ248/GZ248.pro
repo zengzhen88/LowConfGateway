@@ -106,3 +106,16 @@ else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/li
 else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/release/crypto.lib
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/crypto.lib
 else:unix: PRE_TARGETDEPS += $$PWD/thirdlib/lib/libcrypto.a
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/build/lib/release/ -lQt5Mqtt
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/build/lib/debug/ -lQt5Mqtt
+else:unix: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/build/lib/ -lQt5Mqtt
+
+INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/build/include
+DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/build/include
+
+win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/build/lib/release/libQt5Mqtt.a
+else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/build/lib/debug/libQt5Mqtt.a
+else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/build/lib/release/Qt5Mqtt.lib
+else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/build/lib/debug/Qt5Mqtt.lib
+else:unix: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/build/lib/libQt5Mqtt.a
