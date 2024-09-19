@@ -70,6 +70,10 @@ const char *toEnumString(ModuleDataAttr attr) {
             return "GetEthCfg";
         case ModuleDataAttr_SetEthCfg:
             return "SetEthCfg";
+        case ModuleDataAttr_GetMqttCfg:
+            return "GetMqttCfg";
+        case ModuleDataAttr_SetMqttCfg:
+            return "SetMqttCfg";
         case ModuleDataAttr_PtSend:
             return "PtSend";
         default:return "Ack";
@@ -104,6 +108,10 @@ const char *toAckEnumString(ModuleDataAttr attr) {
             return "GetEthCfgAck";
         case ModuleDataAttr_SetEthCfg:
             return "SetEthCfgAck";
+        case ModuleDataAttr_GetMqttCfg:
+            return "GetMqttCfgAck";
+        case ModuleDataAttr_SetMqttCfg:
+            return "SetMqttCfgAck";
         case ModuleDataAttr_PtSend:
             return "PtSendAck";
         default:return "Ack";
@@ -150,6 +158,12 @@ ModuleDataAttr toAckStringEnum(const char *strings) {
     else if (strstr(strings, "SetEthCfgAck")) {
         return ModuleDataAttr_SetEthCfg;
     }
+    else if (strstr(strings, "GetMqttCfgAck")) {
+        return ModuleDataAttr_GetMqttCfg;
+    }
+    else if (strstr(strings, "SetMqttCfgAck")) {
+        return ModuleDataAttr_SetMqttCfg;
+    }
     else if (strstr(strings, "PtSendAck")) {
         return ModuleDataAttr_PtSend;
     }
@@ -190,6 +204,12 @@ ModuleDataAttr toStringEnum(const char *strings) {
     }
     else if (strstr(strings, "GetWifiCfg")) {
         return ModuleDataAttr_GetWifiCfg;
+    }
+    else if (strstr(strings, "SetMqttCfg")) {
+        return ModuleDataAttr_SetMqttCfg;
+    }
+    else if (strstr(strings, "GetMqttCfg")) {
+        return ModuleDataAttr_GetMqttCfg;
     }
     else if (strstr(strings, "SetWifiCfg")) {
         return ModuleDataAttr_SetWifiCfg;

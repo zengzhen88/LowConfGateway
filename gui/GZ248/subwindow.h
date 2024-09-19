@@ -20,6 +20,7 @@
 #ifdef QTMQTT_
 #include <QtMqtt/qmqttclient.h>
 #endif
+#include <message.h>
 
 enum SubWindowType {
     SubWindowType_Login,
@@ -27,6 +28,13 @@ enum SubWindowType {
     SubWindowType_MainContext,
     SubWindowType_Context,
     SubWindowType_Cnt
+};
+
+enum SignalSync {
+    SignalSync_Init,
+    SignalSync_FAILURE,
+    SignalSync_OK,
+    SignalSync_Cnt,
 };
 
 class SubWindow : public QMainWindow
@@ -37,11 +45,12 @@ protected:
     void paintEvent(QPaintEvent *);
     void changeEvent(QEvent *event);
     void resizeEvent(QResizeEvent * resizeEvent);
+    void mousePressEvent(QMouseEvent *event);
 public:
     SubWindow(QWidget *parent = nullptr);
     int32_t JumpWindowToMainContext(QMqttClient *client);
     int32_t JumpWindowToContext(int32_t number, QMqttClient *client);
-    int32_t JumpWindowToContextTransmit(int32_t number);
+    int32_t JumpWindowToContextTransmit(int32_t number, QMqttClient *client);
     int32_t SetCurrentIndex(int32_t number);
     int32_t JumpMainWindow(void);
     int32_t JumpWindowToLogin();
@@ -89,9 +98,30 @@ public:
 
     //QMqttClient *client;
 
-    float temperature;
-    QString version;
-    QString info;
+    float sTemperature;
+    QString sVersion;
+    QString sInfo;
+
+    NetState sNetState;
+
+    QString sEthAddress;
+    QString sEthNetmask;
+    QString sEthGateway;
+
+    QString sWifiSsid;
+    QString sWifiPassword;
+    QString sWifiAddress;
+    QString sWifiNetmask;
+    QString sWifiGateway;
+
+    QString sMqttUser;
+    QString sMqttPassword;
+    QString sMqttUrl;
+
+    PowerSupplyMode sMode;
+    int sLevel;
+
+    SignalSync signalSync;
 
 //private slots:
 //    void lineEdit0Draw(QString str);

@@ -237,8 +237,14 @@ int32_t MQTTMessageRecvUartGetModuleVersionHandler(MQTT *mqtt, char *version) {
 }
 
 int32_t MQTTMessageRecvUartCommonOkHandler(MQTT *mqtt, const char *isOk, ModuleDataAttr attr) {
+    int32_t status = ESP_FAIL;
     cJSON *root = NULL;
     cJSON *sub  = NULL;
+
+    if ((attr == ModuleDataAttr_SetWifiCfg) 
+            || (attr == ModuleDataAttr_SetEthCfg)) {
+        status = esp_mqtt_client_reconnect(mqtt->client);
+    }
 
     root = cJSON_CreateArray();
     if (root) {
@@ -291,6 +297,7 @@ int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     char *password          = NULL;
     char *url               = NULL;
 
+    printf ("info:%s\n", info);
     char *sptr = strchr(info, '<');
     if (sptr) {
         char *ptr = strchr(sptr + 1, '>');
@@ -562,22 +569,28 @@ int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info) {
     int32_t power           = 0;;
     PowerSupplyMode mode    = PowerCnt;
 
+    printf ("GetPower:%s\n", info);
+    /* GetPower:<DC>,<100> */
+
     char *ptr = strchr(info, '<');
     if (ptr) {
+        info = ptr + 1;
         ptr = strchr(ptr + 1, '>');
         if (ptr) {
             *ptr = '\0';
+            printf ("info:%s\n", info);
             if (!strcmp(info, "DC")) {
                 mode = DC;
             }
-            else if (!strcmp(info + 1, "BAT")) {
+            else if (!strcmp(info, "BAT")) {
                 mode = BAT;
             }
             else {
                 mode = PowerCnt;
             }
 
-            ptr = strchr(ptr, '<');
+            printf ("ptr:%s\n", ptr);
+            ptr = strchr(ptr + 1, '<');
             if (ptr) {
                 power = atoi(ptr + 1);
             }
@@ -1864,7 +1877,7 @@ int32_t MQTTMessageSubscribeList(MQTT *mqtt) {
     for (index = 0; index < ModuleDataAttr_Cnt; index++) {
         esp_mqtt_client_subscribe(
                 mqtt->client, 
-                toAckEnumString((ModuleDataAttr)index),
+                toEnumString((ModuleDataAttr)index),
                 mqtt->msgQos);//消息必需成功???
     }
 
@@ -1914,6 +1927,7 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
             }
         case MQTT_EVENT_DISCONNECTED:
             {
+                mqtt->connect = 0;
                 LogPrintf(LogMQTT_Info, "[%s]MQTT_EVENT_DISCONNECTED\n", mqtt->name);
                 break;
             }

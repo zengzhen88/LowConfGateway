@@ -19,11 +19,19 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-
+#include <QProgressDialog>
+#include <QMessageBox>
+#include <QThread>
 
 const char *PowerMode2Name[] = {
     "DC",
     "BAT"
+};
+
+const char *NetState2Name[] = {
+    "CONNSER",
+    "CONNET",
+    "UNNET",
 };
 
 const char *SubWindow2Name[] = {
@@ -32,6 +40,10 @@ const char *SubWindow2Name[] = {
     "MainContext",
     "Context",
 };
+
+void SubWindow::mousePressEvent(QMouseEvent *event) {
+    QWidget::mousePressEvent(event);
+}
 
 void SubWindow::resizeEvent(QResizeEvent * resizeEvent) {
     QSize newSize = resizeEvent->size();
@@ -148,27 +160,216 @@ int32_t SubWindow::SetCurrentIndex(int32_t number) {
     return 0;
 }
 
-int32_t SubWindow::JumpWindowToContextTransmit(int32_t number) {
+int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, QMqttClient *client) {
     switch (number) {
     case ModuleDataAttr_GetTemperature:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetTemperature));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetTemperature));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取温度中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("获取温度:") + (QString::number(sTemperature)));
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取温度失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_GetModuleVersion:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetModuleVersion));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetModuleVersion));
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取版本信息中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("获取版本信息:") + (QString)sVersion);
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取版本信息失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_GetModuleInfo:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetModuleInfo));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetModuleInfo));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取模块信息中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("获取模块信息:") + (QString)sInfo);
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取模块信息失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_SetModuleInfo:
     {
-        printf ("mqtt set module info\n");
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_SetModuleInfo));
+        likeObject.insert("info", lineEdit0->text());
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_SetModuleInfo));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+        QProgressDialog dialog(tr("设置模块信息中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QMessageBox::information(this, tr("系统提示"), tr(signalSync == SignalSync_OK ? "设置成功" : "设置失败"), QMessageBox::Ok);
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_GetPower:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetPower));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetPower));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取供电模式信息中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("获取供电模式<mode:") + (QString)(PowerMode2Name[sMode]) + "><level:" + QString::number(sLevel) + ">");
+        printf (".,...:%s\n", retval.toStdString().c_str());
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取供电模式信息失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_Reboot:
@@ -177,30 +378,312 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number) {
     }
     case ModuleDataAttr_NetState:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_NetState));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_NetState));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取服务器连接状态中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("服务连接状态:") + (QString(NetState2Name[sNetState])));
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "服务器连接失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_GetEthCfg:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetEthCfg));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetEthCfg));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取有线网络配置中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("<有线网络配置>\n") + "ip:" + sEthAddress + "\n" + "netmask:" + sEthNetmask + "\n" + "gateway:" + sEthGateway + "\n");
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取有线网络配置失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_SetEthCfg:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_SetEthCfg));
+        likeObject.insert("address", lineEdit0->text());
+        likeObject.insert("netmask", lineEdit1->text());
+        likeObject.insert("gateway", lineEdit2->text());
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_SetEthCfg));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("设置有线网络配置中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? "设置有线网络配置成功" : "获取有线网络配置失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_GetWifiCfg:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetWifiCfg));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetWifiCfg));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取无线网络配置中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("<无线网络配置>\n") + "\n" + "user:" + sWifiSsid + "\n" + "passwd:" + sWifiPassword + "\n" + "ip:" + sWifiAddress + "\n" + "netmask:" + sWifiNetmask + "\n" + "gateway:" + sWifiGateway + "\n");
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取无线网络配置失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_SetWifiCfg:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_SetWifiCfg));
+        likeObject.insert("ssid", lineEdit0->text());
+        likeObject.insert("password", lineEdit1->text());
+        likeObject.insert("address", lineEdit2->text());
+        likeObject.insert("netmask", lineEdit3->text());
+        likeObject.insert("gateway", lineEdit4->text());
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_SetWifiCfg));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("设置无线网络配置中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? "设置无线网络配置成功" : "获取无线网络配置失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_GetMqttCfg:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetMqttCfg));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_GetMqttCfg));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取MQTT网络配置中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("<MQTT网络配置>\n") + "\n" + "user:" + sMqttUser + "\n" + "passwd:" + sMqttPassword + "\n" + "url:" + sMqttUrl + "\n");
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取MQTT网络配置失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_SetMqttCfg:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_SetMqttCfg));
+        likeObject.insert("user", lineEdit0->text());
+        likeObject.insert("password", lineEdit1->text());
+        likeObject.insert("url", lineEdit2->text());
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_SetMqttCfg));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+                //sNetState = (NetState)root.value("NetState").toInt();
+        }
+
+        QProgressDialog dialog(tr("设置MQTT网络配置中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? "设置MOTT网络配置成功" : "获取MQTT网络配置失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_Update:
@@ -223,160 +706,130 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
     windowType = SubWindowType_Context;
     switch (number) {
     case ModuleDataAttr_GetTemperature:
-    {
-#if 1
-        QJsonObject likeObject;
-        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetTemperature));
-        QJsonArray likeArray;
-        likeArray.append(likeObject);
-        QJsonDocument doc;
-        doc.setArray(likeArray);
-        QMqttTopicName topic;
-        topic.setName(toEnumString(ModuleDataAttr_GetTemperature));
-        printf ("topic:%s\n", topic.name().toStdString().c_str());
-        client->publish(topic, doc.toJson(), 0, 0);
-        QJsonObject object;
-        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
-        QJsonArray roots = doc1.array();
-        for (int32_t index = 0; index < roots.size(); index++) {
-            QJsonObject root = roots.at(index).toObject();
-            QString name = root.value("htype").toString();
-            //if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
-                temperature = root.value("temperature").toDouble();
-
-                printf ("111htype:%s\n", name.toStdString().c_str());
-                printf ("111temperature:%lf\n", temperature);
-            //}
-        }
-#else
+    {        
         ClearWidget();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("温度:");
-        QString temperature(QString::number(MQTTGetTemperature()));
-        label->setText(strings + temperature);
-        label->adjustSize();
-        label->show();
+        enter->setText("获取温度");
+        enter->show();
         contextTable->show();
         cancel->setText("返回");
         cancel->show();
 
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
         int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-        label->setGeometry(labelX, labelY, labelW, labelH);
+        enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+        contextTable->selectRow(currentIndex);
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-#endif
+
         break;
     }
     case ModuleDataAttr_GetModuleVersion:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("模块版本:");
-        char sVersion[128];
-        MQTTGetModuleVersion(sVersion, sizeof(sVersion));
-        QString version(sVersion);
-        label->setText(strings + version);
-        label->adjustSize();
-        label->show();
+        enter->setText("获取模块版本");
+        enter->show();
         cancel->setText("返回");
         contextTable->show();
         cancel->show();
 
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
         int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-        label->setGeometry(labelX, labelY, labelW, labelH);
+        enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
+        contextTable->selectRow(currentIndex);
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_GetModuleInfo:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("模块信息:");
-        char sInfo[128];
-        MQTTGetModuleInfo(sInfo, sizeof(sInfo));
-        QString info(sInfo);
-        //printf ("info:%s\n", strings + info);
-        label->setText(strings + info);
-        label->adjustSize();
-        label->show();
+        enter->setText("获取模块信息");
+        enter->show();
         contextTable->show();
         cancel->setText("返回");
         cancel->show();
 
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
         int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-        label->setGeometry(labelX, labelY, labelW, labelH);
+        enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+        contextTable->selectRow(currentIndex);
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
 
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
-
         break;
     }
     case ModuleDataAttr_SetModuleInfo:
     {
         ClearWidget();
-        //navigationWidget->show();
-        //subHLayout->addWidget(label, 0, Qt::AlignTop);
         mainLayout->addWidget(contextTable);
         rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop);
         rightLayout->addWidget(enter, 0, Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
         enter->setText("确定");
-        //label->setText("请输入模块版本:");
         lineEdit0->setPlaceholderText("请输入模块版本:");
-        //label->show();
         lineEdit0->clear();
         lineEdit0->show();
         enter->show();
         contextTable->show();
         cancel->setText("返回");
         cancel->show();
-
+        lineEdit0->setFocus(); //强制tab焦点
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(lineEdit0);
         rightLayout->removeWidget(enter);
@@ -397,9 +850,8 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex);
+            JumpWindowToContextTransmit(currentIndex, client);
         });
-
         break;
     }
     case ModuleDataAttr_GetPower:
@@ -407,25 +859,19 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         PowerSupplyMode mode;
         int level;
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("模块信息:");
-        MQTTGetPower(&mode, &level);
-        QString info((QString)"PowerMode<" + (QString)PowerMode2Name[mode] + (QString)">  PowerLevel<" + QString::number(level) + (QString)">");
-        //printf ("info:%s\n", strings + info);
-        label->setText(strings + info);
-        label->adjustSize();
-        label->show();
+        enter->setText("获取供电模式");
+        enter->show();
         contextTable->show();
         cancel->setText("返回");
         cancel->show();
 
         mainLayout->removeWidget(contextTable);
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(enter);
         mainLayout->removeWidget(rightWidget);
 
         int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
@@ -438,12 +884,16 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
+
         break;
     }
     case ModuleDataAttr_Reboot:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
         rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
@@ -471,30 +921,25 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex);
+            JumpWindowToContextTransmit(currentIndex, client);
         });
         break;
     }
     case ModuleDataAttr_NetState:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("网络状态:");
-        QString netState((MQTTGetNetState()));
-        //printf ("netState:%s\n", strings + netState);
-        label->setText(strings + netState);
-        label->adjustSize();
-        label->show();
+        enter->setText("获取网络状态");
+        enter->show();
         cancel->setText("返回");
         contextTable->show();
         cancel->show();
 
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
+        rightLayout->removeWidget(enter);
         mainLayout->removeWidget(rightWidget);
         mainLayout->removeWidget(contextTable);
 
@@ -508,60 +953,33 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
+
         break;
     }
     case ModuleDataAttr_GetEthCfg:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
         mainLayout->addWidget(rightWidget);
-        QString strings("<有线配置>");
-        char sAddress[128];
-        char sNetmask[128];
-        char sGateway[128];
-        MQTTGetEthCfg(sAddress, sNetmask, sGateway, sizeof(sAddress));
-        //QString ethCfg("<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
-        //printf ("netState:%s\n", strings + netState);
-        label->setText(strings);// + "<IP:" + sAddress + "><Netmask:" + sNetmask + "><Gateway:" + sGateway + ">");
-        label1->setText((QString)"网络地址:" + (QString)sAddress);
-        label2->setText((QString)"子网掩码:" + (QString)sNetmask);
-        label3->setText((QString)"网关地址:" + (QString)sGateway);
-        label->show();
-        label1->show();
-        label2->show();
-        label3->show();
+        enter->setText("获取有线配置");
+        enter->show();
         cancel->setText("返回");
         cancel->show();
         contextTable->show();
 
+        rightLayout->removeWidget(enter);
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
-        rightLayout->removeWidget(label1);
-        rightLayout->removeWidget(label2);
-        rightLayout->removeWidget(label3);
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t left, right, top, bottom;
-        rightLayout->setContentsMargins(2, 2, 2, 2);
-        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        //printf ("left:%d top:%d right:%d bottom:%d\n",
-        //        left, top, right, bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-        label->setGeometry(labelX, labelY, labelW, labelH);
-        //printf ("label->x():%d label->y():%d width():%d height():%d\n", label->x(), label->y(), label->width(), label->height());
-        int32_t label1X = labelX, label1Y = labelY + labelH, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
-        label1->setGeometry(label1X, label1Y, label1W, label1H);
-        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
-        label2->setGeometry(label2X, label2Y, label2W, label2H);
-        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = COMMON_WIDTH, label3H = COMMON_HEIGHT;
-        label3->setGeometry(label3X, label3Y, label3W, label3H);
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
@@ -570,6 +988,11 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
+
         break;
     }
     case ModuleDataAttr_SetEthCfg:
@@ -598,6 +1021,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         enter->show();
 
+        lineEdit0->setFocus(); //强制tab焦点
         rightLayout->removeWidget(label);
         rightLayout->removeWidget(lineEdit0);
         rightLayout->removeWidget(lineEdit1);
@@ -633,7 +1057,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex);
+            JumpWindowToContextTransmit(currentIndex, client);
         });
         break;
     }
@@ -642,62 +1066,22 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         ClearWidget();
         //navigationWidget->show();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label4, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label5, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("<无线配置>");
-        char sSsid[128];
-        char sPassword[128];
-        char sAddress[128];
-        char sNetmask[128];
-        char sGateway[128];
-        MQTTGetWifiCfg(sSsid, sPassword, sAddress, sNetmask, sGateway, sizeof(sAddress));
-        label->setText(strings);
-        label1->setText((QString)"无线账号:" + (QString)sSsid);
-        label2->setText((QString)"无线密码:" + (QString)sPassword);
-        label3->setText((QString)"网络地址:" + (QString)sAddress);
-        label4->setText((QString)"子网掩码:" + (QString)sNetmask);
-        label5->setText((QString)"网关地址:" + (QString)sGateway);
-        label->show();
-        label1->show();
-        label2->show();
-        label3->show();
-        label4->show();
-        label5->show();
+        enter->setText("获取无线网络配置");
+        enter->show();
         contextTable->show();
 
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
-        rightLayout->removeWidget(label1);
-        rightLayout->removeWidget(label2);
-        rightLayout->removeWidget(label3);
+        rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
-        rightLayout->removeWidget(label4);
-        rightLayout->removeWidget(label5);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t left, right, top, bottom;
-        rightLayout->setContentsMargins(2, 2, 2, 2);
-        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-        label->setGeometry(labelX, labelY, labelW, labelH);
-        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
-        label1->setGeometry(label1X, label1Y, label1W, label1H);
-        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
-        label2->setGeometry(label2X, label2Y, label2W, label2H);
-        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = COMMON_WIDTH, label3H = COMMON_HEIGHT;
-        label3->setGeometry(label3X, label3Y, label3W, label3H);
-        int32_t label4X = label3X, label4Y = label3Y + label3H, label4W = COMMON_WIDTH, label4H = COMMON_HEIGHT;
-        label4->setGeometry(label4X, label4Y, label4W, label4H);
-        int32_t label5X = label4X, label5Y = label4Y + label4H, label5W = COMMON_WIDTH, label5H = COMMON_HEIGHT;
-        label5->setGeometry(label5X, label5Y, label5W, label5H);
         cancel->setText("返回");
         cancel->show();
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
@@ -706,12 +1090,15 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
         break;
     }
     case ModuleDataAttr_SetWifiCfg:
     {
         ClearWidget();
-        //navigationWidget->show();
         mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
@@ -743,6 +1130,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         enter->show();
 
+        lineEdit0->setFocus(); //强制tab焦点
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
         rightLayout->removeWidget(lineEdit0);
@@ -784,7 +1172,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex);
+            JumpWindowToContextTransmit(currentIndex, client);
         });
         break;
     }
@@ -792,48 +1180,22 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
     {
         ClearWidget();
         mainLayout->addWidget(contextTable);
-        rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label1, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label2, 0, Qt::AlignTop | Qt::AlignLeft);
-        rightLayout->addWidget(label3, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
-        QString strings("<MQTT配置>");
-        char sUser[128];
-        char sPassword[128];
-        char sUrl[128];
-        MQTTGetMQTTCfg(sUser, sPassword, sUrl, sizeof(sUser));
-        label->setText(strings);
-        label1->setText((QString)"用户账号:" + (QString)sUser);
-        label2->setText((QString)"用户密码:" + (QString)sPassword);
-        label3->setText((QString)"服务地址:" + (QString)sUrl);
-        label->show();
-        label1->show();
-        label2->show();
-        label3->show();
+        enter->setText("获取MQTT配置");
+        enter->show();
         contextTable->show();
 
+        rightLayout->removeWidget(enter);
         rightLayout->removeWidget(cancel);
-        rightLayout->removeWidget(label);
-        rightLayout->removeWidget(label1);
-        rightLayout->removeWidget(label2);
-        rightLayout->removeWidget(label3);
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t left, right, top, bottom;
-        rightLayout->setContentsMargins(2, 2, 2, 2);
-        rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-        label->setGeometry(labelX, labelY, labelW, labelH);
-        int32_t label1X = labelX, label1Y = labelY + labelH + 2, label1W = COMMON_WIDTH, label1H = COMMON_HEIGHT;
-        label1->setGeometry(label1X, label1Y, label1W, label1H);
-        int32_t label2X = label1X, label2Y = label1Y + label1H, label2W = COMMON_WIDTH, label2H = COMMON_HEIGHT;
-        label2->setGeometry(label2X, label2Y, label2W, label2H);
-        int32_t label3X = label2X, label3Y = label2Y + label2H, label3W = COMMON_WIDTH, label3H = COMMON_HEIGHT;
-        label3->setGeometry(label3X, label3Y, label3W, label3H);
         cancel->setText("返回");
         cancel->show();
+        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
@@ -842,6 +1204,11 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
             ClearQnavigationWidget();
             JumpWindowToServerList();
         });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(currentIndex, client);
+        });
+
         break;
     }
     case ModuleDataAttr_SetMqttCfg:
@@ -871,6 +1238,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         enter->show();
 
+        lineEdit0->setFocus(); //强制tab焦点
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
         rightLayout->removeWidget(lineEdit0);
@@ -907,7 +1275,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex);
+            JumpWindowToContextTransmit(currentIndex, client);
         });
         break;
     }
@@ -926,7 +1294,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
 }
 
 int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicName topic) {
-#if 1
     QString topicString = topic.name();
 
     switch (toAckStringEnum(topicString.toStdString().c_str())) {
@@ -939,41 +1306,11 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
             QJsonObject root = roots.at(index).toObject();
             QString name = root.value("htype").toString();
             if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
-                temperature = root.value("temperature").toDouble();
+                sTemperature = root.value("temperature").toDouble();
 
                 printf ("htype:%s\n", name.toStdString().c_str());
-                printf ("temperature:%lf\n", temperature);
-
-
-                ClearWidget();
-                mainLayout->addWidget(contextTable);
-                rightLayout->addWidget(label, 0, Qt::AlignLeft | Qt::AlignTop);
-                rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
-                mainLayout->addWidget(rightWidget);
-                QString strings("温度:");
-                QString stemperature(QString::number(temperature));
-                label->setText(strings + stemperature);
-                label->adjustSize();
-                label->show();
-                contextTable->show();
-                cancel->setText("返回");
-                cancel->show();
-
-                rightLayout->removeWidget(cancel);
-                rightLayout->removeWidget(label);
-                mainLayout->removeWidget(contextTable);
-                mainLayout->removeWidget(rightWidget);
-
-                int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
-                label->setGeometry(labelX, labelY, labelW, labelH);
-                int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
-                cancel->setGeometry(returnX, returnY, returnW, returnH);
-
-                //返回到客户端列表成员
-                connect(cancel, &QPushButton::clicked, this, [=](){
-                    ClearQnavigationWidget();
-                    JumpWindowToServerList();
-                });
+                printf ("temperature:%lf\n", sTemperature);
+                signalSync = SignalSync_OK;
             }
         }
         break;
@@ -987,10 +1324,11 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
             QJsonObject root = roots.at(index).toObject();
             QString name = root.value("htype").toString();
             if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
-                version = root.value("ver").toString();
+                sVersion = root.value("ver").toString();
 
                 printf ("htype:%s\n", name.toStdString().c_str());
-                printf ("version:%s\n", version.toStdString().c_str());
+                printf ("version:%s\n", sVersion.toStdString().c_str());
+                signalSync = SignalSync_OK;
             }
         }
         break;
@@ -1004,17 +1342,17 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
             QJsonObject root = roots.at(index).toObject();
             QString name = root.value("htype").toString();
             if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
-                info = root.value("info").toString();
+                sInfo = root.value("info").toString();
 
                 printf ("htype:%s\n", name.toStdString().c_str());
-                printf ("info:%s\n", info.toStdString().c_str());
+                printf ("info:%s\n", sInfo.toStdString().c_str());
+                signalSync = SignalSync_OK;
             }
         }
         break;
     }
     case ModuleDataAttr_SetModuleInfo:
     {
-        printf ("mqtt set module info\n");
         QJsonObject object;
         QJsonDocument doc = QJsonDocument::fromJson(message);
         QJsonArray roots = doc.array();
@@ -1026,12 +1364,35 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
 
                 printf ("htype:%s\n", name.toStdString().c_str());
                 printf ("status:%s\n", ack.toStdString().c_str());
+
+                if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                    signalSync = SignalSync_OK;
+                }
+                else {
+                    signalSync = SignalSync_FAILURE;
+                }
             }
         }
         break;
     }
     case ModuleDataAttr_GetPower:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                sMode = (PowerSupplyMode)root.value("mode").toInt();
+                sLevel = root.value("battery_level").toInt();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("mode:%d\n", sMode);
+                printf ("battery_level:%d\n", sLevel);
+                signalSync = SignalSync_OK;
+            }
+        }
         break;
     }
     case ModuleDataAttr_Reboot:
@@ -1040,30 +1401,162 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
     }
     case ModuleDataAttr_NetState:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                sNetState = (NetState)root.value("NetState").toInt();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("sNetState:%s\n", NetState2Name[sNetState]);
+                signalSync = SignalSync_OK;
+            }
+        }
         break;
     }
     case ModuleDataAttr_GetEthCfg:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                sEthAddress = root.value("address").toString();
+                sEthNetmask = root.value("netmask").toString();
+                sEthGateway = root.value("gateway").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("sEthAddress:%s\n", sEthAddress.toStdString().c_str());
+                printf ("sEthNetmask:%s\n", sEthNetmask.toStdString().c_str());
+                printf ("sEthGateway:%s\n", sEthGateway.toStdString().c_str());
+                signalSync = SignalSync_OK;
+            }
+        }
         break;
     }
     case ModuleDataAttr_SetEthCfg:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                QString ack = root.value("status").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("status:%s\n", ack.toStdString().c_str());
+
+                if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                    signalSync = SignalSync_OK;
+                }
+                else {
+                    signalSync = SignalSync_FAILURE;
+                }
+            }
+        }
         break;
     }
     case ModuleDataAttr_GetWifiCfg:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                sWifiSsid = root.value("ssid").toString();
+                sWifiPassword = root.value("password").toString();
+                sWifiAddress = root.value("address").toString();
+                sWifiNetmask = root.value("netmask").toString();
+                sWifiGateway = root.value("gateway").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("sWifiSsid:%s\n", sWifiSsid.toStdString().c_str());
+                printf ("sWifiPassword:%s\n", sWifiPassword.toStdString().c_str());
+                printf ("sWifiAddress:%s\n", sWifiAddress.toStdString().c_str());
+                printf ("sWifiNetmask:%s\n", sWifiNetmask.toStdString().c_str());
+                printf ("sWifiGateway:%s\n", sWifiGateway.toStdString().c_str());
+                signalSync = SignalSync_OK;
+            }
+        }
         break;
     }
     case ModuleDataAttr_SetWifiCfg:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                QString ack = root.value("status").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("status:%s\n", ack.toStdString().c_str());
+
+                if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                    signalSync = SignalSync_OK;
+                }
+                else {
+                    signalSync = SignalSync_FAILURE;
+                }
+            }
+        }
         break;
     }
     case ModuleDataAttr_GetMqttCfg:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                sMqttUser = root.value("user").toString();
+                sMqttPassword = root.value("password").toString();
+                sMqttUrl = root.value("url").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("sMqttUser:%s\n", sMqttUser.toStdString().c_str());
+                printf ("sMqttPassword:%s\n", sMqttPassword.toStdString().c_str());
+                printf ("sMqttUrl:%s\n", sMqttUrl.toStdString().c_str());
+                signalSync = SignalSync_OK;
+            }
+        }
         break;
     }
     case ModuleDataAttr_SetMqttCfg:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                QString ack = root.value("status").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("status:%s\n", ack.toStdString().c_str());
+
+                if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                    signalSync = SignalSync_OK;
+                }
+                else {
+                    signalSync = SignalSync_FAILURE;
+                }
+            }
+        }
         break;
     }
     case ModuleDataAttr_Update:
@@ -1077,23 +1570,6 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
     default:break;
     }
 
-#else
-    QJsonObject object;
-    QJsonDocument doc = QJsonDocument::fromJson(message);
-    QJsonArray roots = doc.array();
-    for (int32_t index = 0; index < roots.size; index++) {
-        QJsonObject root = roots.at(index).toObject();
-        QString name = root.value("name").toString();
-        QJsonObject info = root.value("info").toObject();
-
-        int32_t age = info.value("age").toInt();
-        int32_t height = info.value("height").toInt();
-
-        printf ("name:%s\n", name);
-        printf ("info.age:%d\n", age);
-        printf ("info.height:%d\n", height);
-    }
-#endif
     return 0;
 }
 
@@ -1110,8 +1586,6 @@ int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
         if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
         int32_t rowCount = contextTable->rowCount();
         contextTable->insertRow(rowCount);
-        printf ("rowCount:%d\n", rowCount);
-        printf ("label:%s\n", toEnumChineseString((ModuleDataAttr)index));
         QTableWidgetItem *item = new QTableWidgetItem(QString::fromUtf8(toEnumChineseString((ModuleDataAttr)index)));
         contextTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
         contextTable->setItem(rowCount, 0, item);
@@ -1119,13 +1593,11 @@ int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
     }
 
     contextTable->show();
-
     mainLayout->removeWidget(rightWidget);
     mainLayout->removeWidget(contextTable);
 
     //单元格被点击处理
     connect(contextTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
-        //rightWidget->resize(this->width() - contextTable->width(), this->height());
         SetCurrentIndex(row);
         JumpWindowToContext(row, client);
         contextTable->selectRow(row);
@@ -1133,7 +1605,6 @@ int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
 
     return 0;
 }
-
 
 int32_t SubWindow::JumpWindowToServerList(void) {
     ClearWidget();
@@ -1164,8 +1635,8 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     lineEdit0->show();
     lineEdit1->show();
     lineEdit2->show();
-    lineEdit3->show();
     lineEdit4->show();
+    lineEdit3->show();
     serverTable->show();
     enter->setText("添加");
     enter->show();
@@ -1205,6 +1676,15 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     rightLayout->removeWidget(serverTable);
     mainLayout->removeWidget(rightWidget);
 
+    lineEdit0->setFocus(); //强制tab焦点
+    setTabOrder(lineEdit0, lineEdit1);
+    setTabOrder(lineEdit1, lineEdit2);
+    setTabOrder(lineEdit2, lineEdit4);
+    setTabOrder(lineEdit4, lineEdit3);
+    setTabOrder(lineEdit3, enter);
+    setTabOrder(enter, cancel);
+    setTabOrder(cancel, allCheck);
+
     //添加客户端列表成员
     connect(enter, &QPushButton::clicked, this, [=](){
         QString userString = lineEdit0->text();
@@ -1239,26 +1719,8 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             }
         });
         connect(client, &QMqttClient::messageReceived, this, [=](const QByteArray &message, const QMqttTopicName &topic){
-#if 1
             printf ("rcv message\n");
             RecvMqttMessage(message, topic);
-#else
-            QJsonObject object;
-            QJsonDocument doc = QJsonDocument::fromJson(message);
-            QJsonArray roots = doc.array();
-            for (int32_t index = 0; index < roots.size; index++) {
-                QJsonObject root = roots.at(index).toObject();
-                QString name = root.value("name").toString();
-                QJsonObject info = root.value("info").toObject();
-
-                int32_t age = info.value("age").toInt();
-                int32_t height = info.value("height").toInt();
-
-                printf ("name:%s\n", name);
-                printf ("info.age:%d\n", age);
-                printf ("info.height:%d\n", height);
-            }
-#endif
         });
         connect(client, &QMqttClient::pingResponseReceived, this, [=](){
             printf ("client->ping server trigger\n");
@@ -1270,19 +1732,13 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         serverTable->setItem(rowCount, 0, item);
         item->setCheckState(Qt::Unchecked);
         item = new QTableWidgetItem(passwordString);
-        //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 1, item);
         item = new QTableWidgetItem(netString);
-        //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 2, item);
         item = new QTableWidgetItem(portString);
-        //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 3, item);
         item = new QTableWidgetItem(QString("进入"));
-        //item->setFlags(Qt::ItemIsEnabled);
         serverTable->setItem(rowCount, 4, item);
-        //serverTable->setProperty("MQTTSubscribe", );
-        //serverTable->setProperty(MQTTNewPublish);
     });
     //删除客户端列表成员
     connect(cancel, &QPushButton::clicked, this, [=](){
@@ -1321,7 +1777,6 @@ int32_t SubWindow::JumpWindowToServerList(void) {
 
     //单元格被点击处理
     connect(serverTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
-        //printf (">>>>>>>>>>>>>>> row:%d col:%d\n", row, col);
         if (col == 4) {//只有第3列需要有点击响应
             QTableWidgetItem *item = serverTable->item(row, 0);
             QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
@@ -1362,20 +1817,12 @@ int32_t SubWindow::JumpWindowToLogin(void) {
     int32_t middleX = w / 2, middleY = h / 2;
 
     int32_t labelX = middleX - 100, labelY = middleY - 30;
-    //int32_t labelX = 220, labelY = 220;
-    printf ("w:%d h:%d middlex:%d middleY:%d labelX:%d labelY:%d\n",
-            w, h, middleX, middleY, labelX, labelY);
     int32_t hW = subHWidget->width(), hH = subHWidget->height();
-    printf ("hw:%d hh:%d\n", hW, hH);
 
     lineEdit0->setGeometry(labelX, labelY, 200, 20);
-    printf ("labelX:%d labelY:%d\n", labelX, labelY);
     lineEdit1->setGeometry(labelX, labelY + 20, 200, 20);
     enter->setGeometry(labelX, labelY + 40, 50, 20);
     cancel->setGeometry(labelX + 200 - 50, labelY + 40, 50, 20);
-    printf ("lineedit0 x:%d y:%d w:%d h:%d\n", lineEdit0->x(), lineEdit0->y(), lineEdit0->width(), lineEdit0->height());
-    printf ("lineedit0 x:%d y:%d w:%d h:%d\n", lineEdit1->x(), lineEdit1->y(), lineEdit1->width(), lineEdit1->height());
-    printf ("lineedit0 x:%d y:%d w:%d h:%d\n", enter->x(), enter->y(), enter->width(), enter->height());
     rightLayout->removeWidget(lineEdit0);
     rightLayout->removeWidget(lineEdit1);
     rightLayout->removeWidget(enter);
@@ -1383,13 +1830,11 @@ int32_t SubWindow::JumpWindowToLogin(void) {
     mainLayout->removeWidget(rightWidget);
 
     connect(enter, &QPushButton::clicked, this, [=](){
-        //printf ("admin:%s password:%s\n", lineEdit0->text().toStdString().c_str(), lineEdit1->text().toStdString().c_str());
         //账号密码有效性检测
         if (!strcmp(lineEdit0->text().toStdString().c_str(), "admin")
                 && !strcmp(lineEdit1->text().toStdString().c_str(), "123456")) {
             //printf ("enter\n");
             //创建客户端列表
-            //serverTable = new QTableWidget(this);
             serverTable->setRowCount(0); // 初始不设置行，动态添加
             serverTable->setColumnCount(5);
             serverTable->setHorizontalHeaderLabels(QStringList() << "用户账号" << "用户密码" << "主机地址" << "主机端口" << "操作方式");
@@ -1451,11 +1896,6 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     allCheck = new QCheckBox("全选");
     backgroundColor = "#E4E4E4";
     windowType = SubWindowType_Login;
-    //palette = new QPalette();
-    //QPixmap pixmap(QString(":/background.png"));
-    //palette->setBrush(QPalette::Background, QBrush(pixmap));
-    //*palettes = this->palette();
-    //*color = palettes->color(this->backgroundRole());
 
     contextTable->setRowCount(0); // 初始不设置行，动态添加
     contextTable->setColumnCount(1);
@@ -1464,6 +1904,8 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     contextTable->setDragEnabled(true);
     contextTable->setAcceptDrops(true);
     contextTable->setDropIndicatorShown(true);
+
+    signalSync = SignalSync_Init;
 
     //跳转到登陆界面
     JumpWindowToLogin();

@@ -298,8 +298,8 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         snprintf (uart->buffer, uart->bufSize, "AT+ETHCFG?\r\n"); 
                         uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                        strcpy(uart->uartAck, "+ETHCFG:<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n");
-                        uart->ackSize = strlen("+ETHCFG:<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n") + 1;
+                        strcpy(uart->uartAck, "+ETHCFG:<192.168.0.102>,<255.255.255.0>,<192.168.0.1>\r\n");
+                        uart->ackSize = strlen("+ETHCFG:<192.168.0.102>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
 #endif
                         break;
                     }
@@ -325,6 +325,46 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                                 mess->ptSend.mac, 
                                 mess->ptSend.data); 
                         uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                case ModuleDataAttr_Cnt:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "+OK");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        break;
+                    }
+                default:break;
+            }
+            /* strcat(uart->buffer, "\r\n"); */
+            LogPrintf(LogUart_Info, "Uart AT Send: %s\n", uart->buffer);
+#ifndef Uart_TEST
+            status = uart_write_bytes(uart->uartIndex, 
+                    (const char *)uart->buffer, strlen(uart->buffer));
+            if (status < 0) {
+                LogPrintf(LogUart_Error, "uart_write_bytes failure\n");
+            }
+#endif
+        }
+        status = uart->recv(gPriv, 
+                DataAttr_WifiToUart, &message, &length, 0);
+        if (!status) {
+            mess = &message;
+            switch (mess->attr) {
+                case ModuleDataAttr_SetWifiCfg:
+                    {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "AT+WIFICFG=<%s>,<%s>,<%s>,<%s>,<%s>\r\n", 
+                                mess->setWifiCfg.ssid, 
+                                mess->setWifiCfg.password, 
+                                mess->setWifiCfg.address, 
+                                mess->setWifiCfg.netmask, 
+                                mess->setWifiCfg.gateway); 
+                        uart->buffer[uart->bufSize - 1] = '\0';
+#ifdef Uart_TEST
+                        strcpy(uart->uartAck, "+OK\r\n");
+                        uart->ackSize = strlen("+OK\r\n") + 1;
+#endif
                         break;
                     }
                 case ModuleDataAttr_Cnt:

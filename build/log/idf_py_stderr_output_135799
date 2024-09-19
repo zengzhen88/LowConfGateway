@@ -1,0 +1,10 @@
+/home/zeng/share/gateway/LowConfGateway/main/mqtt.c: In function 'MQTTMessageRecvUartCommonOkHandler':
+/home/zeng/share/gateway/LowConfGateway/main/mqtt.c:246:9: error: 'status' undeclared (first use in this function); did you mean 'stat'?
+  246 |         status = esp_mqtt_client_reconnect(mqtt->client);
+      |         ^~~~~~
+      |         stat
+/home/zeng/share/gateway/LowConfGateway/main/mqtt.c:246:9: note: each undeclared identifier is reported only once for each function it appears in
+make[3]: *** [esp-idf/main/CMakeFiles/__idf_main.dir/build.make:118：esp-idf/main/CMakeFiles/__idf_main.dir/mqtt.c.obj] 错误 1
+make[2]: *** [CMakeFiles/Makefile2:5751：esp-idf/main/CMakeFiles/__idf_main.dir/all] 错误 2
+make[1]: *** [CMakeFiles/Makefile2:2455：CMakeFiles/flash.dir/rule] 错误 2
+make: *** [Makefile:312：flash] 错误 2
