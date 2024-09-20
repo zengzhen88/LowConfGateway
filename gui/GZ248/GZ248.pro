@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -10,6 +10,17 @@ CONFIG += c++11
 
 SOURCES += \
     common.cpp \
+    httpserver/httpconnectionhandler.cpp \
+    httpserver/httpconnectionhandlerpool.cpp \
+    httpserver/httpcookie.cpp \
+    httpserver/httpglobal.cpp \
+    httpserver/httplistener.cpp \
+    httpserver/httprequest.cpp \
+    httpserver/httprequesthandler.cpp \
+    httpserver/httpresponse.cpp \
+    httpserver/httpsession.cpp \
+    httpserver/httpsessionstore.cpp \
+    httpserver/staticfilecontroller.cpp \
     main.cpp \
     message.cpp \
     mqtt.cpp \
@@ -19,6 +30,17 @@ SOURCES += \
     transmit.cpp
 
 HEADERS += \
+    httpserver/httpconnectionhandler.h \
+    httpserver/httpconnectionhandlerpool.h \
+    httpserver/httpcookie.h \
+    httpserver/httpglobal.h \
+    httpserver/httplistener.h \
+    httpserver/httprequest.h \
+    httpserver/httprequesthandler.h \
+    httpserver/httpresponse.h \
+    httpserver/httpsession.h \
+    httpserver/httpsessionstore.h \
+    httpserver/staticfilecontroller.h \
     mqtt.h \
     mqttcollection.h \
     qnavigationwidget.h \
@@ -35,8 +57,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    image.qrc \
-    res/background.qrc
+    ini.qrc
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/thirdlib/lib/release/ -lcjson
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/thirdlib/lib/debug/ -lcjson
@@ -51,7 +72,8 @@ else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/th
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/thirdlib/lib/debug/cjson.lib
 else:unix: PRE_TARGETDEPS += $$PWD/thirdlib/lib/libcjson.a
 
-DISTFILES +=
+DISTFILES += \
+    httpserver/httpserver.pri
 
 
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/thirdlib/lib/release/ -lmosquitto

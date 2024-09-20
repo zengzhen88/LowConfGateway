@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>webapp.ini</file>
+    </qresource>
+</RCC>
