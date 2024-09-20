@@ -41,6 +41,8 @@ const char *SubWindow2Name[] = {
     "Context",
 };
 
+//keyPressEvent
+
 void SubWindow::mousePressEvent(QMouseEvent *event) {
     QWidget::mousePressEvent(event);
 }
@@ -123,8 +125,6 @@ int32_t SubWindow::ClearQnavigationWidget(void) {
 }
 
 void SubWindow::ClearWidget(void) {
-
-    //navigationWidget->hide();
     enter->hide();
     cancel->hide();
     search->hide();
@@ -717,7 +717,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         cancel->setText("返回");
         cancel->show();
-
+        enter->setFocus();
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
@@ -755,6 +755,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         cancel->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
@@ -790,6 +791,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         cancel->setText("返回");
         cancel->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
@@ -869,6 +871,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         cancel->setText("返回");
         cancel->show();
 
+        enter->setFocus();
         mainLayout->removeWidget(contextTable);
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
@@ -904,6 +907,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         cancel->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
@@ -938,6 +942,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         cancel->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(rightWidget);
@@ -973,6 +978,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         cancel->show();
         contextTable->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(enter);
         rightLayout->removeWidget(cancel);
         mainLayout->removeWidget(contextTable);
@@ -1073,6 +1079,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         enter->show();
         contextTable->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(contextTable);
@@ -1099,7 +1106,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
     case ModuleDataAttr_SetWifiCfg:
     {
         ClearWidget();
-        mainLayout->addWidget(contextTable);
         rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
@@ -1108,6 +1114,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         rightLayout->addWidget(lineEdit4, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(contextTable);
         mainLayout->addWidget(rightWidget);
         enter->setText("确定");
         label->setText("请输入无线配置:");
@@ -1116,6 +1123,25 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         lineEdit2->setPlaceholderText("网络地址");
         lineEdit3->setPlaceholderText("子网掩码");
         lineEdit4->setPlaceholderText("网关地址");
+
+        //rightWidget->setFocus();
+        //contextTable->eventFilter()
+        //focusNextChild();
+        lineEdit0->setFocus(); //强制tab焦点
+        setTabOrder(lineEdit0, lineEdit1);
+        setTabOrder(lineEdit1, lineEdit2);
+        setTabOrder(lineEdit2, lineEdit3);
+        setTabOrder(lineEdit3, lineEdit4);
+        setTabOrder(lineEdit4, enter);
+        setTabOrder(enter, cancel);
+        setTabOrder(cancel, lineEdit0);
+#if 0
+        账号名称：华容振乡特种养殖农民专业合作社
+        账户号码：4305 0166 7586 0000 1675
+        开户银行：中国建设银行股份有限公司华容支行
+        法人代表：曾振
+
+#endif
         label->show();
         lineEdit0->clear();
         lineEdit1->clear();
@@ -1130,7 +1156,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         contextTable->show();
         enter->show();
 
-        lineEdit0->setFocus(); //强制tab焦点
         rightLayout->removeWidget(cancel);
         rightLayout->removeWidget(label);
         rightLayout->removeWidget(lineEdit0);
@@ -1165,6 +1190,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
 
+
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
             ClearQnavigationWidget();
@@ -1187,6 +1213,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         enter->show();
         contextTable->show();
 
+        enter->setFocus();
         rightLayout->removeWidget(enter);
         rightLayout->removeWidget(cancel);
         mainLayout->removeWidget(contextTable);
@@ -1599,8 +1626,12 @@ int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
     //单元格被点击处理
     connect(contextTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
         SetCurrentIndex(row);
+
+        //rightWidget->setFocus();
+        contextTable->setFocusPolicy(Qt::NoFocus);
         JumpWindowToContext(row, client);
         contextTable->selectRow(row);
+        //contextTable->setFocusPolicy(Qt::WheelFocus);
     });
 
     return 0;
@@ -1687,10 +1718,35 @@ int32_t SubWindow::JumpWindowToServerList(void) {
 
     //添加客户端列表成员
     connect(enter, &QPushButton::clicked, this, [=](){
-        QString userString = lineEdit0->text();
-        QString passwordString = lineEdit1->text();
-        QString netString = lineEdit2->text();
-        QString portString = lineEdit4->text();
+        QString userString = lineEdit0->text();      //获取用户名称
+        QString passwordString = lineEdit1->text();  //获取用户密码
+        QString netString = lineEdit2->text();       //获取用户网址
+        QString portString = lineEdit4->text();      //获取用户端口
+
+        for (int32_t row = 0; row < serverTable->rowCount(); row++) {
+            if (!strcmp(serverTable->item(row, 0)->text().toStdString().c_str(), userString.toStdString().c_str())
+                    && !strcmp(serverTable->item(row, 1)->text().toStdString().c_str(), passwordString.toStdString().c_str())
+                    && !strcmp(serverTable->item(row, 2)->text().toStdString().c_str(), netString.toStdString().c_str())
+                    && !strcmp(serverTable->item(row, 3)->text().toStdString().c_str(), portString.toStdString().c_str())) {
+                QProgressDialog dialog(tr("添加新客户端中..."), tr("取消"), 0, 2, this);
+                dialog.setWindowTitle(tr("进度条对话框"));
+                dialog.setWindowModality(Qt::WindowModal);
+                dialog.show();
+                for (int32_t index = 0; index < 2; index++) {
+                    dialog.setValue(index);
+                    QCoreApplication::processEvents();
+                    if (dialog.wasCanceled()) {
+                        break;
+                    }
+                    //QThread::usleep(10);
+                }
+                QMessageBox::information(this,
+                                         tr("系统提示"),
+                                         tr("添加新客户端中失败"),
+                                         QMessageBox::Ok);
+                return 0;
+            }
+        }
         int rowCount = serverTable->rowCount();
         serverTable->insertRow(rowCount);
         QTableWidgetItem *item = new QTableWidgetItem(userString);
@@ -1739,6 +1795,23 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         serverTable->setItem(rowCount, 3, item);
         item = new QTableWidgetItem(QString("进入"));
         serverTable->setItem(rowCount, 4, item);
+
+        QProgressDialog dialog(tr("添加新客户端中..."), tr("取消"), 0, 2, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 2; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                break;
+            }
+            //QThread::usleep(10);
+        }
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr("添加新客户端中成功"),
+                                 QMessageBox::Ok);
     });
     //删除客户端列表成员
     connect(cancel, &QPushButton::clicked, this, [=](){
@@ -1749,6 +1822,11 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             if (item->checkState() == Qt::Checked) {
                 serverTable->removeRow(row);
                 QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
+                if (client) {
+                    client->disconnect();
+                    delete client;
+                    printf ("delete QMqttClient\n");
+                }
             }
         }
         if (serverTable->rowCount() == 0) {
@@ -1780,6 +1858,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         if (col == 4) {//只有第3列需要有点击响应
             QTableWidgetItem *item = serverTable->item(row, 0);
             QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
+
             JumpWindowToMainContext(client);
         }
     });
@@ -1795,7 +1874,6 @@ int32_t SubWindow::JumpWindowToLogin(void) {
     rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
     rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
 
-    //rightLayout->addLayout(subVLayout);
     enter->setText("确定");
     cancel->setText("取消:");
     lineEdit0->setPlaceholderText("用户账号");

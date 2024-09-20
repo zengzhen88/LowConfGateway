@@ -37,6 +37,24 @@ enum SignalSync {
     SignalSync_Cnt,
 };
 
+class SubQTableWidget : public QTableWidget {
+public:
+    SubQTableWidget(QWidget *parent = nullptr) : QTableWidget(parent) {
+        this->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override {
+        if (event->type() == QEvent::KeyPress) {
+            QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+            if (keyEvent->key() == Qt::Key_Tab) {
+                return true; // 返回true，表示事件被过滤，空格键不会被处理
+            }
+        }
+        return QTableWidget::eventFilter(watched, event); // 对其他按键进行正常处理
+    }
+};
+
 class SubWindow : public QMainWindow
 {
     Q_OBJECT   
