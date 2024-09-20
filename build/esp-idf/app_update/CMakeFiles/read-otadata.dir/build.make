@@ -66,8 +66,8 @@ include esp-idf/app_update/CMakeFiles/read-otadata.dir/compiler_depend.make
 # Include the progress variables for this target.
 include esp-idf/app_update/CMakeFiles/read-otadata.dir/progress.make
 
-esp-idf/app_update/CMakeFiles/read-otadata: /home/zeng/share/espdemo/esp-idf/components/partition_table/partitions_two_ota.csv
-	/usr/bin/cmake -D IDF_PATH=/home/zeng/share/espdemo/esp-idf -D "SERIAL_TOOL=/home/zeng/.espressif/python_env/idf5.4_py3.12_env/bin/python;/home/zeng/share/espdemo/esp-idf/components/app_update/otatool.py" -D "SERIAL_TOOL_ARGS=--esptool-args;before=default_reset;after=hard_reset;--partition-table-file;/home/zeng/share/espdemo/esp-idf/components/partition_table/partitions_two_ota.csv;--partition-table-offset;0x8000;read_otadata" -D WORKING_DIRECTORY=/home/zeng/share/gateway/LowConfGateway/build -P /home/zeng/share/espdemo/esp-idf/components/esptool_py/run_serial_tool.cmake
+esp-idf/app_update/CMakeFiles/read-otadata: /home/zeng/share/gateway/LowConfGateway/partitions.csv
+	/usr/bin/cmake -D IDF_PATH=/home/zeng/share/espdemo/esp-idf -D "SERIAL_TOOL=/home/zeng/.espressif/python_env/idf5.4_py3.12_env/bin/python;/home/zeng/share/espdemo/esp-idf/components/app_update/otatool.py" -D "SERIAL_TOOL_ARGS=--esptool-args;before=default_reset;after=hard_reset;--partition-table-file;/home/zeng/share/gateway/LowConfGateway/partitions.csv;--partition-table-offset;0x8000;read_otadata" -D WORKING_DIRECTORY=/home/zeng/share/gateway/LowConfGateway/build -P /home/zeng/share/espdemo/esp-idf/components/esptool_py/run_serial_tool.cmake
 
 read-otadata: esp-idf/app_update/CMakeFiles/read-otadata
 read-otadata: esp-idf/app_update/CMakeFiles/read-otadata.dir/build.make

@@ -69,10 +69,10 @@ include esp-idf/partition_table/CMakeFiles/partition_table_bin.dir/progress.make
 esp-idf/partition_table/CMakeFiles/partition_table_bin: partition_table/partition-table.bin
 esp-idf/partition_table/CMakeFiles/partition_table_bin: partition_table/partition-table.bin
 
-partition_table/partition-table.bin: /home/zeng/share/espdemo/esp-idf/components/partition_table/partitions_two_ota.csv
+partition_table/partition-table.bin: /home/zeng/share/gateway/LowConfGateway/partitions.csv
 partition_table/partition-table.bin: /home/zeng/share/espdemo/esp-idf/components/partition_table/gen_esp32part.py
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/home/zeng/share/gateway/LowConfGateway/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating ../../partition_table/partition-table.bin"
-	cd /home/zeng/share/gateway/LowConfGateway/build/esp-idf/partition_table && /home/zeng/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/zeng/share/espdemo/esp-idf/components/partition_table/gen_esp32part.py -q --offset 0x8000 --flash-size 4MB -- /home/zeng/share/espdemo/esp-idf/components/partition_table/partitions_two_ota.csv /home/zeng/share/gateway/LowConfGateway/build/partition_table/partition-table.bin
+	cd /home/zeng/share/gateway/LowConfGateway/build/esp-idf/partition_table && /home/zeng/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/zeng/share/espdemo/esp-idf/components/partition_table/gen_esp32part.py -q --offset 0x8000 --flash-size 4MB -- /home/zeng/share/gateway/LowConfGateway/partitions.csv /home/zeng/share/gateway/LowConfGateway/build/partition_table/partition-table.bin
 	cd /home/zeng/share/gateway/LowConfGateway/build/esp-idf/partition_table && /usr/bin/cmake -E echo "Partition table binary generated. Contents:"
 	cd /home/zeng/share/gateway/LowConfGateway/build/esp-idf/partition_table && /usr/bin/cmake -E echo "*******************************************************************************"
 	cd /home/zeng/share/gateway/LowConfGateway/build/esp-idf/partition_table && /home/zeng/.espressif/python_env/idf5.4_py3.12_env/bin/python /home/zeng/share/espdemo/esp-idf/components/partition_table/gen_esp32part.py -q --offset 0x8000 --flash-size 4MB -- /home/zeng/share/gateway/LowConfGateway/build/partition_table/partition-table.bin
