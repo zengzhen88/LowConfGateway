@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "externqslider.h"
 #include "common.h"
-#include "transmit.h"
+#include "httpserver.h"
 #include <QRegExp>
 #include <QRegExpValidator>
 #include <QCheckBox>
@@ -22,6 +22,10 @@
 #include <QProgressDialog>
 #include <QMessageBox>
 #include <QThread>
+#include <QHostInfo>
+#include <QHostAddress>
+#include <QNetworkInterface>
+#include <httpserver.h>
 
 const char *PowerMode2Name[] = {
     "DC",
@@ -147,6 +151,7 @@ void SubWindow::ClearWidget(void) {
     label4->hide();
     label5->hide();
     allCheck->hide();
+    sTreeView->hide();
     serverTable->hide();
     contextTable->hide();
     enter->disconnect();
@@ -228,7 +233,7 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, QMqttClient *clie
         dialog.setWindowTitle(tr("进度条对话框"));
         dialog.setWindowModality(Qt::WindowModal);
         dialog.show();
-        for (int32_t index = 0; index < 200000; index++) {
+        for (int32_t index = 0; index < 5000; index++) {
             dialog.setValue(index);
             QCoreApplication::processEvents();
             if (dialog.wasCanceled()) {
@@ -688,6 +693,47 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, QMqttClient *clie
     }
     case ModuleDataAttr_Update:
     {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_Update));
+        likeObject.insert("url", updateFileString); //copy update file
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(toEnumString(ModuleDataAttr_Update));
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        printf ("url:%s\n", (updateFileString).toStdString().c_str());
+        client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+                //sNetState = (NetState)root.value("NetState").toInt();
+        }
+
+        QProgressDialog dialog(tr("系统升级中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (signalSync) break;
+            QThread::usleep(10);
+        }
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(signalSync == SignalSync_OK ? "系统升级成功" : "系统升级失败"),
+                                 QMessageBox::Ok);
+
+        signalSync = SignalSync_Init;
         break;
     }
     case ModuleDataAttr_ReportData:
@@ -723,7 +769,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -761,7 +807,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -797,7 +843,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -838,7 +884,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         lineEdit0->setGeometry(labelX, labelY, labelW, labelH);
         labelX = 2, labelY += labelH, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
@@ -877,7 +923,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -913,7 +959,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -948,7 +994,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(rightWidget);
         mainLayout->removeWidget(contextTable);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -984,7 +1030,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(contextTable);
         mainLayout->removeWidget(rightWidget);
 
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -1038,9 +1084,9 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         mainLayout->removeWidget(rightWidget);
 
         int32_t left, right, top, bottom;
-        rightLayout->setContentsMargins(2, 2, 2, 2);
+        //rightLayout->setContentsMargins(2, 2, 2, 2);
         rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = left + 2, labelY = top + 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
         int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
@@ -1087,7 +1133,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
 
         cancel->setText("返回");
         cancel->show();
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -1135,13 +1181,6 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
         setTabOrder(lineEdit4, enter);
         setTabOrder(enter, cancel);
         setTabOrder(cancel, lineEdit0);
-#if 0
-        账号名称：华容振乡特种养殖农民专业合作社
-        账户号码：4305 0166 7586 0000 1675
-        开户银行：中国建设银行股份有限公司华容支行
-        法人代表：曾振
-
-#endif
         label->show();
         lineEdit0->clear();
         lineEdit1->clear();
@@ -1221,7 +1260,7 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
 
         cancel->setText("返回");
         cancel->show();
-        int32_t labelX = 2, labelY = 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         enter->setGeometry(labelX, labelY, labelW, labelH);
         int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;;
         cancel->setGeometry(returnX, returnY, returnW, returnH);
@@ -1277,11 +1316,11 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
 
 
         int32_t left, right, top, bottom;
-        rightLayout->setContentsMargins(2, 2, 2, 2);
+        //rightLayout->setContentsMargins(2, 2, 2, 2);
         rightLayout->getContentsMargins(&left, &top, &right, &bottom);
-        int32_t labelX = left + 2, labelY = top + 2, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        int32_t labelX = left + 2, labelY = top + 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
         label->setGeometry(labelX, labelY, labelW, labelH);
-        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 2, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
+        int32_t lineEdit0X = labelX, lineEdit0Y = labelY + labelH + 0, lineEdit0W = COMMON_WIDTH, lineEdit0H = COMMON_HEIGHT;
         lineEdit0->setGeometry(lineEdit0X, lineEdit0Y, lineEdit0W, lineEdit0H);
         int32_t lineEdit1X = labelX, lineEdit1Y = lineEdit0Y + lineEdit0H, lineEdit1W = COMMON_WIDTH, lineEdit1H = COMMON_HEIGHT;
         lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
@@ -1308,6 +1347,66 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
     }
     case ModuleDataAttr_Update:
     {
+        ClearWidget();
+        mainLayout->addWidget(contextTable);
+        mainLayout->addWidget(rightWidget);
+        contextTable->show();
+#if 0
+        sFileSystemMode = new QFileSystemModel();
+        sTreeView = new QTreeView(this);
+        sTreeView->setModel(sFileSystemMode);
+        sTreeView->setIconSize(QSize(16, 16));
+        sFileSystemMode->setRootPath("/");
+        QModelIndex rootIndex = sFileSystemMode->index("/");
+        sTreeView->expand(rootIndex);
+#endif
+        rightLayout->addWidget(sTreeView);
+        sTreeView->show();
+
+        connect(sTreeView, &QTreeView::doubleClicked, this, [=](const QModelIndex &index) {
+            //printf ("Item doubleClicked<<<<<<<<<<<<<<<\n");
+            if (!index.isValid())
+                return;
+
+            QString ip = this->getLocalIP();
+            //QString configFileName=":/webapp.ini";
+            //QSettings* listenerSettings=new QSettings(configFileName, QSettings::IniFormat, this);
+            //listenerSettings->beginGroup("listener");
+            //quint16 port=listenerSettings->value("port").toUInt() & 0xFFFF;
+            //printf (".......port:%d\n", port);
+
+            QFileInfo files = sFileSystemMode->fileInfo(index);
+            updateFileString = (QString)("http://") + ip + (QString)(":") + QString::number(8080) + (QString)("/") + files.fileName();
+            //updateFileString = (QString)("http://192.168.0.107:8080/whttpserver/downloadFile/hello_world.bin");
+            QString pathString = files.absolutePath();
+            printf ("#file:%s dir:%s\n", updateFileString.toStdString().c_str(), pathString.toStdString().c_str());
+
+
+            if (strstr(updateFileString.toStdString().c_str(), ".bin")) {
+                //if (NULL == sHttpServer) {
+                    //sHttpServer = new HttpServer(this, pathString);
+                    runHttpServer(pathString, 8080);
+                    JumpWindowToContextTransmit(currentIndex, client);
+                //}
+            }
+        });
+
+        rightLayout->removeWidget(sTreeView);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        cancel->setText("返回");
+        cancel->show();
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+        int32_t labelX = 2, labelY = 0, labelW = rightWidget->width(), labelH = rightWidget->height() - labelY - returnH;
+        sTreeView->setGeometry(labelX, labelY, labelW, labelH);
+
+        //返回到客户端列表成员
+        connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
+            JumpWindowToServerList();
+        });
         break;
     }
     case ModuleDataAttr_ReportData:
@@ -1318,6 +1417,23 @@ int32_t SubWindow::JumpWindowToContext(int32_t number, QMqttClient *client) {
     }
 
     return 0;
+}
+
+QString SubWindow::getLocalIP(void)
+{
+    QString localIP;
+    QList<QHostAddress> addresses = QNetworkInterface::allAddresses();
+
+    for(auto address : addresses)
+    {
+        if (address.protocol() == QAbstractSocket::IPv4Protocol && address != QHostAddress::Null && address != QHostAddress::LocalHost)
+        {// 如果需要获取IPv6则需要将QAbstractSocket::IPv4Protocol换成QAbstractSocket::IPv6Protocol
+            localIP = address.toString();
+            break;
+        }
+    }
+
+    return localIP;
 }
 
 int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicName topic) {
@@ -1588,6 +1704,29 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
     }
     case ModuleDataAttr_Update:
     {
+        QJsonObject object;
+        QJsonDocument doc = QJsonDocument::fromJson(message);
+        QJsonArray roots = doc.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+            if (!strcmp(name.toStdString().c_str(), topicString.toStdString().c_str())) {
+                QString ack = root.value("status").toString();
+
+                printf ("htype:%s\n", name.toStdString().c_str());
+                printf ("status:%s\n", ack.toStdString().c_str());
+
+                if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                    signalSync = SignalSync_OK;
+                }
+                else {
+                    signalSync = SignalSync_FAILURE;
+                }
+            }
+        }
+
+        //delete sHttpServer;
+        //sHttpServer = NULL;
         break;
     }
     case ModuleDataAttr_ReportData:
@@ -1938,7 +2077,7 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     printf ("w:%d h:%d\n", minimumSize(), maximumSize());
     setMinimumSize(0, 0);
     setMaximumSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
-    resize(600, 400);
+    resize(800, 600);
 
     mainWidget = new QWidget;
     rightWidget = new QWidget;
@@ -1983,10 +2122,22 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     contextTable->setAcceptDrops(true);
     contextTable->setDropIndicatorShown(true);
 
+    sFileSystemMode = new QFileSystemModel();
+    sTreeView = new QTreeView(this);
+    sTreeView->setModel(sFileSystemMode);
+    sTreeView->setIconSize(QSize(16, 16));
+    sFileSystemMode->setRootPath("/");
+    QModelIndex rootIndex = sFileSystemMode->index("/");
+    sTreeView->expand(rootIndex);
+    //sHttpServer = NULL;
+printf ("%s %d\n", __func__, __LINE__);
     signalSync = SignalSync_Init;
 
+    //runHttpServer("/home/zeng/share/whttp-server-master/whttp-server-core/whttpserver/downloadFile/");
+printf ("%s %d\n", __func__, __LINE__);
     //跳转到登陆界面
     JumpWindowToLogin();
+printf ("%s %d\n", __func__, __LINE__);
 }
 
 SubWindow::~SubWindow()

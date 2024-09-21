@@ -637,25 +637,23 @@ void app_main(void) {
             gateway->wifi = WifiInit(&config);
         }
 
-/*
- *         {
- *             [>ethernet<]
- *             EthConfig config;
- *             memset(&config, 0x0, sizeof(config));
- *             
- *             strcpy(config.address, gateway->ethAddress);
- *             strcpy(config.netmask, gateway->ethNetmask);
- *             strcpy(config.gateway, gateway->ethGateway);
- * 
- *             config.send = appSend;
- *             config.recv = appRecv;
- * 
- *             EthInitLog(gateway, appPrint);
- *             EthSetLogLevel(LogEth_Info);
- * 
- *             gateway->eth = EthInit(&config);
- *         }
- */
+        {
+            /*ethernet*/
+            EthConfig config;
+            memset(&config, 0x0, sizeof(config));
+            
+            strcpy(config.address, gateway->ethAddress);
+            strcpy(config.netmask, gateway->ethNetmask);
+            strcpy(config.gateway, gateway->ethGateway);
+
+            config.send = appSend;
+            config.recv = appRecv;
+
+            EthInitLog(gateway, appPrint);
+            EthSetLogLevel(LogEth_Info);
+
+            gateway->eth = EthInit(&config);
+        }
 
         {
             /*mqtt*/
@@ -681,8 +679,10 @@ void app_main(void) {
             gateway->mqtt = MQTTInit(&config);
         }
 
+
         printf ("%s %d\n", __func__, __LINE__);
         {
+            //if version match*/
             /*update*/
             UpdateConfig config;
             memset(&config, 0x0, sizeof(config));
@@ -698,23 +698,21 @@ void app_main(void) {
 
 #endif
         printf ("%s %d\n", __func__, __LINE__);
-/*
- *         {
- *             [>spi<]
- *             SpiConfig config;
- *             memset(&config, 0x0, sizeof(config));
- * 
- *             SpiInitLog(gateway, appPrint);
- *             SpiSetLogLevel(LogSpi_Info);
- * 
- *             config.send     = appSend;
- *             config.recv     = appRecv;
- *             config.request  = appDataRequest;
- *             config.release  = appDataRelease;
- * 
- *             gateway->spi = SpiInit(&config);
- *         }
- */
+        {
+            /*spi*/
+            SpiConfig config;
+            memset(&config, 0x0, sizeof(config));
+
+            SpiInitLog(gateway, appPrint);
+            SpiSetLogLevel(LogSpi_Info);
+
+            config.send     = appSend;
+            config.recv     = appRecv;
+            config.request  = appDataRequest;
+            config.release  = appDataRelease;
+
+            gateway->spi = SpiInit(&config);
+        }
 
         printf ("%s %d\n", __func__, __LINE__);
         /*

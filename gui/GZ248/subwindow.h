@@ -21,6 +21,12 @@
 #include <QtMqtt/qmqttclient.h>
 #endif
 #include <message.h>
+#include <QFileSystemModel>
+#include <QTreeView>
+#include <QHeaderView>
+#include <QComboBox>
+#include <httpserver.h>
+//#include <QHttpServer>
 
 enum SubWindowType {
     SubWindowType_Login,
@@ -76,6 +82,7 @@ public:
     int32_t ClearQnavigationWidget(void);
     void ClearWidget(void);
     int32_t RecvMqttMessage(const QByteArray message, const QMqttTopicName topic);
+    QString getLocalIP(void);
     ~SubWindow();
     QVBoxLayout *rightLayout;
     QHBoxLayout *mainLayout;
@@ -116,32 +123,41 @@ public:
 
     //QMqttClient *client;
 
+    /*system*/
     float sTemperature;
     QString sVersion;
     QString sInfo;
 
+    /*net status*/
     NetState sNetState;
 
+    /*eth*/
     QString sEthAddress;
     QString sEthNetmask;
     QString sEthGateway;
 
+    /*wifi*/
     QString sWifiSsid;
     QString sWifiPassword;
     QString sWifiAddress;
     QString sWifiNetmask;
     QString sWifiGateway;
 
+    /*mqtt*/
     QString sMqttUser;
     QString sMqttPassword;
     QString sMqttUrl;
 
+    /*power mode*/
     PowerSupplyMode sMode;
     int sLevel;
 
     SignalSync signalSync;
 
-//private slots:
-//    void lineEdit0Draw(QString str);
+    /*update*/
+    QFileSystemModel *sFileSystemMode;
+    QTreeView *sTreeView;
+
+    QString updateFileString;
 };
 #endif // SUBWINDOW_H

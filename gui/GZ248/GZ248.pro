@@ -10,44 +10,32 @@ CONFIG += c++11
 
 SOURCES += \
     common.cpp \
-    httpserver/httpconnectionhandler.cpp \
-    httpserver/httpconnectionhandlerpool.cpp \
-    httpserver/httpcookie.cpp \
-    httpserver/httpglobal.cpp \
-    httpserver/httplistener.cpp \
-    httpserver/httprequest.cpp \
-    httpserver/httprequesthandler.cpp \
-    httpserver/httpresponse.cpp \
-    httpserver/httpsession.cpp \
-    httpserver/httpsessionstore.cpp \
-    httpserver/staticfilecontroller.cpp \
+    httpserver.cpp \
+    httpserver/HttpExample.cpp \
+    httpserver/WHttpServer.cpp \
+    httpserver/WThreadPool.cpp \
+    httpserver/mongoose.cpp \
     main.cpp \
     message.cpp \
     mqtt.cpp \
     mqttcollection.cpp \
     qnavigationwidget.cpp \
-    subwindow.cpp \
-    transmit.cpp
+    subwindow.cpp
 
 HEADERS += \
-    httpserver/httpconnectionhandler.h \
-    httpserver/httpconnectionhandlerpool.h \
-    httpserver/httpcookie.h \
-    httpserver/httpglobal.h \
-    httpserver/httplistener.h \
-    httpserver/httprequest.h \
-    httpserver/httprequesthandler.h \
-    httpserver/httpresponse.h \
-    httpserver/httpsession.h \
-    httpserver/httpsessionstore.h \
-    httpserver/staticfilecontroller.h \
+    httpserver.h \
+    httpserver/HttpExample.h \
+    httpserver/IHttpServer.h \
+    httpserver/LockQueue.hpp \
+    httpserver/WHttpServer.h \
+    httpserver/WThreadPool.h \
+    httpserver/mongoose.h \
     mqtt.h \
     mqttcollection.h \
     qnavigationwidget.h \
     common.h \
     message.h \
-    subwindow.h \
-    transmit.h
+    subwindow.h
 
 
 
