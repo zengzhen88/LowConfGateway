@@ -1,9 +1,9 @@
+#if 0
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdarg.h>
-#include <mosquitto.h>
 #include <mqtt.h>
 
 static void *gPriv = NULL;
@@ -342,3 +342,4 @@ int32_t MQTTPush(void *oObj,
 
     return 0;
 }
+#endif

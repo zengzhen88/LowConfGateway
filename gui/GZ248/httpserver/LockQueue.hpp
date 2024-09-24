@@ -90,4 +90,4 @@ private:
     std::mutex _mutex;
 };
 
-#endif /__LOCK_QUEUEU_H__*/
+#endif /*__LOCK_QUEUEU_H__*/

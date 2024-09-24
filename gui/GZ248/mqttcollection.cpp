@@ -1,3 +1,4 @@
+#if 0
 #include <mqttcollection.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,3 +77,4 @@ void *CreateMQTTCollection(const char *username,
 
     return collection;
 }
+#endif

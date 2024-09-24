@@ -87,7 +87,7 @@ typedef struct {
 
     TaskHandle_t uartTask;
 
-#define Uart_TEST
+/* #define Uart_TEST */
 #ifdef Uart_TEST
     char *uartAck;
     int ackSize;

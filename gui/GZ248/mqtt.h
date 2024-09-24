@@ -1,3 +1,4 @@
+#if 0
 #ifndef __MQTT_PROJECT_H__
 #define __MQTT_PROJECT_H__
 
@@ -55,3 +56,4 @@ int32_t MQTTPush(void *oObj,
         int32_t payloadlen);
 
 #endif /* __MQTT_PROJECT_H__ */
+#endif

@@ -1,6 +1,9 @@
 #ifndef __COMMON_H__
 #define __COMMON_H__ 
 
+#ifdef __cplusplus //而这一部分就是告诉编译器，如果定义了__cplusplus(即如果是cpp文件，
+extern "C"{ //因为cpp文件默认定义了该宏),则采用C语言方式进行编译
+#endif
 #include <stdint.h>
 
 typedef enum {
@@ -74,5 +77,9 @@ void MacUInt64ToString(uint64_t macUInt64, char *mac, int32_t macLength);
 void MacUInt64ToStrings(uint64_t macUInt64, char *mac, int32_t macLength);
 
 const char *toNetStateEnumString(NetState state);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*__COMMON_H__*/

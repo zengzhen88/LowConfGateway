@@ -584,58 +584,62 @@ void app_main(void) {
             gateway->uart = UartInit(&config);
         }
 
-        {
+        /* { */
             /*
              * ModuleMessage message;
              * message.attr = ModuleDataAttr_GetTemperature;
              * appSearchConfig(gateway, &message);
              */
 
-            ModuleMessage message;
-            message.attr = ModuleDataAttr_GetTemperature;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetModuleVersion;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetModuleInfo;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetPower;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetWifiCfg;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetEthCfg;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetMqttCfg;
-            appSearchConfig(gateway, &message);
-        }
+/*
+ *             ModuleMessage message;
+ *             message.attr = ModuleDataAttr_GetTemperature;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleVersion;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleInfo;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetPower;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetWifiCfg;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetEthCfg;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetMqttCfg;
+ *             appSearchConfig(gateway, &message);
+ *         }
+ */
 
         running = 1;
 
-        {
-            /*wifi*/
-            WifiConfig config;
-            memset(&config, 0x0, sizeof(config));
-
-            /* strcpy(config.ssid, "TP-LINK_342B"); */
-            /* strcpy(config.password, "88888888"); */
-            strcpy(config.ssid, gateway->wifiSsid);
-            strcpy(config.password, gateway->wifiPassword);
-            strcpy(config.address, gateway->wifiAddress);
-            strcpy(config.netmask, gateway->wifiNetmask);
-            strcpy(config.gateway, gateway->wifiGateway);
-            config.send = appSend;
-            config.recv = appRecv;
-
-            WifiInitLog(gateway, appPrint);
-            WifiSetLogLevel(LogWifi_Info);
-
-            gateway->wifi = WifiInit(&config);
-        }
+/*
+ *         {
+ *             [>wifi<]
+ *             WifiConfig config;
+ *             memset(&config, 0x0, sizeof(config));
+ * 
+ *             [> strcpy(config.ssid, "TP-LINK_342B"); <]
+ *             [> strcpy(config.password, "88888888"); <]
+ *             strcpy(config.ssid, gateway->wifiSsid);
+ *             strcpy(config.password, gateway->wifiPassword);
+ *             strcpy(config.address, gateway->wifiAddress);
+ *             strcpy(config.netmask, gateway->wifiNetmask);
+ *             strcpy(config.gateway, gateway->wifiGateway);
+ *             config.send = appSend;
+ *             config.recv = appRecv;
+ * 
+ *             WifiInitLog(gateway, appPrint);
+ *             WifiSetLogLevel(LogWifi_Info);
+ * 
+ *             gateway->wifi = WifiInit(&config);
+ *         }
+ */
 
         {
             /*ethernet*/
@@ -740,11 +744,9 @@ void app_main(void) {
                 /* char buf[128]; */
 
                 vTaskDelay(pdMS_TO_TICKS(1000));
-                /*
-                 * ModuleMessage message;
-                 * message.attr = ModuleDataAttr_GetTemperature;
-                 * appSearchConfig(gateway, &message);
-                 */
+                ModuleMessage message;
+                message.attr = ModuleDataAttr_GetTemperature;
+                appSearchConfig(gateway, &message);
             }
         }
     }

@@ -1,3 +1,4 @@
+#if 0
 #ifndef MQTTCOLLECTION_H
 #define MQTTCOLLECTION_H
 
@@ -23,3 +24,4 @@ void *CreateMQTTCollection(const char *username,
                            MQTTMessage scribeMessage);
 
 #endif // MQTTCOLLECTION_H
+#endif
