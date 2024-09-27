@@ -1741,12 +1741,16 @@ int32_t SubWindow::RecvMqttMessage(const QByteArray message, const QMqttTopicNam
 
 int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
     ClearWidget();
-
+printf ("%s %d\n", __func__, __LINE__);
     mainLayout->addWidget(contextTable);
+    printf ("%s %d\n", __func__, __LINE__);
     mainLayout->addWidget(rightWidget);
+    printf ("%s %d\n", __func__, __LINE__);
     windowType = SubWindowType_MainContext;
+    printf ("%s %d\n", __func__, __LINE__);
 
     setCentralWidget(mainWidget);
+    printf ("%s %d\n", __func__, __LINE__);
 
     for (int32_t index = 0; index < ModuleDataAttr_Cnt; index++) {
         if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
@@ -1757,19 +1761,26 @@ int32_t SubWindow::JumpWindowToMainContext(QMqttClient *client) {
         contextTable->setItem(rowCount, 0, item);
 
     }
-
+printf ("%s %d\n", __func__, __LINE__);
     contextTable->show();
+    printf ("%s %d\n", __func__, __LINE__);
     mainLayout->removeWidget(rightWidget);
+    printf ("%s %d\n", __func__, __LINE__);
     mainLayout->removeWidget(contextTable);
+    printf ("%s %d\n", __func__, __LINE__);
 
     //单元格被点击处理
     connect(contextTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
         SetCurrentIndex(row);
-
+printf ("%s %d\n", __func__, __LINE__);
         //rightWidget->setFocus();
+printf ("%s %d\n", __func__, __LINE__);
         contextTable->setFocusPolicy(Qt::NoFocus);
+        printf ("%s %d\n", __func__, __LINE__);
         JumpWindowToContext(row, client);
+        printf ("%s %d\n", __func__, __LINE__);
         contextTable->selectRow(row);
+        printf ("%s %d\n", __func__, __LINE__);
         //contextTable->setFocusPolicy(Qt::WheelFocus);
     });
 
@@ -1857,6 +1868,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
 
     //添加客户端列表成员
     connect(enter, &QPushButton::clicked, this, [=](){
+
         QString userString = lineEdit0->text();      //获取用户名称
         QString passwordString = lineEdit1->text();  //获取用户密码
         QString netString = lineEdit2->text();       //获取用户网址
@@ -1867,6 +1879,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
                     && !strcmp(serverTable->item(row, 1)->text().toStdString().c_str(), passwordString.toStdString().c_str())
                     && !strcmp(serverTable->item(row, 2)->text().toStdString().c_str(), netString.toStdString().c_str())
                     && !strcmp(serverTable->item(row, 3)->text().toStdString().c_str(), portString.toStdString().c_str())) {
+
                 QProgressDialog dialog(tr("添加新客户端中..."), tr("取消"), 0, 2, this);
                 dialog.setWindowTitle(tr("进度条对话框"));
                 dialog.setWindowModality(Qt::WindowModal);
@@ -1883,9 +1896,10 @@ int32_t SubWindow::JumpWindowToServerList(void) {
                                          tr("系统提示"),
                                          tr("添加新客户端中失败"),
                                          QMessageBox::Ok);
-                return 0;
+                break;
             }
         }
+
         int rowCount = serverTable->rowCount();
         serverTable->insertRow(rowCount);
         QTableWidgetItem *item = new QTableWidgetItem(userString);
@@ -1923,6 +1937,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         client->setKeepAlive(60);
         client->connectToHost();
 #endif
+        printf ("%s %d\n", __func__, __LINE__);
         serverTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
         serverTable->setItem(rowCount, 0, item);
         item->setCheckState(Qt::Unchecked);
@@ -1934,24 +1949,36 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         serverTable->setItem(rowCount, 3, item);
         item = new QTableWidgetItem(QString("进入"));
         serverTable->setItem(rowCount, 4, item);
+        printf ("%s %d\n", __func__, __LINE__);
 
         QProgressDialog dialog(tr("添加新客户端中..."), tr("取消"), 0, 2, this);
+        printf ("%s %d\n", __func__, __LINE__);
         dialog.setWindowTitle(tr("进度条对话框"));
+        printf ("%s %d\n", __func__, __LINE__);
         dialog.setWindowModality(Qt::WindowModal);
+        printf ("%s %d\n", __func__, __LINE__);
         dialog.show();
+        printf ("%s %d\n", __func__, __LINE__);
         for (int32_t index = 0; index < 2; index++) {
             dialog.setValue(index);
+            printf ("%s %d\n", __func__, __LINE__);
             QCoreApplication::processEvents();
+            printf ("%s %d\n", __func__, __LINE__);
             if (dialog.wasCanceled()) {
+                printf ("%s %d\n", __func__, __LINE__);
                 break;
             }
+            printf ("%s %d\n", __func__, __LINE__);
             //QThread::usleep(10);
         }
+        printf ("%s %d\n", __func__, __LINE__);
         QMessageBox::information(this,
                                  tr("系统提示"),
                                  tr("添加新客户端中成功"),
                                  QMessageBox::Ok);
+        printf ("%s %d\n", __func__, __LINE__);
     });
+    printf ("%s %d\n", __func__, __LINE__);
     //删除客户端列表成员
     connect(cancel, &QPushButton::clicked, this, [=](){
         int32_t sRow = serverTable->rowCount();
@@ -1975,7 +2002,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             }
         }
     });
-
+ printf ("%s %d\n", __func__, __LINE__);
     //复选框状态变化
     connect(allCheck, &QCheckBox::stateChanged, this, [=](int32_t state){
         int32_t sRow = serverTable->rowCount();
@@ -1991,17 +2018,21 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             }
         }
     });
-
+ printf ("%s %d\n", __func__, __LINE__);
     //单元格被点击处理
     connect(serverTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
         if (col == 4) {//只有第3列需要有点击响应
+            printf ("%s %d\n", __func__, __LINE__);
             QTableWidgetItem *item = serverTable->item(row, 0);
+            printf ("%s %d\n", __func__, __LINE__);
             QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
+            printf ("%s %d\n", __func__, __LINE__);
 
             JumpWindowToMainContext(client);
+            printf ("%s %d\n", __func__, __LINE__);
         }
     });
-
+ printf ("%s %d\n", __func__, __LINE__);
     return 0;
 }
 
@@ -2125,8 +2156,13 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     sTreeView = new QTreeView(this);
     sTreeView->setModel(sFileSystemMode);
     sTreeView->setIconSize(QSize(16, 16));
+#if defined(_WIN32)
+    sFileSystemMode->setRootPath("C:\\");
+    QModelIndex rootIndex = sFileSystemMode->index("C:\\");
+#else
     sFileSystemMode->setRootPath("/");
     QModelIndex rootIndex = sFileSystemMode->index("/");
+#endif
     sTreeView->expand(rootIndex);
     //sHttpServer = NULL;
 printf ("%s %d\n", __func__, __LINE__);

@@ -1,8 +1,0 @@
-/usr/local/include/cjson/cJSON.h
-/usr/local/lib/pkgconfig/libcjson.pc
-/usr/local/lib/libcjson.dll.a
-/usr/local/bin/msys-cjson-1.dll
-/usr/local/lib/cmake/cJSON/cjson.cmake
-/usr/local/lib/cmake/cJSON/cjson-debug.cmake
-/usr/local/lib/cmake/cJSON/cJSONConfig.cmake
-/usr/local/lib/cmake/cJSON/cJSONConfigVersion.cmake
