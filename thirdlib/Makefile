@@ -161,7 +161,62 @@ thirdlib_ubuntu: json_ubuntu mosquitto_ubuntu openssl_ubuntu
 thirdlib_ubuntu_clean:  json_ubuntu_clean ffmpeg_ubuntu_clean openssl_ubuntu_clean  mosquitto_ubuntu
 
 ######################################################
+######################################################
+#windows
+#curl_windows_release:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules curl_release
+#zlib_windows_release:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules zlib_release
+json_windows_release:
+	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules json_release
+#ffmpeg_windows_release:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules ffmpegs_release
+#lighttpd_windows_release:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules lighttpd_release
+#pcre_windows_release:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules pcre_release
+#mosquitto_windows_release:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules mosquitto_release
+openssl_windows_release:
+	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules openssl_release
 
+#curl_windows_debug:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules curl_debug
+#zlib_windows_debug:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules zlib_debug
+json_windows_debug:
+	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules json_debug
+#ffmpeg_windows_debug:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules ffmpegs_debug
+#lighttpd_windows_debug:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules lighttpd_debug
+#pcre_windows_debug:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules pcre_debug
+#mosquitto_windows_debug:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules mosquitto_debug
+openssl_windows_debug:
+	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules openssl_debug
+
+#curl_windows_clean:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules curl_clean
+#zlib_windows_clean:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules zlib_clean
+json_windows_clean:
+	$(AMKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules json_clean
+#ffmpeg_windows_clean:
+#	$(AMKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules ffmpeg_clean
+#lighttpd_windows_clean:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules lighttpd_clean
+#pcre_windows_clean:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules pcre_clean
+#mosquitto_windows_clean:
+#	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules mosquitto_clean
+openssl_windows_clean:
+	$(MAKE) -fMAKEFILE_WINDOWS.MK -C$(dvr_rdk_PATH)/makerules openssl_clean
+
+thirdlib_windows_release: json_windows_release openssl_windows_release 
+thirdlib_windows_debug: json_windows_debug openssl_windows_debug
+thirdlib_windows_clean:  json_windows_clean openssl_windows_clean 
 
 # include $(dvr_rdk_PATH)/makerules/thirdlib.mk
 # include $(dvr_rdk_PATH)/makerules/package.mk

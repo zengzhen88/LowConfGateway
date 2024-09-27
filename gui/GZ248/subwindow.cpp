@@ -4,7 +4,6 @@
 #include <QLabel>
 #include <QFont>
 #include <stdio.h>
-#include "externqslider.h"
 #include "common.h"
 #include "httpserver.h"
 #include <QRegExp>
@@ -26,6 +25,7 @@
 #include <QHostAddress>
 #include <QNetworkInterface>
 #include <httpserver.h>
+#include <QApplication>
 
 const char *PowerMode2Name[] = {
     "DC",
@@ -2091,7 +2091,6 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     subVLayout = new QVBoxLayout(NULL);
     // 水平布局器 QHBoxLayout：将内部的控件按照水平方向排布，一列一个。
     subHLayout = new QHBoxLayout(NULL);
-    navigationWidget = new QNavigationWidget;
     enter = new QPushButton();
     cancel = new QPushButton();
     search = new QPushButton();

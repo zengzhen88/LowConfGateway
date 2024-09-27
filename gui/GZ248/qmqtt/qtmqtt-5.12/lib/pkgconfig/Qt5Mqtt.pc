@@ -1,0 +1,13 @@
+prefix=C:/msys64/mingw64
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+
+Name: Qt5 Mqtt
+Description: Qt Mqtt module
+Version: 5.12.12
+Libs: -lQt5Mqtt 
+Cflags: -DQT_MQTT_LIB -I${includedir}/QtMqtt 
+Requires: Qt5Core Qt5Network
+

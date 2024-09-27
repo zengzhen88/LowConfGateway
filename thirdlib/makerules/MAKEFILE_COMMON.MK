@@ -38,7 +38,7 @@ curl_clean:
 	rm -rf $(thrpartylib_PATH)/$(LIBCURL_VERSION)
 
 #zlib
-zlib:zlib_clean
+zlib_release:zlib_clean
 	tar -xvf $(thrpartylib_PATH)/package/$(LIBZLIB_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/
 	cd $(thrpartylib_PATH)/$(LIBZLIB_VERSION)/
 	mkdir -p $(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM)
@@ -53,21 +53,52 @@ zlib:zlib_clean
 	cp -rfd $(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM)/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib
 	cp -rfd $(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM)/include/* $(pre_BUILD_PATH)/$(PLATFORM)/inc
 
+zlib_debug:zlib_clean
+	tar -xvf $(thrpartylib_PATH)/package/$(LIBZLIB_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/
+	cd $(thrpartylib_PATH)/$(LIBZLIB_VERSION)/
+	mkdir -p $(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM)
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/inc
+	export CC=$(CODEGEN_PREFIX)gcc;                     							\
+	cd $(thrpartylib_PATH)/$(LIBZLIB_VERSION)/;            							\
+	./configure --prefix=$(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM) -g   	\
+			--static
+	make -C $(thrpartylib_PATH)/$(LIBZLIB_VERSION)/
+	make -C $(thrpartylib_PATH)/$(LIBZLIB_VERSION)/ install
+	cp -rfd $(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM)/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib
+	cp -rfd $(thrpartylib_PATH)/common/$(LIBZLIB_VERSION)/$(PLATFORM)/include/* $(pre_BUILD_PATH)/$(PLATFORM)/inc
+
 zlib_clean:
 	rm -rf $(thrpartylib_PATH)/$(LIBZLIB_VERSION)
 
 #json
-json:json_clean
+json_release:json_clean
 	tar -xvf $(thrpartylib_PATH)/package/$(CJSONLIB_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/
 	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/
 	mkdir -p $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)
-	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib/release/
 	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/inc
 	export CC=$(CODEGEN_PREFIX)gcc;                     							\
-	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/;            							\
-	make -C $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/
-	make -C $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/ DESTDIR=$(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/ install
-	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib
+	mkdir -p $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build;\
+	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build/;            							\
+	cmake  -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_TEST=OFF ..;\
+	make -j16 ;\
+	make DESTDIR=$(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/ install
+	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib/release/
+	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/include/* $(pre_BUILD_PATH)/$(PLATFORM)/inc
+json_debug:json_clean
+	tar -xvf $(thrpartylib_PATH)/package/$(CJSONLIB_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/
+	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/
+	mkdir -p $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib/debug/
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/inc
+	export CC=$(CODEGEN_PREFIX)gcc;                     							\
+	mkdir -p $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build;\
+	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build/;            							\
+	cmake  -DCMAKE_BUILD_TYPE=Debug -DENABLE_CJSON_TEST=OFF ..;\
+	make -j16;\
+	make DESTDIR=$(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/ install
+	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib/debug/
 	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/include/* $(pre_BUILD_PATH)/$(PLATFORM)/inc
 
 json_clean:
@@ -252,18 +283,31 @@ cgic:cgic_clean
 cgic_clean:
 	rm -rf $(thrpartylib_PATH)/$(MOSQUITTO_VERSION)
 
-openssls:openssl_clean
+openssl_release:openssl_clean
 	tar -xvf $(thrpartylib_PATH)/package/$(OPENSSL_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/
 	cd $(thrpartylib_PATH)/$(OPENSSL_VERSION)/
 	mkdir -p $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)
-	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib/release/
 	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/inc
 	cd $(thrpartylib_PATH)/$(OPENSSL_VERSION)/;            							\
 	./config --prefix=$(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM) 	\
 		-static 
 	make CC=$(CODEGEN_PREFIX)gcc AR=$(CODEGEN_PREFIX)ar -C $(thrpartylib_PATH)/$(OPENSSL_VERSION)/
 	make -C $(thrpartylib_PATH)/$(OPENSSL_VERSION)/  install
-	cp -rfd $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)/lib64/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib
+	cp -rfd $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)/lib64/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib/release/
+	cp -rfd $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)/include/* $(pre_BUILD_PATH)/$(PLATFORM)/inc
+openssl_debug:openssl_clean
+	tar -xvf $(thrpartylib_PATH)/package/$(OPENSSL_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/
+	cd $(thrpartylib_PATH)/$(OPENSSL_VERSION)/
+	mkdir -p $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/lib/debug/
+	mkdir -p $(pre_BUILD_PATH)/$(PLATFORM)/inc
+	cd $(thrpartylib_PATH)/$(OPENSSL_VERSION)/;            							\
+	./config --prefix=$(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM) -g	\
+		-static 
+	make CC=$(CODEGEN_PREFIX)gcc AR=$(CODEGEN_PREFIX)ar -C $(thrpartylib_PATH)/$(OPENSSL_VERSION)/
+	make -C $(thrpartylib_PATH)/$(OPENSSL_VERSION)/  install
+	cp -rfd $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)/lib64/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib/debug/
 	cp -rfd $(thrpartylib_PATH)/common/$(OPENSSL_VERSION)/$(PLATFORM)/include/* $(pre_BUILD_PATH)/$(PLATFORM)/inc
 openssl:openssl_clean
 	tar -xvf $(thrpartylib_PATH)/package/$(OPENSSL_VERSION)$(TAR_SUFF_GZ) -C $(thrpartylib_PATH)/

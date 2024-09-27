@@ -1,0 +1,11 @@
+debug/common.o
+debug/message.o
+debug/httpserver.o
+debug/HttpExample.o
+debug/WHttpServer.o
+debug/WThreadPool.o
+debug/mongoose.o
+debug/main.o
+debug/subwindow.o
+debug/qrc_ini.o
+debug/moc_subwindow.o

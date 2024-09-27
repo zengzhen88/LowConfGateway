@@ -1,0 +1,11 @@
+release/common.o
+release/message.o
+release/httpserver.o
+release/HttpExample.o
+release/WHttpServer.o
+release/WThreadPool.o
+release/mongoose.o
+release/main.o
+release/subwindow.o
+release/qrc_ini.o
+release/moc_subwindow.o

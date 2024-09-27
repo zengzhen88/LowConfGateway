@@ -1,4 +1,0 @@
-#ifndef EXTERNQSLIDER_H
-#define EXTERNQSLIDER_H
-
-#endif // EXTERNQSLIDER_H
