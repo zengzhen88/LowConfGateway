@@ -1,4 +1,4 @@
-/* * Data converted from /home/zeng/share/gateway/LowConfGateway/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from C:/msys64/home/zeng/gateway/LowConfGateway/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 #if !defined (__APPLE__) && !defined (__linux__)

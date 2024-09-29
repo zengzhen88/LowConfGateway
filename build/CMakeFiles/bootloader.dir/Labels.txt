@@ -1,13 +1,13 @@
 # Target labels
  bootloader
 # Source files and their labels
-/home/zeng/share/gateway/LowConfGateway/build/CMakeFiles/bootloader
-/home/zeng/share/gateway/LowConfGateway/build/CMakeFiles/bootloader.rule
-/home/zeng/share/gateway/LowConfGateway/build/CMakeFiles/bootloader-complete.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
-/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/CMakeFiles/bootloader
+C:/msys64/home/zeng/gateway/LowConfGateway/build/CMakeFiles/bootloader.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/CMakeFiles/bootloader-complete.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

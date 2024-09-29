@@ -1,8 +1,0 @@
-/home/zeng/share/gateway/LowConfGateway/main/mqtt.c: In function 'MQTTMessageRecvUartCommonOkHandler':
-/home/zeng/share/gateway/LowConfGateway/main/mqtt.c:240:13: warning: variable 'status' set but not used [-Wunused-but-set-variable]
-  240 |     int32_t status = ESP_FAIL;
-      |             ^~~~~~
-/home/zeng/share/gateway/LowConfGateway/main/uart.c: In function 'UartInit':
-/home/zeng/share/gateway/LowConfGateway/main/uart.c:487:15: warning: unused variable 'status' [-Wunused-variable]
-  487 |     esp_err_t status                = ESP_FAIL;
-      |               ^~~~~~

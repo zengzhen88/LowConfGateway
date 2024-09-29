@@ -4,19 +4,19 @@
 cmake_minimum_required(VERSION 3.5)
 
 file(MAKE_DIRECTORY
-  "/home/zeng/share/espdemo/esp-idf/components/bootloader/subproject"
-  "/home/zeng/share/gateway/LowConfGateway/build/bootloader"
-  "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix"
-  "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/tmp"
-  "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp"
-  "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src"
-  "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp"
+  "C:/Espressif5/frameworks/esp-idf-v5.3.1/components/bootloader/subproject"
+  "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader"
+  "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix"
+  "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/tmp"
+  "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp"
+  "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src"
+  "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
+    file(MAKE_DIRECTORY "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "/home/zeng/share/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "C:/msys64/home/zeng/gateway/LowConfGateway/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
 endif()

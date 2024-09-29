@@ -1,4 +1,0 @@
-/home/zeng/share/gateway/LowConfGateway/main/uart.c: In function 'UartInit':
-/home/zeng/share/gateway/LowConfGateway/main/uart.c:450:15: warning: unused variable 'status' [-Wunused-variable]
-  450 |     esp_err_t status                = ESP_FAIL;
-      |               ^~~~~~
