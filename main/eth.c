@@ -38,7 +38,7 @@ static int EthLogPrintf(LogEth level,
 
     if (level > gLevel) return -1;
 
-    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%d]", file, func, line);
+    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%s][%d]", file, func, esp_log_system_timestamp(), line);
     funcLine = strlen(logBuf);
 
     /*va_list*/
@@ -239,7 +239,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                 }
             case ETHERNET_EVENT_DISCONNECTED:
                 {
-                    eth->ethSok = 0;
+                    /* eth->ethSok = 0; */
                     LogPrintf(LogEth_Error ,"Ethernet Link Down!\n");
                     break;
                 }
@@ -268,7 +268,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_ETH_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
-        eth->ethSok = 1;
+        /* eth->ethSok = 1; */
         LogPrintf(LogEth_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (eth->send) {
             //report
@@ -328,6 +328,8 @@ void *EthInit(EthConfig *config) {
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
 
+    mac_config.sw_reset_timeout_ms = 500;
+
     Eth *eth = (Eth *) malloc (sizeof(*eth));
     ERRP(NULL == eth, return NULL, 1, "malloc Eth Instance failure\n");
     memset(eth, 0x0, sizeof(*eth));
@@ -351,8 +353,8 @@ void *EthInit(EthConfig *config) {
     // Init vendor specific MAC config to default
     eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
     // Update vendor specific MAC config based on board configuration
-    esp32_emac_config.smi_gpio.mdc_num = 23;//CONFIG_EXAMPLE_ETH_MDC_GPIO;
-    esp32_emac_config.smi_gpio.mdio_num = 18;//CONFIG_EXAMPLE_ETH_MDIO_GPIO;
+    esp32_emac_config.smi_mdc_gpio_num = 23;//CONFIG_EXAMPLE_ETH_MDC_GPIO;
+    esp32_emac_config.smi_mdio_gpio_num = 18;//CONFIG_EXAMPLE_ETH_MDIO_GPIO;
 
     printf ("%s %d\n", __func__, __LINE__);
     esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
@@ -412,10 +414,12 @@ void *EthInit(EthConfig *config) {
 
     status = esp_eth_start(eth->ethHandle);
 
-    while (!eth->ethSok) {
-        vTaskDelay(pdMS_TO_TICKS(200));
-        LogPrintf(LogEth_Info, "eth->ethSok:%d\n", eth->ethSok);
-    }
+    /*
+     * while (!eth->ethSok) {
+     *     vTaskDelay(pdMS_TO_TICKS(200));
+     *     LogPrintf(LogEth_Info, "eth->ethSok:%d\n", eth->ethSok);
+     * }
+     */
     LogPrintf(LogEth_Info, "<<<eth->ethSok:%d>>>\n", eth->ethSok);
 
     return eth;

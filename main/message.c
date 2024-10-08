@@ -4,7 +4,6 @@
 #include <stdarg.h>
 #include <message.h>
 
-
 Message *RequestMessage(int32_t size) {
     Message *mess = (Message *) malloc (sizeof(*mess));
     if (mess) {
@@ -33,7 +32,9 @@ Message *RequestMessage(int32_t size) {
 
 int32_t ReleaseMessage(Message *mess) {
     if (mess) {
-        if (mess->size > 0) free(mess->data);
+        if (mess->size > 0) {
+            free(mess->data);
+        }
         free(mess);
     }
 

@@ -122,42 +122,47 @@ export OPENSSL_VERSION
 
 ######################################################
 #ubuntu
-curl_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules curl
-zlib_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules zlib
-json_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules json
-ffmpeg_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules ffmpegs
-lighttpd_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules lighttpd
-pcre_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules pcre
-mosquitto_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules mosquitto
-openssl_ubuntu:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules openssls
+#curl_ubuntu:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules curl
+#zlib_ubuntu:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules zlib
+json_ubuntu_release:
+	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules json_release
+json_ubuntu_debug:
+	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules json_debug
+#ffmpeg_ubuntu:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules ffmpegs
+#lighttpd_ubuntu:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules lighttpd
+#pcre_ubuntu:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules pcre
+#mosquitto_ubuntu:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules mosquitto
+openssl_ubuntu_release:
+	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules openssl_release
+openssl_ubuntu_debug:
+	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules openssl_debug
 
-curl_ubuntu_clean:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules curl_clean
-zlib_ubuntu_clean:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules zlib_clean
+#curl_ubuntu_clean:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules curl_clean
+#zlib_ubuntu_clean:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules zlib_clean
 json_ubuntu_clean:
 	$(AMKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules json_clean
-ffmpeg_ubuntu_clean:
-	$(AMKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules ffmpeg_clean
-lighttpd_ubuntu_clean:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules lighttpd_clean
-pcre_ubuntu_clean:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules pcre_clean
-mosquitto_ubuntu_clean:
-	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules mosquitto_clean
+#ffmpeg_ubuntu_clean:
+#	$(AMKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules ffmpeg_clean
+#lighttpd_ubuntu_clean:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules lighttpd_clean
+#pcre_ubuntu_clean:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules pcre_clean
+#mosquitto_ubuntu_clean:
+#	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules mosquitto_clean
 openssl_ubuntu_clean:
 	$(MAKE) -fMAKEFILE_UBUNTU.MK -C$(dvr_rdk_PATH)/makerules openssl_clean
 
 # thirdlib_ubuntu:  json_ubuntu ffmpeg_ubuntu 
-thirdlib_ubuntu: json_ubuntu mosquitto_ubuntu openssl_ubuntu  
+thirdlib_ubuntu_release: json_ubuntu_release openssl_ubuntu_release  
+thirdlib_ubuntu_debug: json_ubuntu_debug openssl_ubuntu_debug  
 thirdlib_ubuntu_clean:  json_ubuntu_clean ffmpeg_ubuntu_clean openssl_ubuntu_clean  mosquitto_ubuntu
 
 ######################################################

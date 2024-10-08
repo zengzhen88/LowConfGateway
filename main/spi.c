@@ -38,7 +38,7 @@ static int SpiLogPrintf(LogSpi level,
 
     if (level > gLevel) return -1;
 
-    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%d]", file, func, line);
+    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%s][%d]", file, func, esp_log_system_timestamp(), line);
     funcLine = strlen(logBuf);
 
     /*va_list*/
@@ -161,7 +161,7 @@ void SpiRecvTask(void *args) {
                    .post_setup_cb callback that is called as soon as a transaction is ready, to let the master know it is free to transfer
                    data.
                    */
-                /* #define USE_SPI_TEST  */
+/* #define USE_SPI_TEST  */
 #ifndef USE_SPI_TEST
                 status = spi_slave_transmit(RCV_HOST, &t, portMAX_DELAY);
 #else 
@@ -175,17 +175,29 @@ void SpiRecvTask(void *args) {
                 if (ESP_OK == status) {
                     //spi_slave_transmit does not return until the master has done a transmission, so by here we have sent our data and
                     //received data from the master. Print it.
-                    int32_t jindex = 0;
-                    printf("Received: ");
-                    for (jindex = 0; jindex < 41; jindex++) {
-                        printf("%02x ", ((char *)t.rx_buffer)[jindex]);//recvbuf);
-                    }
-                    printf ("\n");
+                    /* int32_t jindex = 0; */
+                    /* printf("Received: "); */
+                    /* for (jindex = 0; jindex < 41; jindex++) { */
+                        /* printf("%02x ", ((char *)t.rx_buffer)[jindex]);//recvbuf); */
+                    /* } */
+                    /* printf ("\n"); */
                     /* n++; */
                     if (spi->send) {
-                        /* spi->send(gPriv, DataAttr_SpiToMqtt,  */
-                        /* message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK); */
+                        status = spi->send(gPriv, DataAttr_SpiToMqtt, 
+                                message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK);
+                        if (status) {
+                            if (spi->release)
+                                spi->release(gPriv, DataAttr_SpiToMqtt, message);
+                        }
                     }
+                    else {
+                        if (spi->release)
+                            spi->release(gPriv, DataAttr_SpiToMqtt, message);
+                    }
+                }
+                else {
+                    if (spi->release)
+                        spi->release(gPriv, DataAttr_SpiToMqtt, message);
                 }
             }
         }
@@ -255,9 +267,9 @@ void *SpiInit(SpiConfig *config) {
     gpio_set_pull_mode(GPIO_TRIGGER, GPIO_PULLUP_PULLDOWN);
     printf ("%s %d\n", __func__, __LINE__);
 
-    gpio_set_direction(GPIO_INIT, GPIO_MODE_INPUT);
+    /* gpio_set_direction(GPIO_INIT, GPIO_MODE_INPUT); */
     printf ("%s %d\n", __func__, __LINE__);
-    gpio_set_level(GPIO_INIT, 1);
+    /* gpio_set_level(GPIO_INIT, 1); */
     printf ("%s %d\n", __func__, __LINE__);
 
     gpio_set_direction(GPIO_TRIGGER, GPIO_MODE_INPUT);

@@ -36,7 +36,7 @@ static int WifiLogPrintf(LogWifi level,
 
     if (level > gLevel) return -1;
 
-    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%d]", file, func, line);
+    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%s][%d]", file, func, esp_log_system_timestamp(), line);
     funcLine = strlen(logBuf);
 
     /*va_list*/
@@ -198,8 +198,8 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data) {
     Wifi *wifi = (Wifi *)arg;
 
-    LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d\n", 
-            event_base, event_id);
+    LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d cpuId:%d\n", 
+            event_base, event_id, xPortGetCoreID());
 
     if (event_base == WIFI_EVENT) {
         switch (event_id) {

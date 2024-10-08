@@ -47,33 +47,7 @@ DISTFILES += \
 
 INCLUDEPATH += $$PWD/../../main/
 
-unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/ -lcjson
 
-INCLUDEPATH += $$PWD/../../thirdlib/pre_build/ubuntu
-DEPENDPATH += $$PWD/../../thirdlib/pre_build/ubuntu
-
-unix:!macx: PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/ubuntu/lib/libcjson.a
-
-unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/ -lssl
-
-INCLUDEPATH += $$PWD/../../thirdlib/pre_build/ubuntu
-DEPENDPATH += $$PWD/../../thirdlib/pre_build/ubuntu
-
-unix:!macx: PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/ubuntu/lib/libssl.a
-
-unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/ -lcrypto
-
-INCLUDEPATH += $$PWD/../../thirdlib/pre_build/ubuntu
-DEPENDPATH += $$PWD/../../thirdlib/pre_build/ubuntu
-
-unix:!macx: PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/ubuntu/lib/libcrypto.a
-
-unix:!macx: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/build/lib/ -lQt5Mqtt
-
-INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/build/include
-DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/build/include
-
-unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/build/lib/libQt5Mqtt.a
 
 
 
@@ -122,3 +96,33 @@ win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5
 else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/libQt5Mqtt.dll.a
 else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/release/libQt5Mqtt.dll.lib
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/debug/libQt5Mqtt.dll.lib
+
+
+
+unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/release/ -lcjson
+
+INCLUDEPATH += $$PWD/../../thirdlib/pre_build/ubuntu/inc
+DEPENDPATH += $$PWD/../../thirdlib/pre_build/ubuntu/inc
+
+unix:!macx: PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/ubuntu/lib/release/libcjson.a
+
+unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/release/ -lssl
+
+INCLUDEPATH += $$PWD/../../thirdlib/pre_build/ubuntu/inc
+DEPENDPATH += $$PWD/../../thirdlib/pre_build/ubuntu/inc
+
+unix:!macx: PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/ubuntu/lib/release/libssl.a
+
+unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/release/ -lcrypto
+
+INCLUDEPATH += $$PWD/../../thirdlib/pre_build/ubuntu/inc
+DEPENDPATH += $$PWD/../../thirdlib/pre_build/ubuntu/inc
+
+unix:!macx: PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/ubuntu/lib/release/libcrypto.a
+
+unix:!macx: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/ -lQt5Mqtt
+
+INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/src/mqtt/
+DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/src/mqtt/
+
+unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/libQt5Mqtt.a

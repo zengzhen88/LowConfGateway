@@ -38,7 +38,7 @@ static int UpdateLogPrintf(LogUpdate level,
 
     if (level > gLevel) return -1;
 
-    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%d]", file, func, line);
+    snprintf (logBuf, sizeof(logBuf), "[%s][%s][%s][%d]", file, func, esp_log_system_timestamp(), line);
     funcLine = strlen(logBuf);
 
     /*va_list*/

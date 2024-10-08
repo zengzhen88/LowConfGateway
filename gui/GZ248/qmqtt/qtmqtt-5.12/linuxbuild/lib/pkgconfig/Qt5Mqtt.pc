@@ -1,0 +1,14 @@
+prefix=/home/zeng/QtLib
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+
+Name: Qt5 Mqtt
+Description: Qt Mqtt module
+Version: 5.12.12
+Libs: -L${libdir} -lQt5Mqtt 
+Libs.private: /home/zeng/QtLib/lib/libQt5Network.a /home/zeng/QtLib/lib/libQt5Core.a -lm -lpcre2-16 -ldl -lgthread-2.0 -lglib-2.0 -lpthread    
+Cflags: -DQT_MQTT_LIB -I${includedir}/QtMqtt -I${includedir}
+Requires: Qt5Core Qt5Network
+

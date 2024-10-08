@@ -81,7 +81,7 @@ json_release:json_clean
 	export CC=$(CODEGEN_PREFIX)gcc;                     							\
 	mkdir -p $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build;\
 	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build/;            							\
-	cmake  -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_TEST=OFF ..;\
+	cmake  -DCMAKE_BUILD_TYPE=Release -DENABLE_CJSON_TEST=OFF -DBUILD_SHARED_AND_STATIC_LIBS=ON ..;\
 	make -j16 ;\
 	make DESTDIR=$(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/ install
 	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib/release/
@@ -95,7 +95,7 @@ json_debug:json_clean
 	export CC=$(CODEGEN_PREFIX)gcc;                     							\
 	mkdir -p $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build;\
 	cd $(thrpartylib_PATH)/$(CJSONLIB_VERSION)/build/;            							\
-	cmake  -DCMAKE_BUILD_TYPE=Debug -DENABLE_CJSON_TEST=OFF ..;\
+	cmake  -DCMAKE_BUILD_TYPE=Debug -DENABLE_CJSON_TEST=OFF -DBUILD_SHARED_AND_STATIC_LIBS=ON ..;\
 	make -j16;\
 	make DESTDIR=$(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/ install
 	cp -rfd $(thrpartylib_PATH)/common/$(CJSONLIB_VERSION)/$(PLATFORM)/usr/local/lib/lib*.a $(pre_BUILD_PATH)/$(PLATFORM)/lib/debug/

@@ -24,6 +24,10 @@
 #include <queue.h>
 #include <uart.h>
 #include "driver/uart.h"
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <string.h>
 
 typedef struct {
     void *wifi;
@@ -117,6 +121,12 @@ static int32_t appTriggerRecv(void *handle, DataAttr attr) {
     return 0;
 }
 
+static int sendNum[DataAttr_Cnt] = {
+    0
+};
+static int recvNum[DataAttr_Cnt] = {
+    0
+};
 
 int32_t appMsgSend(void *priv, DataAttr attr, 
         void *data, int32_t fillLength, int32_t millis) {
@@ -124,6 +134,10 @@ int32_t appMsgSend(void *priv, DataAttr attr,
     Message *message = NULL;
     TickType_t block = portMAX_DELAY; 
     Gateway *gateway = (Gateway *)priv;
+
+    if (!running) {
+        return -1;
+    }
 
     switch (millis) {
         case DataTimeStatus_BLOCK:
@@ -147,6 +161,7 @@ int32_t appMsgSend(void *priv, DataAttr attr,
     
         status = xQueueSend(gateway->bufQue[attr], &message, (block));
         if (pdPASS == status) {
+            sendNum[attr]++;
             appTriggerRecv(gateway, attr);
             return 0;
         }
@@ -164,6 +179,10 @@ int32_t appMsgRecv(void *priv, DataAttr attr,
     Message *message = NULL;
     TickType_t block = portMAX_DELAY; 
     Gateway *gateway = (Gateway *)priv;
+
+    if (!running) {
+        return -1;
+    }
 
     switch (millis) {
         case DataTimeStatus_BLOCK:
@@ -187,6 +206,7 @@ int32_t appMsgRecv(void *priv, DataAttr attr,
             *fillLength = message->length;
         }
 
+        recvNum[attr]++;
         ReleaseMessage(message);
 
         return 0;
@@ -198,10 +218,15 @@ int32_t appMsgRecv(void *priv, DataAttr attr,
 int32_t appDataRequest(void *priv, DataAttr attr, void *data, int32_t fillLength) {
     Message *message = NULL;
 
+    if (!running) {
+        return -1;
+    }
+
     message = RequestMessage(fillLength);
     if (message) {
         message->attr       = attr;
         message->length     = fillLength;
+        sendNum[attr]++;
 
         *((Message **)data) = message;
 
@@ -213,6 +238,12 @@ int32_t appDataRequest(void *priv, DataAttr attr, void *data, int32_t fillLength
 }
 
 int32_t appDataRelease(void *priv, DataAttr attr, void *data) {
+    if (!running) {
+        return -1;
+    }
+
+    recvNum[attr]++;
+
     ReleaseMessage((Message *)data);
     return 0;
 }
@@ -222,6 +253,10 @@ int32_t appDataSend(void *priv, DataAttr attr, void *data, int32_t millis) {
     Message *message = (Message *)data;
     TickType_t block = portMAX_DELAY; 
     Gateway *gateway = (Gateway *)priv;
+
+    if (!running) {
+        return -1;
+    }
 
     switch (millis) {
         case DataTimeStatus_BLOCK:
@@ -239,7 +274,6 @@ int32_t appDataSend(void *priv, DataAttr attr, void *data, int32_t millis) {
 
     status = xQueueSend(gateway->bufQue[attr], &message, (block));
     if (pdPASS == status) {
-            printf ("444xxx33message:%p data:%p :%s\n", message, message->data, (char *)message->data);
         appTriggerRecv(gateway, attr);
         return 0;
     }
@@ -252,6 +286,10 @@ int32_t appDataRecv(void *priv, DataAttr attr, void *data, int32_t millis) {
     Message *message = NULL;
     TickType_t block = portMAX_DELAY; 
     Gateway *gateway = (Gateway *)priv;
+
+    if (!running) {
+        return -1;
+    }
 
     switch (millis) {
         case DataTimeStatus_BLOCK:
@@ -269,9 +307,6 @@ int32_t appDataRecv(void *priv, DataAttr attr, void *data, int32_t millis) {
 
     status = xQueueReceive(gateway->bufQue[attr], &message, (block));
     if (pdTRUE == status) {
-        printf ("333message:%p \n", message);
-        if (message->data)
-            printf ("3xxx33message:%p data:%p %s\n", message, message->data, (char *)message->data);
         *((Message **)data) = message;
         return 0;
     }
@@ -281,6 +316,10 @@ int32_t appDataRecv(void *priv, DataAttr attr, void *data, int32_t millis) {
 
 int32_t appSend(void *priv, DataAttr attr, void *data, 
         int32_t fillLength, int32_t millis) { 
+    if (!running) {
+        return -1;
+    }
+
     switch (attr) {
         case DataAttr_SpiToMqtt:
             {
@@ -295,6 +334,10 @@ int32_t appSend(void *priv, DataAttr attr, void *data,
 
 int32_t appRecv(void *priv, DataAttr attr, void *data, 
         int32_t *fillLength, int32_t millis) { 
+    if (!running) {
+        return -1;
+    }
+
     switch (attr) {
         case DataAttr_SpiToMqtt:
             {
@@ -520,25 +563,25 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
 
 
 void app_main(void) {
-    int QueSize     = 128;
+    int QueSize     = 1024;
 
     Gateway *gateway = (Gateway *) malloc (sizeof(*gateway));
     if (gateway) {
         memset(gateway, 0x0, sizeof(*gateway));
 
-        strcpy(gateway->ethAddress, "0.0.0.0");
-        strcpy(gateway->ethNetmask, "0.0.0.0");
-        strcpy(gateway->ethGateway, "0.0.0.0");
+        strcpy(gateway->ethAddress, "192.168.0.106");
+        strcpy(gateway->ethNetmask, "255.255.255.0");
+        strcpy(gateway->ethGateway, "192.168.0.1");
 
-        strcpy(gateway->wifiSsid, "ssid");
-        strcpy(gateway->wifiPassword, "password");
+        strcpy(gateway->wifiSsid, "TP-LINK_342B");
+        strcpy(gateway->wifiPassword, "88888888");
         strcpy(gateway->wifiAddress, "0.0.0.0");
         strcpy(gateway->wifiNetmask, "0.0.0.0");
         strcpy(gateway->wifiGateway, "0.0.0.0");
 
-        strcpy(gateway->user, "user");
-        strcpy(gateway->password, "password");
-        strcpy(gateway->url, "mqtt://0.0.0.0:1883");
+        strcpy(gateway->user, "admin");
+        strcpy(gateway->password, "123456");
+        strcpy(gateway->url, "mqtt://192.168.0.101:1883");
 
         strcpy(gateway->version, "1.0");
         strcpy(gateway->info, "first");
@@ -584,80 +627,47 @@ void app_main(void) {
             gateway->uart = UartInit(&config);
         }
 
-        /* { */
-            /*
-             * ModuleMessage message;
-             * message.attr = ModuleDataAttr_GetTemperature;
-             * appSearchConfig(gateway, &message);
-             */
-
-/*
- *             ModuleMessage message;
- *             message.attr = ModuleDataAttr_GetTemperature;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleVersion;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleInfo;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetPower;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetWifiCfg;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetEthCfg;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetMqttCfg;
- *             appSearchConfig(gateway, &message);
- *         }
- */
-
-        running = 1;
-
-/*
- *         {
- *             [>wifi<]
- *             WifiConfig config;
- *             memset(&config, 0x0, sizeof(config));
- * 
- *             [> strcpy(config.ssid, "TP-LINK_342B"); <]
- *             [> strcpy(config.password, "88888888"); <]
- *             strcpy(config.ssid, gateway->wifiSsid);
- *             strcpy(config.password, gateway->wifiPassword);
- *             strcpy(config.address, gateway->wifiAddress);
- *             strcpy(config.netmask, gateway->wifiNetmask);
- *             strcpy(config.gateway, gateway->wifiGateway);
- *             config.send = appSend;
- *             config.recv = appRecv;
- * 
- *             WifiInitLog(gateway, appPrint);
- *             WifiSetLogLevel(LogWifi_Info);
- * 
- *             gateway->wifi = WifiInit(&config);
- *         }
- */
 
         {
-            /*ethernet*/
-            EthConfig config;
+            /*wifi*/
+            WifiConfig config;
             memset(&config, 0x0, sizeof(config));
-            
-            strcpy(config.address, gateway->ethAddress);
-            strcpy(config.netmask, gateway->ethNetmask);
-            strcpy(config.gateway, gateway->ethGateway);
 
+            /* strcpy(config.ssid, "TP-LINK_342B"); */
+            /* strcpy(config.password, "88888888"); */
+            strcpy(config.ssid, gateway->wifiSsid);
+            strcpy(config.password, gateway->wifiPassword);
+            strcpy(config.address, gateway->wifiAddress);
+            strcpy(config.netmask, gateway->wifiNetmask);
+            strcpy(config.gateway, gateway->wifiGateway);
             config.send = appSend;
             config.recv = appRecv;
 
-            EthInitLog(gateway, appPrint);
-            EthSetLogLevel(LogEth_Info);
+            WifiInitLog(gateway, appPrint);
+            WifiSetLogLevel(LogWifi_Info);
 
-            gateway->eth = EthInit(&config);
+            gateway->wifi = WifiInit(&config);
         }
+
+/*
+ *         {
+ *             [>ethernet<]
+ *             EthConfig config;
+ *             memset(&config, 0x0, sizeof(config));
+ * 
+ *             strcpy(config.address, gateway->ethAddress);
+ *             strcpy(config.netmask, gateway->ethNetmask);
+ *             strcpy(config.gateway, gateway->ethGateway);
+ * 
+ *             config.send = appSend;
+ *             config.recv = appRecv;
+ * 
+ *             EthInitLog(gateway, appPrint);
+ *             EthSetLogLevel(LogEth_Info);
+ * 
+ *             gateway->eth = EthInit(&config);
+ *         }
+ */
 
         {
             /*mqtt*/
@@ -734,19 +744,64 @@ void app_main(void) {
          * vTaskDelay(pdMS_TO_TICKS(2000));
          * vTaskDelay(pdMS_TO_TICKS(10000));
          */
+        running = 1;
 
         {
+            /*
+             * ModuleMessage message;
+             * message.attr = ModuleDataAttr_GetTemperature;
+             * appSearchConfig(gateway, &message);
+             */
+
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_GetTemperature;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetModuleVersion;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetModuleInfo;
+            appSearchConfig(gateway, &message);
+
+            message.attr = ModuleDataAttr_GetPower;
+            appSearchConfig(gateway, &message);
+
+            /* message.attr = ModuleDataAttr_GetWifiCfg; */
+            /* appSearchConfig(gateway, &message); */
+
+            /* message.attr = ModuleDataAttr_GetEthCfg; */
+            /* appSearchConfig(gateway, &message); */
+
+            /* message.attr = ModuleDataAttr_GetMqttCfg; */
+            /* appSearchConfig(gateway, &message); */
+        }
+
+
+        {
+            uint8_t CPU_RunInfo[400];
             while (1) {
                 /* if (running++ == 6) { */
-                    /* printf ("%s %d\n", __func__, __LINE__); */
-                    /* MQTTTriggerRecv(gateway->mqtt); */
+                /* printf ("%s %d\n", __func__, __LINE__); */
+                /* MQTTTriggerRecv(gateway->mqtt); */
                 /* } */
                 /* char buf[128]; */
 
-                vTaskDelay(pdMS_TO_TICKS(1000));
+                for (int index = 0; index < DataAttr_Cnt; index++) {
+                    printf ("index :%d sendNum:%d recvNum:%d\n", index, sendNum[index], recvNum[index]);
+                }
+                vTaskDelay(pdMS_TO_TICKS(5000));
+                static int a = 0;
+                printf ("%s %d num:%d\n", __func__, __LINE__, a++);
                 ModuleMessage message;
                 message.attr = ModuleDataAttr_GetTemperature;
                 appSearchConfig(gateway, &message);
+
+                memset(CPU_RunInfo, 0, 400);
+                vTaskGetRunTimeStats((char *)&CPU_RunInfo);
+
+                printf("task_name      run_cnt                 usage_rate   \r\n");
+                printf("%s", CPU_RunInfo);
+                printf("----------------------------------------------------\r\n");
             }
         }
     }
