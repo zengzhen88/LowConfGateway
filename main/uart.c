@@ -116,80 +116,49 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
     char *strings       = recv;
     char *chrr          = NULL;
 
-        /* LogPrintf(LogUart_Info, "%s %d fillLength:%d length:%d\n", __func__, __LINE__, uart->fillLength, length); */
     if (uart->fillLength > 0) {
-        /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
         if (strstr(uart->restore, "AT+") 
                 || strchr(uart->restore, '+')) {
             //如果没有有效的标志头，数据直接丢弃
-        /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
             memcpy(strings - uart->fillLength, uart->restore, uart->fillLength);
-        /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
             length  += uart->fillLength;
             strings -= uart->fillLength;
             strings[length] = '\0';
             uart->fillLength   = 0;
         }
         else {
-        /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
             uart->fillLength = 0;
         }
-        /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
     }
 
     while (1) {
         msgvalid = 0;
         if (length > 0) {
-            /* LogPrintf(LogUart_Info, "%s %d strings:%s\n", __func__, __LINE__, strings); */
             chrr = strchr(strings, '\r');
             if (chrr) {
-                /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                 if (chrr[1] == '\n') {
                     msgvalid = 1;
                     chrr[0] = '\0';
-                    /* LogPrintf(LogUart_Info, "uart start send:%s\n", strings); */
-                    if (strlen(strings) + 2 < length) {
-                        /* strings += strlen(strings) + 2; //指针偏移 */
-                        /* length -= strlen(strings) + 2; */
-                        /* continue; */
-                        /* chrr += 2; */
-                        /* memcpy(uart->restore, chrr, strlen(chrr));//只拷贝有效数据，不包括'\0'; */
-                        /* uart->fillLength = strlen(chrr); */
-                        /* printf ("uart strings:%s length:%u\n", strings, strlen(strings)); */
-                    }
                 }
                 else {
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                     memcpy(uart->restore, strings, length);
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                     uart->fillLength += length;
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                     break;
                 }
             }
             else {
-                /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                 memcpy(uart->restore, strings, length);
-                /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                 uart->fillLength += length;
                 break;
             }
 
             if (msgvalid) {
-                /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                 if (uart->send) {
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
-                    /* LogPrintf(LogUart_Info, "uart end send:%s\n", strings); */
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                     uart->send(gPriv, DataAttr_UartToMqtt, 
                             strings, strlen(strings), DataTimeStatus_BLOCK);
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                     length -= strlen(strings) + 2;
                     strings += strlen(strings) + 2; //指针偏移
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
-                    /* LogPrintf(LogUart_Info, "%s %d\n", __func__, __LINE__); */
                 }
-                /* return strings; */
             }
         }
         else {
@@ -515,7 +484,7 @@ void UartSelectTask(void *args) {
 #endif
         if (status > 0) {
             sbuffer[status] = '\0';
-            LogPrintf(LogUart_Info, "read(%d) cpuId(%d)AT===:%s\n", status, xPortGetCoreID(), sbuffer);
+            LogPrintf(LogUart_Debug, "read(%d) cpuId(%d)AT===:%s\n", status, xPortGetCoreID(), sbuffer);
             /* bbuffer =  */UartRecvParse(uart, sbuffer, status);
             /* if (NULL != bbuffer) { */
                 /* LogPrintf(LogUart_Info, "Uart AT Recv :%s\n", bbuffer); */
@@ -539,7 +508,6 @@ void *UartInit(UartConfig *config) {
     ERRP(NULL == uart, return NULL, 1, " uartmalloc Uart Instance failure\n");
     memset(uart, 0x0, sizeof(*uart));
 
-    printf ("%s %d\n", __func__, __LINE__);
     uart->send      = config->send;
     uart->recv      = config->recv;
 
@@ -558,19 +526,13 @@ void *UartInit(UartConfig *config) {
     uart->sourceClk = config->sourceClk;
     uart->uartIndex = config->uartIndex;
 
-    printf ("%s %d\n", __func__, __LINE__);
     uart->name = (char *) malloc (strlen(config->name) + 1);
     ERRP(NULL == uart->name, goto ERR00, 1, "uart malloc name mem failure\n");
-    printf ("%s %d\n", __func__, __LINE__);
     strcpy(uart->name, config->name);
-    printf ("%s %d\n", __func__, __LINE__);
 
 #ifndef Uart_TEST
-    printf ("%s %d\n", __func__, __LINE__);
     status = uart_driver_install(config->uartIndex, 2048, 2048, 0, NULL, 0);
-    printf ("%s %d\n", __func__, __LINE__);
     ERRP(ESP_OK != status, goto ERR01, 1, "uart uart_driver_install failure\n");
-    printf ("%s %d\n", __func__, __LINE__);
 
     uart_config.baud_rate   = uart->baudRate;
     uart_config.data_bits   = uart->dataBits;
@@ -579,44 +541,29 @@ void *UartInit(UartConfig *config) {
     uart_config.flow_ctrl   = uart->flowCtrl;
     uart_config.source_clk  = uart->sourceClk;
 
-    printf ("%s %d\n", __func__, __LINE__);
     uart_param_config(config->uartIndex, &uart_config);
-    printf ("%s %d\n", __func__, __LINE__);
 
     //这里需要确定具体的GPIO口
-    printf ("%s %d\n", __func__, __LINE__);
-    /* status = uart_set_pin(config->uartIndex, 17, 16, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE); */
     status = uart_set_pin(config->uartIndex, 10, 9, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    printf ("%s %d\n", __func__, __LINE__);
     ERRP(ESP_OK != status, goto ERR02, 1, "uart uart_set_pin failure\n");
-    printf ("%s %d\n", __func__, __LINE__);
 #endif
 
     uart->bufSize = 512;
-    printf ("%s %d\n", __func__, __LINE__);
     uart->buffer = (char *) malloc (uart->bufSize);
-    printf ("%s %d\n", __func__, __LINE__);
     ERRP(NULL == uart->buffer, goto ERR02, 1,
             "uart malloc buffer size:%d failure\n", uart->bufSize);
 
-    printf ("%s %d\n", __func__, __LINE__);
     uart->restore = (char *) malloc (uart->bufSize >> 1);
-    printf ("%s %d\n", __func__, __LINE__);
     ERRP(NULL == uart->restore, goto ERR03, 1,
             "uart malloc restore size:%d failure\n", uart->bufSize >> 1);
 
 #ifdef Uart_TEST
-    printf ("%s %d\n", __func__, __LINE__);
     uart->uartAck = (char *) malloc (512);
-    printf ("%s %d\n", __func__, __LINE__);
 #endif
 
-    printf ("%s %d\n", __func__, __LINE__);
     baseType = xTaskCreate(UartSelectTask, 
             "uartSelectTask", 8192, uart, 5, &uart->uartTask);
-    printf ("%s %d\n", __func__, __LINE__);
     ERRP(pdPASS != baseType, goto ERR04, 1, "uart xTaskCreate failure\n");
-    printf ("%s %d\n", __func__, __LINE__);
 
     return uart;
 ERR04:

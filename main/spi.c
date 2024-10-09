@@ -137,7 +137,6 @@ void SpiRecvTask(void *args) {
     Spi *spi        = (Spi *)args;
     Message *message= NULL;
 
-
     WORD_ALIGNED_ATTR char sendbuf[SPI_DATA_LENGTH + 1] = "";
     spi_slave_transaction_t t;
     memset(&t, 0, sizeof(t));
@@ -175,13 +174,6 @@ void SpiRecvTask(void *args) {
                 if (ESP_OK == status) {
                     //spi_slave_transmit does not return until the master has done a transmission, so by here we have sent our data and
                     //received data from the master. Print it.
-                    /* int32_t jindex = 0; */
-                    /* printf("Received: "); */
-                    /* for (jindex = 0; jindex < 41; jindex++) { */
-                        /* printf("%02x ", ((char *)t.rx_buffer)[jindex]);//recvbuf); */
-                    /* } */
-                    /* printf ("\n"); */
-                    /* n++; */
                     if (spi->send) {
                         status = spi->send(gPriv, DataAttr_SpiToMqtt, 
                                 message, SPI_DATA_LENGTH, DataTimeStatus_UNBLOCK);
@@ -254,26 +246,17 @@ void *SpiInit(SpiConfig *config) {
     //Configure handshake line as output
     /* gpio_config(&io_conf); */
     //Enable pull-ups on SPI lines so we don't detect rogue pulses when no master is connected.
-    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_MOSI, GPIO_PULLUP_ONLY);
-    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_SCLK, GPIO_PULLUP_ONLY);
-    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_CS, GPIO_PULLUP_ONLY);
-    printf ("%s %d\n", __func__, __LINE__);
 
     /* gpio_set_pull_mode(GPIO_INIT, GPIO_PULLUP_ONLY); */
-    printf ("%s %d\n", __func__, __LINE__);
     gpio_set_pull_mode(GPIO_TRIGGER, GPIO_PULLUP_PULLDOWN);
-    printf ("%s %d\n", __func__, __LINE__);
 
     /* gpio_set_direction(GPIO_INIT, GPIO_MODE_INPUT); */
-    printf ("%s %d\n", __func__, __LINE__);
     /* gpio_set_level(GPIO_INIT, 1); */
-    printf ("%s %d\n", __func__, __LINE__);
 
     gpio_set_direction(GPIO_TRIGGER, GPIO_MODE_INPUT);
-    printf ("%s %d\n", __func__, __LINE__);
 
     //Initialize SPI slave interface
     status = spi_slave_initialize(RCV_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);

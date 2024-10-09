@@ -167,8 +167,8 @@ int32_t MQTTMessageRecvGetWifiConfig(MQTT *mqtt, ModuleMessage *message) {
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
 
@@ -242,8 +242,8 @@ int32_t MQTTMessageRecvUartGetModuleVersionHandler(MQTT *mqtt, char *version) {
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -293,8 +293,8 @@ int32_t MQTTMessageRecvUartCommonOkHandler(MQTT *mqtt, const char *isOk, ModuleD
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -390,8 +390,8 @@ int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -506,8 +506,8 @@ int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -585,8 +585,8 @@ int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info) {
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -661,8 +661,8 @@ int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info) {
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -706,8 +706,8 @@ int32_t MQTTMessageRecvUartSetModuleInfoHandler(MQTT *mqtt, char *info) {
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -751,8 +751,8 @@ int32_t MQTTMessageRecvUartGetModuleInfoHandler(MQTT *mqtt, char *info) {
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -774,12 +774,14 @@ int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature) 
                 LogPrintf(LogMQTT_Info, "json:\r\n%s\n", json);
 #ifndef USE_BSON
                 if (mqtt->connect)
-                    if (mqtt->connect)
-                        esp_mqtt_client_publish(mqtt->client, 
-                                toAckEnumString(ModuleDataAttr_GetTemperature), 
-                                (const char *)json,
-                                strlen(json),
-                                mqtt->msgQos, 0);
+                    if (mqtt->connect) {
+                        LogPrintf(LogMQTT_Info, "...............................")
+                            esp_mqtt_client_publish(mqtt->client, 
+                                    toAckEnumString(ModuleDataAttr_GetTemperature), 
+                                    (const char *)json,
+                                    strlen(json),
+                                    mqtt->msgQos, 0);
+                    }
 #else 
                 bson_error_t error;
                 bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
@@ -796,8 +798,8 @@ int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature) 
 #endif
                 free(json);
             }
-            cJSON_Delete(root);
         }
+        cJSON_Delete(root);
     }
 
     return 0;
@@ -807,21 +809,28 @@ int32_t MQTTMessageRecvEthHandler(MQTT *mqtt) {
     return 0;
 }
 
+#include <esp_heap_trace.h>
+#define NUM_RECORDS 100
+static heap_trace_record_t trace_record[NUM_RECORDS]; // This buffer must be in internal RAM
 int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
+#if 1
     int status = -1;
     int num = 0;
     static int allNum = 0;
-    LogPrintf(LogMQTT_Info, "%s %d\n", __func__, __LINE__);
+    /* LogPrintf(LogMQTT_Info, "%s %d\n", __func__, __LINE__); */
+
+    /* heap_trace_start(HEAP_TRACE_LEAKS); */
+
     if (mqtt->recv) {
         while (1) {
-            /* char recv[128]; */
+            char recv[128];
             int32_t length = 0;
             Message *message = NULL;
             status = mqtt->recv(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
             ERRP(status, break, 0);
 
-            num++;
-            allNum++;
+            /* num++; */
+            /* allNum++; */
 
             /*
              * int32_t jindex = 0;
@@ -840,6 +849,7 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
                 sub = cJSON_CreateObject();
                 if (sub) {
                     cJSON_AddStringToObject(sub, "htype", toAckEnumString(ModuleDataAttr_ReportData));
+                    /* cJSON_AddStringToObject(sub, "data", (char *)"1234567890abcdefghijkopkalsdf"); */
                     cJSON_AddStringToObject(sub, "data", (char *)message->data);
                     cJSON_AddItemToArray(root, sub);
                     char *json = cJSON_Print(root);
@@ -867,8 +877,8 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
 #endif
                         free(json);
                     }
-                    cJSON_Delete(root);
                 }
+                cJSON_Delete(root);
             }
 
             if (mqtt->release) {
@@ -876,9 +886,14 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
             }
         }
     }
-    LogPrintf(LogMQTT_Info, "%s %d allNum:%d num:%d\n", __func__, __LINE__, allNum, num);
+    /* LogPrintf(LogMQTT_Info, "%s %d allNum:%d num:%d\n", __func__, __LINE__, allNum, num); */
+    /* heap_trace_stop(); */
+    /* heap_trace_dump(); */
 
     return status;
+#else
+    return 0;
+#endif
 }
 
 int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
@@ -1146,6 +1161,7 @@ int32_t MQTTMessageSendHandlerTTUpdate(MQTT *mqtt, esp_mqtt_event_handle_t event
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1198,6 +1214,7 @@ int32_t MQTTMessageSendHandlerPTSend(MQTT *mqtt, esp_mqtt_event_handle_t event) 
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1264,6 +1281,7 @@ int32_t MQTTMessageSendHandlerSetMqttCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1311,6 +1329,7 @@ int32_t MQTTMessageSendHandlerGetMqttCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1386,6 +1405,7 @@ int32_t MQTTMessageSendHandlerSetWifiCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1433,6 +1453,7 @@ int32_t MQTTMessageSendHandlerGetWifiCfg(MQTT *mqtt, esp_mqtt_event_handle_t eve
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1486,6 +1507,7 @@ int32_t MQTTMessageSendHandlerSetEthCfg(MQTT *mqtt, esp_mqtt_event_handle_t even
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1532,6 +1554,7 @@ int32_t MQTTMessageSendHandlerGetEthCfg(MQTT *mqtt, esp_mqtt_event_handle_t even
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1578,6 +1601,7 @@ int32_t MQTTMessageSendHandlerNetState(MQTT *mqtt, esp_mqtt_event_handle_t event
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1623,6 +1647,7 @@ int32_t MQTTMessageSendHandlerReboot(MQTT *mqtt, esp_mqtt_event_handle_t event) 
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1668,6 +1693,7 @@ int32_t MQTTMessageSendHandlerGetPower(MQTT *mqtt, esp_mqtt_event_handle_t event
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1713,6 +1739,7 @@ int32_t MQTTMessageSendHandlerSetModuleInfo(MQTT *mqtt, esp_mqtt_event_handle_t 
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1758,6 +1785,7 @@ int32_t MQTTMessageSendHandlerGetModuleInfo(MQTT *mqtt, esp_mqtt_event_handle_t 
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1803,6 +1831,8 @@ int32_t MQTTMessageSendHandlerGetModuleVersion(MQTT *mqtt, esp_mqtt_event_handle
                     }
                 }
             }
+
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1848,6 +1878,7 @@ int32_t MQTTMessageSendHandlerGetTemperature(MQTT *mqtt, esp_mqtt_event_handle_t
                     }
                 }
             }
+            cJSON_Delete(json);
         }
     }
     return 0;
@@ -1954,15 +1985,8 @@ static void timer_cb(void *arg) {
     MQTT *mqtt = (MQTT *)arg;
 
     esp_mqtt_event_t event;
+    memset(&event, 0x0, sizeof(event));
     event.event_id  = MQTT_USER_EVENT;
-    event.topic     = (char *) malloc (strlen("uarttimer") + 1);
-    if (event.topic) {
-        strcpy(event.topic, "uarttimer");
-        event.topic_len = strlen("uarttimer");
-    }
-    else {
-        event.topic_len = 0;
-    }
 
     esp_mqtt_dispatch_custom_event(mqtt->client, &event);
 }
@@ -1994,6 +2018,7 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
         case MQTT_EVENT_DISCONNECTED:
             {
                 mqtt->connect = 0;
+                esp_mqtt_client_reconnect(mqtt->client);
                 LogPrintf(LogMQTT_Info, "[%s]MQTT_EVENT_DISCONNECTED\n", mqtt->name);
                 break;
             }
@@ -2035,30 +2060,6 @@ void MQTTEventHandler(void *handler_args, esp_event_base_t base,
             }
         case MQTT_USER_EVENT:
             {
-                switch (event->event_id) {
-                    /*
-                     * case MQTT_USER_EVENT:
-                     *     {
-                     *         MQTTMessageRecvWifiHandler(mqtt);
-                     *         break;
-                     *     }
-                     * case MQTT_USER_EVENT1:
-                     *     {
-                     *         MQTTMessageRecvUartHandler(mqtt);
-                     *         break;
-                     *     }
-                     * case MQTT_USER_EVENT2:
-                     *     {
-                     *         MQTTMessageRecvEthHandler(mqtt);
-                     *         break;
-                     *     }
-                     */
-                    default:break;
-                }
-                if (event->topic) {
-                    free(event->topic);
-                    event->topic = NULL;
-                }
                 break;
             }
         default:
@@ -2073,15 +2074,8 @@ int32_t MQTTEthTriggerRecv(void *arg) {
     MQTT *mqtt = (MQTT *)arg;
 
     esp_mqtt_event_t event;
+    memset(&event, 0x0, sizeof(event));
     event.event_id  = MQTT_USER_EVENT;
-    event.topic     = (char *) malloc (strlen("ethtimer") + 1);
-    if (event.topic) {
-        strcpy(event.topic, "ethtimer");
-        event.topic_len = strlen("ethtimer");
-    }
-    else {
-        event.topic_len = 0;
-    }
 
     return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
     /* printf ("MQTTETHEVnetID:%d status:%d\n", event.event_id, status); */
@@ -2093,15 +2087,8 @@ int32_t MQTTUartTriggerRecv(void *arg) {
     MQTT *mqtt = (MQTT *)arg;
 
     esp_mqtt_event_t event;
+    memset(&event, 0x0, sizeof(event));
     event.event_id  = MQTT_USER_EVENT;
-    event.topic     = (char *) malloc (strlen("uarttimer") + 1);
-    if (event.topic) {
-        strcpy(event.topic, "uarttimer");
-        event.topic_len = strlen("uarttimer");
-    }
-    else {
-        event.topic_len = 0;
-    }
 
     return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
     /* printf ("MQTTUARTEVnetID:%d status:%d\n", event.event_id, status); */
@@ -2110,24 +2097,17 @@ int32_t MQTTUartTriggerRecv(void *arg) {
 }
 
 int32_t MQTTSpiTriggerRecv(void *arg) {
+    MQTT *mqtt = (MQTT *)arg;
+
 /*
- *     MQTT *mqtt = (MQTT *)arg;
- * 
  *     esp_mqtt_event_t event;
+ *     memset(&event, 0x0, sizeof(event));
  *     event.event_id  = MQTT_USER_EVENT;
- *     event.topic     = (char *) malloc (strlen("SPItimer") + 1);
- *     if (event.topic) {
- *         strcpy(event.topic, "SPItimer");
- *         event.topic_len = strlen("SPItimer");
- *     }
- *     else {
- *         event.topic_len = 0;
- *     }
  * 
  *     return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
  *     [> printf ("MQTTUARTEVnetID:%d status:%d\n", event.event_id, status); <]
- * 
  */
+
     return 0;
 }
 
@@ -2135,15 +2115,8 @@ int32_t MQTTWifiTriggerRecv(void *arg) {
     MQTT *mqtt = (MQTT *)arg;
 
     esp_mqtt_event_t event;
+    memset(&event, 0x0, sizeof(event));
     event.event_id  = MQTT_USER_EVENT;
-    event.topic     = (char *) malloc (strlen("wifitimer") + 1);
-    if (event.topic) {
-        strcpy(event.topic, "wifitimer");
-        event.topic_len = strlen("wifitimer");
-    }
-    else {
-        event.topic_len = 0;
-    }
 
     return esp_mqtt_dispatch_custom_event(mqtt->client, &event);
     /* printf ("MQTTWIFIEVnetID:%d status:%d\n", event.event_id, status); */
@@ -2170,9 +2143,12 @@ void *MQTTInit(MQTTConfig *config) {
     mqttConfig.credentials.username = config->user;
     mqttConfig.credentials.authentication.password = config->password;
     mqttConfig.broker.address.uri = config->url;
-    /* mqtt://192.168.0.107:1883 */
+    /* mqtt://192.168.0.102:1883 */
     mqttConfig.network.reconnect_timeout_ms = 1000;
     mqttConfig.network.timeout_ms = 1000;
+    LogPrintf(LogMQTT_Info, "user:%s\n", mqttConfig.credentials.username);
+    LogPrintf(LogMQTT_Info, "password:%s\n", mqttConfig.credentials.authentication.password);
+    LogPrintf(LogMQTT_Info, "url:%s\n", mqttConfig.broker.address.uri);
     /* mqttConfig.network.refresh_connection_after_ms = 1000; */
     mqtt->client = esp_mqtt_client_init(&mqttConfig);
     ERRP(NULL == mqtt->client, goto ERR5, 1, "mqtt esp_mqtt_client_init failure\n");
@@ -2188,9 +2164,11 @@ void *MQTTInit(MQTTConfig *config) {
         true,
     };
     esp_timer_create(&timer_args, &mqtt->timer);
-    esp_timer_start_periodic(mqtt->timer, 100000);//10000);//10ms
+    esp_timer_start_periodic(mqtt->timer, 40000);//10000);//10ms
 
     esp_mqtt_client_start(mqtt->client);
+
+    /* heap_trace_init_standalone(trace_record, NUM_RECORDS); */
     
     /* mqtt->connect = 1; */
 

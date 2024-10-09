@@ -581,7 +581,7 @@ void app_main(void) {
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://192.168.0.101:1883");
+        strcpy(gateway->url, "mqtt://192.168.0.102:1883");
 
         strcpy(gateway->version, "1.0");
         strcpy(gateway->info, "first");
@@ -604,7 +604,6 @@ void app_main(void) {
 
         }
 
-#if 1
         {
             /*uart*/
             UartConfig config;
@@ -696,8 +695,8 @@ void app_main(void) {
 
         printf ("%s %d\n", __func__, __LINE__);
         {
-            //if version match*/
-            /*update*/
+            //if version match
+            //update
             UpdateConfig config;
             memset(&config, 0x0, sizeof(config));
 
@@ -710,7 +709,6 @@ void app_main(void) {
             gateway->update = UpdateInit(&config);
         }
 
-#endif
         printf ("%s %d\n", __func__, __LINE__);
         {
             /*spi*/
@@ -753,18 +751,20 @@ void app_main(void) {
              * appSearchConfig(gateway, &message);
              */
 
-            ModuleMessage message;
-            message.attr = ModuleDataAttr_GetTemperature;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetModuleVersion;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetModuleInfo;
-            appSearchConfig(gateway, &message);
-
-            message.attr = ModuleDataAttr_GetPower;
-            appSearchConfig(gateway, &message);
+/*
+ *             ModuleMessage message;
+ *             message.attr = ModuleDataAttr_GetTemperature;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleVersion;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleInfo;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetPower;
+ *             appSearchConfig(gateway, &message);
+ */
 
             /* message.attr = ModuleDataAttr_GetWifiCfg; */
             /* appSearchConfig(gateway, &message); */
@@ -792,9 +792,9 @@ void app_main(void) {
                 vTaskDelay(pdMS_TO_TICKS(5000));
                 static int a = 0;
                 printf ("%s %d num:%d\n", __func__, __LINE__, a++);
-                ModuleMessage message;
-                message.attr = ModuleDataAttr_GetTemperature;
-                appSearchConfig(gateway, &message);
+                /* ModuleMessage message; */
+                /* message.attr = ModuleDataAttr_GetTemperature; */
+                /* appSearchConfig(gateway, &message); */
 
                 memset(CPU_RunInfo, 0, 400);
                 vTaskGetRunTimeStats((char *)&CPU_RunInfo);
@@ -802,6 +802,13 @@ void app_main(void) {
                 printf("task_name      run_cnt                 usage_rate   \r\n");
                 printf("%s", CPU_RunInfo);
                 printf("----------------------------------------------------\r\n");
+                printf ("all free mem:%lu\n", esp_get_free_heap_size());
+                printf ("internal free mem:%u\n", heap_caps_get_free_size( MALLOC_CAP_INTERNAL ));
+                printf ("spiram free mem:%u\n", heap_caps_get_free_size( MALLOC_CAP_SPIRAM ));
+                printf("----------------------------------------------------\r\n");
+                /* xPortGetFreeHeapSize(); */
+                printf("----------------------------------------------------\r\n");
+
             }
         }
     }
