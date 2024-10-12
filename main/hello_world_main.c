@@ -350,6 +350,49 @@ int32_t appRecv(void *priv, DataAttr attr, void *data,
     return 0;
 }
 
+int32_t appPeek(void *priv, DataAttr attr, 
+        void *data, int32_t *fillLength, int32_t millis) {
+    int32_t status   = -1;
+    Message *message = NULL;
+    TickType_t block = portMAX_DELAY; 
+    Gateway *gateway = (Gateway *)priv;
+
+    if (!running) {
+        return -1;
+    }
+
+    switch (millis) {
+        case DataTimeStatus_BLOCK:
+            {
+                block = portMAX_DELAY;
+                break;
+            }
+        case DataTimeStatus_UNBLOCK:
+        default:
+            {
+                block = pdMS_TO_TICKS(millis);
+                break;
+            }
+    }
+
+    status = xQueuePeek(gateway->bufQue[attr], &message, (block));
+    if (pdTRUE == status) {
+        if (*fillLength >= message->length) {
+            /* 内存足够才送数据 */
+            memcpy(data, message->data, message->length);
+            *fillLength = message->length;
+        }
+
+        /* recvNum[attr]++; */
+        /* ReleaseMessage(message); */
+
+        return 0;
+    }
+
+    return -1;
+}
+
+
 int32_t appSearchConfig(void *args, ModuleMessage *message) {
     int32_t status  = -1;
     char recv[128];
@@ -374,12 +417,12 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                     gateway->temperature = temperature;
                     printf ("===> temperature:%lf\n", temperature);
                 }
-                else if (strstr(recv, "+VER:")) {
+                else if (strstr(recv, "+DEVINFO:")) {
                     char *version = valid;
                     strcpy(gateway->version, version);
                     printf ("===> moduleVersion:%s\n", version);
                 }
-                else if (strstr(recv, "+INFO:")) {
+                else if (strstr(recv, "+USERINFO:")) {
                     char *info = valid;
                     strcpy(gateway->info, info);
                     printf ("===> moduleInfo:%s\n", info);
@@ -581,7 +624,7 @@ void app_main(void) {
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://192.168.0.102:1883");
+        strcpy(gateway->url, "mqtt://192.168.0.100:1883");
 
         strcpy(gateway->version, "1.0");
         strcpy(gateway->info, "first");
@@ -612,6 +655,7 @@ void app_main(void) {
             config.uartIndex = UART_NUM_1;
             config.send = appSend;
             config.recv = appRecv;
+            config.peek = appPeek;
             config.baudRate = 115200;
             config.dataBits = UART_DATA_8_BITS;
             config.parity = UART_PARITY_DISABLE;

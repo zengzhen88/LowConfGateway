@@ -88,6 +88,7 @@ typedef struct {
 typedef struct {
     ModuleDataAttr attr;
     NetState state;
+    _NetState _state;
 } ModuleMessageNetState;
 
 //ModuleDataAttr_GetWifiCfg
@@ -162,10 +163,22 @@ typedef struct {
 //ModuleDataAttr_PtSend
 typedef struct {
     ModuleDataAttr attr;
-    int timeOut;
+    int seq;
     char mac[32];
     char data[64];
 } ModuleMessagePtSend;
+
+//ModuleDataAttr_GetScanTimeout
+typedef struct {
+    ModuleDataAttr attr;
+    int sec;
+} ModuleMessageGetScanTimeout;
+
+//ModuleDataAttr_SetScanTimeout
+typedef struct {
+    ModuleDataAttr attr;
+    int sec;
+} ModuleMessageSetScanTimeout;
 
 typedef union {
     ModuleDataAttr attr;
@@ -184,6 +197,8 @@ typedef union {
     ModuleMessageGetMqttCfg getMqttCfg;
     ModuleMessageSetMqttCfg setMqttCfg;
     ModuleMessagePtSend ptSend;
+    ModuleMessageGetScanTimeout getScanTimeout;
+    ModuleMessageSetScanTimeout setScanTimeout;
     ModuleMessageAck ack;
 } ModuleMessage;
 

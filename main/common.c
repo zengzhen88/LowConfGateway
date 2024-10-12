@@ -37,7 +37,13 @@ const char *toEnumChineseString(ModuleDataAttr attr) {
         case ModuleDataAttr_SetMqttCfg:
             return "设置MQTT配置";
         case ModuleDataAttr_PtSend:
-            return "Ack";
+            return "下发数据";
+        case ModuleDataAttr_PtRecv:
+            return "下发数据响应";
+        case ModuleDataAttr_SetScanTimeout:
+            return "设置下发数据超时时间";
+        case ModuleDataAttr_GetScanTimeout:
+            return "获取下发数据超时时间";
         default:return "Ack";
     }
 }
@@ -76,6 +82,12 @@ const char *toEnumString(ModuleDataAttr attr) {
             return "SetMqttCfg";
         case ModuleDataAttr_PtSend:
             return "PtSend";
+        case ModuleDataAttr_PtRecv:
+            return "PtRecv";
+        case ModuleDataAttr_SetScanTimeout:
+            return "SetScanTimeout";
+        case ModuleDataAttr_GetScanTimeout:
+            return "GetScanTimeout";
         default:return "Ack";
     }
 }
@@ -114,6 +126,12 @@ const char *toAckEnumString(ModuleDataAttr attr) {
             return "SetMqttCfgAck";
         case ModuleDataAttr_PtSend:
             return "PtSendAck";
+        case ModuleDataAttr_PtRecv:
+            return "PtRecvAck";
+        case ModuleDataAttr_SetScanTimeout:
+            return "SetScanTimeoutAck";
+        case ModuleDataAttr_GetScanTimeout:
+            return "GetScanTimeoutAck";
         default:return "Ack";
     }
 }
@@ -166,6 +184,15 @@ ModuleDataAttr toAckStringEnum(const char *strings) {
     }
     else if (strstr(strings, "PtSendAck")) {
         return ModuleDataAttr_PtSend;
+    }
+    else if (strstr(strings, "PtRecvAck")) {
+        return ModuleDataAttr_PtRecv;
+    }
+    else if (strstr(strings, "SetScanTimeoutAck")) {
+        return ModuleDataAttr_SetScanTimeout;
+    }
+    else if (strstr(strings, "GetScanTimeoutAck")) {
+        return ModuleDataAttr_GetScanTimeout;
     }
     else {
         return ModuleDataAttr_Cnt;
@@ -222,6 +249,15 @@ ModuleDataAttr toStringEnum(const char *strings) {
     }
     else if (strstr(strings, "PtSend")) {
         return ModuleDataAttr_PtSend;
+    }
+    else if (strstr(strings, "PtRecv")) {
+        return ModuleDataAttr_PtRecv;
+    }
+    else if (strstr(strings, "SetScanTimeout")) {
+        return ModuleDataAttr_SetScanTimeout;
+    }
+    else if (strstr(strings, "GetScanTimeout")) {
+        return ModuleDataAttr_GetScanTimeout;
     }
     else {
         return ModuleDataAttr_Cnt;

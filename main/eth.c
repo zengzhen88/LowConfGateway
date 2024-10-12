@@ -187,6 +187,7 @@ ESP_EVENT_DEFINE_BASE(MYETH_EVENT);
 #define EXAMPLE_ESP_MAXIMUM_RETRY  5
 void EthEventHandler(void* arg, esp_event_base_t event_base,
         int32_t event_id, void *event_data) {
+    esp_err_t status                = ESP_FAIL;        
     Eth *eth = (Eth *)arg;
 
     LogPrintf(LogEth_Info, "eventBase:%s eventId:%d\n", 
@@ -241,6 +242,12 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                 {
                     /* eth->ethSok = 0; */
                     LogPrintf(LogEth_Error ,"Ethernet Link Down!\n");
+                    ModuleMessage message;
+                    message.attr = ModuleDataAttr_NetState;
+                    message.netState._state = _NetState_NetUnconnect;//后面修改
+                    if (eth->send) {
+                        status = eth->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
+                    }
                     break;
                 }
             case ETHERNET_EVENT_START:
@@ -271,14 +278,12 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
         /* eth->ethSok = 1; */
         LogPrintf(LogEth_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (eth->send) {
-            //report
-            /*
-             * eth->message.ethConfig.attr      = ModuleDataAttr_GetEthConfig;
-             * eth->message.ethConfig.ip        = event->ip_info.ip.addr;
-             * eth->message.ethConfig.netmask   = event->ip_info.netmask.addr;
-             * eth->message.ethConfig.gateway   = event->ip_info.gw.addr;
-             */
-            /* eth->send(gPriv, DataAttr_Eth, &eth->message, 40); */
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_NetState;
+            message.netState._state = _NetState_NetConnect;//后面修改
+            if (eth->send) {
+                status = eth->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
+            }
         }
         eth->retryNum = 0;
     }
@@ -328,7 +333,7 @@ void *EthInit(EthConfig *config) {
     eth_mac_config_t mac_config = ETH_MAC_DEFAULT_CONFIG();
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
 
-    mac_config.sw_reset_timeout_ms = 500;
+    mac_config.sw_reset_timeout_ms = 2000;
 
     Eth *eth = (Eth *) malloc (sizeof(*eth));
     ERRP(NULL == eth, return NULL, 1, "malloc Eth Instance failure\n");

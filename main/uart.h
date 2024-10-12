@@ -29,6 +29,9 @@ typedef int32_t (*UartSigSend)(void *oObj,
 typedef int32_t (*UartSigRecv)(void *oObj,
         DataAttr attr, void *data,
         int32_t *fillLength, int32_t millis);
+typedef int32_t (*UartSigPeek)(void *oObj,
+        DataAttr attr, void *data,
+        int32_t *fillLength, int32_t millis);
 
 int32_t UartInitLog(void *priv, UartPrint print);
 int32_t UartSetLogLevel(LogUart level);
@@ -44,6 +47,7 @@ typedef struct {
     UartNUM uartIndex;
     UartSigSend send;
     UartSigRecv recv;
+    UartSigPeek peek;
 } UartConfig;
 
 void *UartInit(UartConfig *config);

@@ -14,6 +14,13 @@ typedef enum {
 } NetState;
 
 typedef enum {
+    _NetState_NetConnect,
+    _NetState_NetUnconnect,
+    _NetState_MqttConnect,
+    _NetState_MqttUnconnect,
+} _NetState;
+
+typedef enum {
     DC,
     BAT,
     PowerCnt,
@@ -28,6 +35,7 @@ typedef enum {
     DataAttr_WifiToUart,
     DataAttr_UartToMqtt,
     DataAttr_EthToMqtt,
+    DataAttr_EthToUart,
     DataAttr_SpiToMqtt,
     DataAttr_Cnt,
 } DataAttr;
@@ -49,6 +57,9 @@ typedef enum {
     ModuleDataAttr_Update,
     ModuleDataAttr_ReportData,
     ModuleDataAttr_PtSend,
+    ModuleDataAttr_PtRecv,
+    ModuleDataAttr_SetScanTimeout,
+    ModuleDataAttr_GetScanTimeout,
     ModuleDataAttr_Ack,
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;

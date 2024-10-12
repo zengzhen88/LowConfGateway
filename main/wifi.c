@@ -196,6 +196,7 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleInternalMessage *message) {
 #define EXAMPLE_ESP_MAXIMUM_RETRY  5
 void WifiEventHandler(void* arg, esp_event_base_t event_base,
         int32_t event_id, void* event_data) {
+    esp_err_t status                = ESP_FAIL;        
     Wifi *wifi = (Wifi *)arg;
 
     LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d cpuId:%d\n", 
@@ -213,6 +214,12 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
             case WIFI_EVENT_STA_DISCONNECTED:
                 {
                     wifi->wifiSok = 0;
+                    ModuleMessage message;
+                    message.attr = ModuleDataAttr_NetState;
+                    message.netState._state = _NetState_NetUnconnect;//后面修改
+                    if (wifi->send) {
+                        status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                    }
                     if (wifi->retryNum < EXAMPLE_ESP_MAXIMUM_RETRY) {
                         esp_wifi_connect();
                         wifi->retryNum++;
@@ -235,14 +242,12 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
         if (wifi->send) {
-            //report
-            /*
-             * wifi->message.wifiConfig.attr      = ModuleDataAttr_GetWifiConfig;
-             * wifi->message.wifiConfig.ip        = event->ip_info.ip.addr;
-             * wifi->message.wifiConfig.netmask   = event->ip_info.netmask.addr;
-             * wifi->message.wifiConfig.gateway   = event->ip_info.gw.addr;
-             */
-            /* wifi->send(gPriv, DataAttr_Wifi, &wifi->message, 40); */
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_NetState;
+            message.netState._state = _NetState_NetConnect;//后面修改
+            if (wifi->send) {
+                status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+            }
         }
         wifi->retryNum = 0;
     }
