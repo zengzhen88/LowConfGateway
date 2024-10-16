@@ -6,12 +6,12 @@
 
 const char *toEnumChineseString(ModuleDataAttr attr) {
     switch (attr) {
-        case ModuleDataAttr_ReportData:
-            return "上报数据";
+//        case ModuleDataAttr_ReportData:
+//            return "上报数据";
         case ModuleDataAttr_Update:
             return "升级系统";
         case ModuleDataAttr_GetTemperature:
-            return "获取温度";
+            return "查询温度";
         case ModuleDataAttr_GetModuleVersion:
             return "查询模块版本";
         case ModuleDataAttr_GetModuleInfo:
@@ -22,8 +22,6 @@ const char *toEnumChineseString(ModuleDataAttr attr) {
             return "查询模块供电";
         case ModuleDataAttr_Reboot:
             return "模块重启";
-        case ModuleDataAttr_NetState:
-            return "查询网络状态";
         case ModuleDataAttr_GetWifiCfg:
             return "查询无线配置";
         case ModuleDataAttr_SetWifiCfg:
@@ -37,13 +35,15 @@ const char *toEnumChineseString(ModuleDataAttr attr) {
         case ModuleDataAttr_SetMqttCfg:
             return "设置MQTT配置";
         case ModuleDataAttr_PtSend:
-            return "下发数据";
-        case ModuleDataAttr_PtRecv:
-            return "下发数据响应";
+            return "发送下发数据";
+        //case ModuleDataAttr_PtRecv:
+        //    return "下发数据响应";
         case ModuleDataAttr_SetScanTimeout:
             return "设置下发数据超时时间";
         case ModuleDataAttr_GetScanTimeout:
-            return "获取下发数据超时时间";
+            return "查询下发数据超时时间";
+        //case ModuleDataAttr_NetState:
+        //    return "查询网络状态";
         default:return "Ack";
     }
 }
@@ -192,6 +192,62 @@ ModuleDataAttr toAckStringEnum(const char *strings) {
         return ModuleDataAttr_SetScanTimeout;
     }
     else if (strstr(strings, "GetScanTimeoutAck")) {
+        return ModuleDataAttr_GetScanTimeout;
+    }
+    else {
+        return ModuleDataAttr_Cnt;
+    }
+
+    return ModuleDataAttr_Cnt;
+}
+
+ModuleDataAttr toChineseStringEnum(const char *strings) {
+    if (strstr(strings, "升级系统")) {
+        return ModuleDataAttr_Update;
+    }
+    else if (strstr(strings, "查询温度")) {
+        return ModuleDataAttr_GetTemperature;
+    }
+    else if (strstr(strings, "查询模块版本")) {
+        return ModuleDataAttr_GetModuleVersion;
+    }
+    else if (strstr(strings, "查询模块信息")) {
+        return ModuleDataAttr_GetModuleInfo;
+    }
+    else if (strstr(strings, "设置模块信息")) {
+        return ModuleDataAttr_SetModuleInfo;
+    }
+    else if (strstr(strings, "查询模块供电")) {
+        return ModuleDataAttr_GetPower;
+    }
+    else if (strstr(strings, "模块重启")) {
+        return ModuleDataAttr_Reboot;
+    }
+    else if (strstr(strings, "查询无线配置")) {
+        return ModuleDataAttr_GetWifiCfg;
+    }
+    else if (strstr(strings, "设置MQTT配置")) {
+        return ModuleDataAttr_SetMqttCfg;
+    }
+    else if (strstr(strings, "查询MQTT配置")) {
+        return ModuleDataAttr_GetMqttCfg;
+    }
+    else if (strstr(strings, "设置无线配置")) {
+        return ModuleDataAttr_SetWifiCfg;
+    }
+    else if (strstr(strings, "查询有线配置")) {
+        return ModuleDataAttr_GetEthCfg;
+    }
+    else if (strstr(strings, "设置有线配置")) {
+        return ModuleDataAttr_SetEthCfg;
+    }
+    else if (strstr(strings, "发送下发数据")) {
+        return ModuleDataAttr_PtSend;
+    }
+    else if (strstr(strings, "设置下发数据超时时间")) {
+        return ModuleDataAttr_SetScanTimeout;
+    }
+    else if (strstr(strings, "查询下发数据超时时间")) {
         return ModuleDataAttr_GetScanTimeout;
     }
     else {

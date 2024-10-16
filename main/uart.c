@@ -165,6 +165,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
 
             if (msgvalid) {
                 if (uart->send) {
+                    LogPrintf(LogUart_Info, "send %s to mqtt\n", strings);
                     uart->send(gPriv, DataAttr_UartToMqtt, 
                             strings, strlen(strings), DataTimeStatus_BLOCK);
                     length -= strlen(strings) + 2;
@@ -231,26 +232,33 @@ int32_t UartMessageNetStateX(Uart *uart, ModuleMessage *mess) {
         case _NetState_MqttConnect:
             {
                 mqttStatus = 1;
+                LogPrintf(LogUart_Info, "mqtt server connect\n");
                 break;
             }
         case _NetState_MqttUnconnect:
             {
                 mqttStatus = 0;
+                LogPrintf(LogUart_Info, "mqtt server disconnect\n");
                 break;
             }
         case _NetState_NetConnect:
             {
                 netStatus = 1;
+                LogPrintf(LogUart_Info, "net server connect\n");
                 break;
             }
         case _NetState_NetUnconnect:
             {
                 netStatus = 0;
+                LogPrintf(LogUart_Info, "net server disconnect\n");
                 break;
             }
         default:
     }
 
+    LogPrintf(LogUart_Info, "mqttStatus:%d "
+            "uart->mqttStatus:%d netStatus:%d uart->netStatus:%d\n", 
+            mqttStatus, uart->mqttStatus, netStatus, uart->netStatus);
     if (mqttStatus != uart->mqttStatus 
             || netStatus != uart->netStatus) {
         /*发生变化就调整*/
@@ -265,9 +273,9 @@ int32_t UartMessageNetStateX(Uart *uart, ModuleMessage *mess) {
             //服务器无及网络有
             mess->netState.state = NetState_CONNET;
         }
-        else if (uart->mqttStatus && uart->netStatus) {
-            //服务器有及网络无 -- 理论不存在
-            mess->netState.state = NetState_UNNET;
+        else if (uart->mqttStatus && !uart->netStatus) {
+            //服务器有及网络无 -- 理论不存在,可能存在不同步的问题，这种情况肯定也有网络
+            mess->netState.state = NetState_CONNSER;
         }
         else if (!uart->mqttStatus && !uart->netStatus) {
             //服务器及网络都无 
@@ -292,7 +300,9 @@ int32_t UartMessageRecvHandler(Uart *uart) {
     ModuleMessage message;
     ModuleMessage *mess = NULL;
 
+            /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart recv from\n"); */
     if (uart->recv) {
+            /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart recv from xxx\n"); */
         length = sizeof(message);
         if (PEEK == uart->mark[DataAttr_MqttToUart]) {
             if (esp_log_early_timestamp() - uart->timestamp[DataAttr_MqttToUart] >= TIMEOUT) {
@@ -309,12 +319,15 @@ int32_t UartMessageRecvHandler(Uart *uart) {
             status = uart->recv(gPriv, 
                     DataAttr_MqttToUart, &message, &length, 0);
             //理论一定成功
+            uart->mark[DataAttr_MqttToUart] = INIT;
         }
         else if (INIT == uart->mark[DataAttr_MqttToUart]) {
+            /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart Init\n"); */
             length = uart->bufSize;
             status = uart->peek(gPriv, 
                     DataAttr_MqttToUart, &message, &length, 0);
             if (!status) {
+            /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart Peek\n"); */
                 uart->mark[DataAttr_MqttToUart] = PEEK;
                 uart->timestamp[DataAttr_MqttToUart] = esp_log_early_timestamp();
                 mess = &message;
@@ -354,6 +367,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         {
                             snprintf (uart->buffer, uart->bufSize, "AT+USERINFO=%s\r\n", mess->getModuleInfo.info);
                             uart->buffer[uart->bufSize - 1] = '\0';
+                            /* LogPrintf(LogUart_Info, "setModuleInfo:%s\n", uart->buffer); */
 #ifdef Uart_TEST
                             strcpy(uart->uartAck, "+OK\r\n");
                             uart->ackSize = strlen("+OK\r\n") + 1;
@@ -508,6 +522,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
             status = uart->recv(gPriv, 
                     DataAttr_EthToUart, &message, &length, 0);
             //理论一定会成功
+            uart->mark[DataAttr_EthToUart] = INIT;
         }
         else if (INIT == uart->mark[DataAttr_EthToUart]) {
             length = uart->bufSize;
@@ -552,6 +567,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
             status = uart->recv(gPriv, 
                     DataAttr_WifiToUart, &message, &length, 0);
             //理论一定会成功
+            uart->mark[DataAttr_WifiToUart] = INIT;
         }
         else if (INIT == uart->mark[DataAttr_WifiToUart]) {
             length = uart->bufSize;

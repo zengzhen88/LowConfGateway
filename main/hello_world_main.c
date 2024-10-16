@@ -28,6 +28,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <string.h>
+#include <esp_mac.h>
 
 typedef struct {
     void *wifi;
@@ -616,7 +617,7 @@ void app_main(void) {
         strcpy(gateway->ethNetmask, "255.255.255.0");
         strcpy(gateway->ethGateway, "192.168.0.1");
 
-        strcpy(gateway->wifiSsid, "TP-LINK_342B");
+        strcpy(gateway->wifiSsid, "TP-LINK_324B");
         strcpy(gateway->wifiPassword, "88888888");
         strcpy(gateway->wifiAddress, "0.0.0.0");
         strcpy(gateway->wifiNetmask, "0.0.0.0");
@@ -624,7 +625,7 @@ void app_main(void) {
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://192.168.0.100:1883");
+        strcpy(gateway->url, "mqtt://192.168.1.5:1883");
 
         strcpy(gateway->version, "1.0");
         strcpy(gateway->info, "first");
@@ -725,11 +726,23 @@ void app_main(void) {
             strcpy(config.password, gateway->password);
             strcpy(config.url, gateway->url);
 
+            char mac[12];
+            esp_read_mac((uint8_t *)mac, ESP_MAC_WIFI_STA);
+            uint32_t clinetId = 88888888;
+            
+            printf ("mac:%s\n", mac);
+            snprintf (config.clientId, sizeof(config.clientId) - 1, "%lu", clinetId);
+            snprintf (config.topic, sizeof(config.topic) - 1, 
+                    "GZ248_%02x%02x%02x%02x%02x%02x_%lu", 
+                    mac[0], mac[1], mac[2], 
+                    mac[3], mac[4], mac[5], clinetId);
+
             MQTTInitLog(gateway, appPrint);
             MQTTSetLogLevel(LogMQTT_Info);
 
             config.send     = appSend;
             config.recv     = appRecv;
+            config.peek     = appPeek;
             config.request  = appDataRequest;
             config.release  = appDataRelease;
 

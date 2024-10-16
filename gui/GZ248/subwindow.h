@@ -43,6 +43,65 @@ enum SignalSync {
     SignalSync_Cnt,
 };
 
+enum TableItem {
+    TableItem_0,
+    TableItem_1,
+    TableItem_2,
+    TableItem_3,
+    TableItem_4,
+    TableItem_5,
+};
+
+typedef struct {
+    /*system*/
+    float sTemperature;
+    QString sVersion;
+    QString sInfo;
+
+    /*net status*/
+    NetState sNetState;
+
+    /*eth*/
+    QString sEthAddress;
+    QString sEthNetmask;
+    QString sEthGateway;
+
+    /*wifi*/
+    QString sWifiSsid;
+    QString sWifiPassword;
+    QString sWifiAddress;
+    QString sWifiNetmask;
+    QString sWifiGateway;
+
+    /*mqtt*/
+    QString sMqttUser;
+    QString sMqttPassword;
+    QString sMqttUrl;
+
+    int sScanTimeout;
+
+    /*power mode*/
+    QString sMode;
+    int sLevel;
+
+    SignalSync signalSync;
+
+    /*update*/
+    QFileSystemModel *sFileSystemMode;
+    QTreeView *sTreeView;
+
+    QString updateFileString;
+
+    QMqttClient *client;
+
+    QString topic; //发布
+    QString topicack;//订阅
+
+    int seq;
+} sConfigTogether;
+
+#define SEQMAX (255)
+
 class SubQTableWidget : public QTableWidget {
 public:
     SubQTableWidget(QWidget *parent = nullptr) : QTableWidget(parent) {
@@ -72,16 +131,16 @@ protected:
     void mousePressEvent(QMouseEvent *event);
 public:
     SubWindow(QWidget *parent = nullptr);
-    int32_t JumpWindowToMainContext(QMqttClient *client);
-    int32_t JumpWindowToContext(int32_t number, QMqttClient *client);
-    int32_t JumpWindowToContextTransmit(int32_t number, QMqttClient *client);
+    int32_t JumpWindowToMainContext(sConfigTogether *config, const QString &topic);
+    int32_t JumpWindowToContext(QString &match, sConfigTogether *config, const QString &topic);
+    int32_t JumpWindowToContextTransmit(int32_t number, sConfigTogether *config, const QString &topics);
     int32_t SetCurrentIndex(int32_t number);
     int32_t JumpMainWindow(void);
     int32_t JumpWindowToLogin();
     int32_t JumpWindowToServerList();
     int32_t ClearQnavigationWidget(void);
     void ClearWidget(void);
-    int32_t RecvMqttMessage(const QByteArray message, const QMqttTopicName topic);
+    int32_t RecvMqttMessage(sConfigTogether *config, const QByteArray message, const QMqttTopicName topic);
     QString getLocalIP(void);
     ~SubWindow();
     QVBoxLayout *rightLayout;
@@ -111,6 +170,7 @@ public:
     QNavigationWidget *navigationWidget;
     QTableWidget *serverTable;
     QMap<void *, void *> serverTableMap;
+    QMap<void *, QString> topicTableMap;
     QTableWidget *contextTable;
     QCheckBox *allCheck;
     const QPalette *palettes;
@@ -122,7 +182,7 @@ public:
     SubWindowType windowType;
 
     //QMqttClient *client;
-
+#if 0
     /*system*/
     float sTemperature;
     QString sVersion;
@@ -159,5 +219,7 @@ public:
     QTreeView *sTreeView;
 
     QString updateFileString;
+#endif
+    sConfigTogether *clickConfig;
 };
 #endif // SUBWINDOW_H

@@ -88,6 +88,7 @@ void MacUInt64ToString(uint64_t macUInt64, char *mac, int32_t macLength);
 void MacUInt64ToStrings(uint64_t macUInt64, char *mac, int32_t macLength);
 
 const char *toNetStateEnumString(NetState state);
+ModuleDataAttr toChineseStringEnum(const char *strings);
 
 #ifdef __cplusplus
 }

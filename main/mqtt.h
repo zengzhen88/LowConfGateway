@@ -23,6 +23,9 @@ typedef int32_t (*MQTTSigSend)(void *oObj,
 typedef int32_t (*MQTTSigRecv)(void *oObj,
         DataAttr attr, void *data,
         int32_t *fillLength, int32_t millis);
+typedef int32_t (*MQTTSigPeek)(void *oObj,
+        DataAttr attr, void *data,
+        int32_t *fillLength, int32_t millis);
 typedef int32_t (*MQTTSigRequest)(void *oObj,
         DataAttr attr, void *data, int32_t fillLength);
 typedef int32_t (*MQTTSigRelease)(void *oObj,
@@ -41,9 +44,12 @@ typedef struct {
     char user[32];
     char password[32];
 
-    char url[128];
+    char url[64];
+    char clientId[64];
+    char topic[64];
     MQTTSigSend send;
     MQTTSigRecv recv;
+    MQTTSigPeek peek;
     MQTTSigRequest request;
     MQTTSigRelease release;
 } MQTTConfig;
