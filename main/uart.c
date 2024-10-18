@@ -181,6 +181,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || (strstr(strings, "+WIFICFG:"))
                             || (strstr(strings, "+MQTTCFG:"))
                             || (strstr(strings, "+PTSEND:"))
+                            || (strstr(strings, "+SCANTIMEOUT:"))
                             || (strstr(strings, "+OK"))) {
                             uart->mark[DataAttr_MqttToUart] = RECV;
                         }
@@ -193,6 +194,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || (strstr(strings, "+POWER:")) 
                             || (strstr(strings, "+ETHCFG:"))
                             || (strstr(strings, "+WIFICFG:"))
+                            || (strstr(strings, "+SCANTIMEOUT:"))
                             || (strstr(strings, "+MQTTCFG:"))
                             || (strstr(strings, "+PTSEND:"))
                             || (strstr(strings, "+OK"))) {
@@ -206,6 +208,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || (strstr(strings, "+USERINFO:"))
                             || (strstr(strings, "+POWER:")) 
                             || (strstr(strings, "+ETHCFG:"))
+                            || (strstr(strings, "+SCANTIMEOUT:"))
                             || (strstr(strings, "+WIFICFG:"))
                             || (strstr(strings, "+MQTTCFG:"))
                             || (strstr(strings, "+PTSEND:"))
@@ -379,8 +382,8 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                             snprintf (uart->buffer, uart->bufSize, "AT+POWER?\r\n");
                             uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                            strcpy(uart->uartAck, "+POWER:<DC>,<100>\r\n");
-                            uart->ackSize = strlen("+POWER:<DC>,<100>\r\n") + 1;
+                            strcpy(uart->uartAck, "+POWER:DC,100\r\n");
+                            uart->ackSize = strlen("+POWER:DC,100\r\n") + 1;
 #endif
                             break;
                         }
@@ -404,15 +407,15 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                             snprintf (uart->buffer, uart->bufSize, "AT+WIFICFG?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                            strcpy(uart->uartAck, "+WIFICFG:<TP-LINK_342B>,<88888888>,<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n");
-                            uart->ackSize = strlen("+WIFICFG:<TP-LINK_342B>,<88888888>,<192.168.0.102>,<255.255.255.0>,<102.168.0.1>\r\n") + 1;
+                            strcpy(uart->uartAck, "+WIFICFG:TP-LINK_342B,88888888,192.168.0.102,255.255.255.0,102.168.0.1\r\n");
+                            uart->ackSize = strlen("+WIFICFG:TP-LINK_342B,88888888,192.168.0.102,255.255.255.0,102.168.0.1\r\n") + 1;
 #endif
                             break;
                         }
                     case ModuleDataAttr_SetWifiCfg:
                         {
                             snprintf (uart->buffer, uart->bufSize, 
-                                    "AT+WIFICFG=<%s>,<%s>,<%s>,<%s>,<%s>\r\n", 
+                                    "AT+WIFICFG=%s,%s,%s,%s,%s\r\n", 
                                     mess->setWifiCfg.ssid, 
                                     mess->setWifiCfg.password, 
                                     mess->setWifiCfg.address, 
@@ -430,15 +433,15 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                             snprintf (uart->buffer, uart->bufSize, "AT+MQTTCFG?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                            strcpy(uart->uartAck, "+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.101:1883>\r\n");
-                            uart->ackSize = strlen("+MQTTCFG:<admin>,<123456>,<mqtt://192.168.0.101:1883>\r\n") + 1;
+                            strcpy(uart->uartAck, "+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n");
+                            uart->ackSize = strlen("+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n") + 1;
 #endif
                             break;
                         }
                     case ModuleDataAttr_SetMqttCfg:
                         {
                             snprintf (uart->buffer, uart->bufSize, 
-                                    "AT+WIFICFG=<%s>,<%s>,<%s>\r\n", 
+                                    "AT+WIFICFG=%s,%s,%s\r\n", 
                                     mess->setMqttCfg.user, 
                                     mess->setMqttCfg.password, 
                                     mess->setMqttCfg.url); 
@@ -454,15 +457,15 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                             snprintf (uart->buffer, uart->bufSize, "AT+ETHCFG?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
-                            strcpy(uart->uartAck, "+ETHCFG:<192.168.0.102>,<255.255.255.0>,<192.168.0.1>\r\n");
-                            uart->ackSize = strlen("+ETHCFG:<192.168.0.102>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+                            strcpy(uart->uartAck, "+ETHCFG:192.168.0.102,255.255.255.0,192.168.0.1\r\n");
+                            uart->ackSize = strlen("+ETHCFG:192.168.0.102,255.255.255.0,192.168.0.1\r\n") + 1;
 #endif
                             break;
                         }
                     case ModuleDataAttr_SetEthCfg:
                         {
                             snprintf (uart->buffer, uart->bufSize, 
-                                    "AT+ETHCFG=<%s>,<%s>,<%s>\r\n", 
+                                    "AT+ETHCFG=%s,%s,%s\r\n", 
                                     mess->setEthCfg.address, 
                                     mess->setEthCfg.netmask, 
                                     mess->setEthCfg.gateway); 
@@ -476,10 +479,28 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                     case ModuleDataAttr_PtSend:
                         {
                             snprintf (uart->buffer, uart->bufSize, 
-                                    "AT+PTSEND=<%s>,<%d>,<%s>\r\n", 
+                                    "AT+PTSEND=%s,%d,%s\r\n", 
                                     mess->ptSend.mac, 
                                     (int)mess->ptSend.seq, 
                                     mess->ptSend.data); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+OK\r\n");
+                            uart->ackSize = strlen("+OK\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetScanTimeout:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+SCANTIMEOUT?\r\n"); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            break;
+                        }
+                    case ModuleDataAttr_SetScanTimeout:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, 
+                                    "AT+SCANTIMEOUT=%d\r\n", 
+                                    mess->setScanTimeout.sec); 
                             uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
                             strcpy(uart->uartAck, "+OK\r\n");
@@ -586,7 +607,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                     case ModuleDataAttr_SetWifiCfg:
                         {
                             snprintf (uart->buffer, uart->bufSize, 
-                                    "AT+WIFICFG=<%s>,<%s>,<%s>,<%s>,<%s>\r\n", 
+                                    "AT+WIFICFG=%s,%s,%s,%s,%s\r\n", 
                                     mess->setWifiCfg.ssid, 
                                     mess->setWifiCfg.password, 
                                     mess->setWifiCfg.address, 
@@ -643,8 +664,8 @@ int32_t UartMaunulSendAT(void *arg, ModuleDataAttr attr) {
             }
         case ModuleDataAttr_GetPower:
             {
-                strcpy(uart->uartAck, "+POWERUPDATE:<DC>,<100>\r\n");
-                uart->ackSize = strlen("+POWERUPDATE:<DC>,<100>\r\n") + 1;
+                strcpy(uart->uartAck, "+POWERUPDATE:DC,100\r\n");
+                uart->ackSize = strlen("+POWERUPDATE:DC,100\r\n") + 1;
                 break;
             }
         case ModuleDataAttr_Reboot:
@@ -655,20 +676,20 @@ int32_t UartMaunulSendAT(void *arg, ModuleDataAttr attr) {
             }
         case ModuleDataAttr_GetEthCfg:
             {
-                strcpy(uart->uartAck, "+ETHCFGUPDATE:<192.168.0.104>,<255.255.255.0>,<192.168.0.1>\r\n");
-                uart->ackSize = strlen("+ETHCFGUPDATE:<192.168.0.104>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+                strcpy(uart->uartAck, "+ETHCFGUPDATE:192.168.0.104,255.255.255.0,192.168.0.1\r\n");
+                uart->ackSize = strlen("+ETHCFGUPDATE:192.168.0.104,255.255.255.0,192.168.0.1\r\n") + 1;
                 break;
             }
         case ModuleDataAttr_GetWifiCfg:
             {
-                strcpy(uart->uartAck, "+WIFICFGUPDATE:<TP-LINK_342B>,<88888888>,<192.168.0.103>,<255.255.255.0>,<192.168.0.1>\r\n");
-                uart->ackSize = strlen("+WIFICFGUPDATE:<TP-LINK_342B>,<88888888>,<192.168.0.103>,<255.255.255.0>,<192.168.0.1>\r\n") + 1;
+                strcpy(uart->uartAck, "+WIFICFGUPDATE:TP-LINK_342B,88888888,192.168.0.103,255.255.255.0,192.168.0.1\r\n");
+                uart->ackSize = strlen("+WIFICFGUPDATE:TP-LINK_342B,88888888,192.168.0.103,255.255.255.0,192.168.0.1\r\n") + 1;
                 break;
             }
         case ModuleDataAttr_GetMqttCfg:
             {
-                strcpy(uart->uartAck, "+MQTTCFGUPDATE:<admin>,<123456>,<mqtt://192.168.0.101:1883>\r\n");
-                uart->ackSize = strlen("+MQTTCFGUPDATE:<admin>,<123456>,<mqtt://192.168.0.101:1883>\r\n") + 1;
+                strcpy(uart->uartAck, "+MQTTCFGUPDATE:admin,123456,mqtt://192.168.0.101:1883\r\n");
+                uart->ackSize = strlen("+MQTTCFGUPDATE:admin,123456,mqtt://192.168.0.101:1883\r\n") + 1;
                 break;
             }
         default:break;

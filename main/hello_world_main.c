@@ -619,13 +619,15 @@ void app_main(void) {
 
         strcpy(gateway->wifiSsid, "TP-LINK_324B");
         strcpy(gateway->wifiPassword, "88888888");
+        /* strcpy(gateway->wifiSsid, "LCZL2"); */
+        /* strcpy(gateway->wifiPassword, "June123456"); */
         strcpy(gateway->wifiAddress, "0.0.0.0");
         strcpy(gateway->wifiNetmask, "0.0.0.0");
         strcpy(gateway->wifiGateway, "0.0.0.0");
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://192.168.1.5:1883");
+        strcpy(gateway->url, "mqtt://203.3.112.47:1883");
 
         strcpy(gateway->version, "1.0");
         strcpy(gateway->info, "first");

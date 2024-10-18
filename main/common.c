@@ -6,8 +6,6 @@
 
 const char *toEnumChineseString(ModuleDataAttr attr) {
     switch (attr) {
-//        case ModuleDataAttr_ReportData:
-//            return "上报数据";
         case ModuleDataAttr_Update:
             return "升级系统";
         case ModuleDataAttr_GetTemperature:
@@ -34,52 +32,82 @@ const char *toEnumChineseString(ModuleDataAttr attr) {
             return "查询MQTT配置";
         case ModuleDataAttr_SetMqttCfg:
             return "设置MQTT配置";
-        case ModuleDataAttr_PtSend:
-            return "发送下发数据";
-        //case ModuleDataAttr_PtRecv:
-        //    return "下发数据响应";
         case ModuleDataAttr_SetScanTimeout:
             return "设置下发数据超时时间";
         case ModuleDataAttr_GetScanTimeout:
             return "查询下发数据超时时间";
-        //case ModuleDataAttr_NetState:
-        //    return "查询网络状态";
+        case ModuleDataAttr_PtSend:
+            return "发送下发数据";
+        case ModuleDataAttr_NetState:
+            /* return "查询网络状态"; */
+        case ModuleDataAttr_TransmitData:
+            /* return "传输有效数据"; */
+        case ModuleDataAttr_ReportTemperature:
+            /* return "上报温度"; */
+        case ModuleDataAttr_ReportModuleInfo:
+            /* return "上报模块信息"; */
+        case ModuleDataAttr_ReportPower:
+            /* return "上报模块供电"; */
+        case ModuleDataAttr_ReportWifiCfg:
+            /* return "上报无线配置"; */
+        case ModuleDataAttr_ReportEthCfg:
+            /* return "上报有线配置"; */
+        case ModuleDataAttr_ReportMqttCfg:
+            /* return "上报MQTT配置"; */
+        case ModuleDataAttr_PtRecv:
+            /* return "上报下发数据响应"; */
+        case ModuleDataAttr_ReportScanTimeout:
+            /* return "上报下发数据超时时间"; */
+        case ModuleDataAttr_ReportTransmitData:
+            /* return "上报传输有效数据"; */
         default:return "Ack";
     }
 }
 
 const char *toEnumString(ModuleDataAttr attr) {
     switch (attr) {
-        case ModuleDataAttr_ReportData:
-            return "ReportData";
+        case ModuleDataAttr_TransmitData:
+            return "TransmitData";
+        case ModuleDataAttr_ReportTransmitData:
+            return "ReportTransmitData";
         case ModuleDataAttr_Update:
             return "Update";
         case ModuleDataAttr_GetTemperature:
             return "GetTemperature";
+        case ModuleDataAttr_ReportTemperature:
+            return "ReportTemperature";
         case ModuleDataAttr_GetModuleVersion:
             return "GetModuleVersion";
         case ModuleDataAttr_GetModuleInfo:
             return "GetModuleInfo";
         case ModuleDataAttr_SetModuleInfo:
             return "SetModuleInfo";
+        case ModuleDataAttr_ReportModuleInfo:
+            return "ReportModuleInfo";
         case ModuleDataAttr_GetPower:
             return "GetPower";
+        case ModuleDataAttr_ReportPower:
+            return "ReportPower";
         case ModuleDataAttr_Reboot:
             return "Reboot";
-        case ModuleDataAttr_NetState:
-            return "NetState";
         case ModuleDataAttr_GetWifiCfg:
             return "GetWifiCfg";
         case ModuleDataAttr_SetWifiCfg:
             return "SetWifiCfg";
+        case ModuleDataAttr_ReportWifiCfg:
+            return "ReportWifiCfg";
         case ModuleDataAttr_GetEthCfg:
             return "GetEthCfg";
         case ModuleDataAttr_SetEthCfg:
             return "SetEthCfg";
+        case ModuleDataAttr_ReportEthCfg:
+            return "ReportEthCfg";
         case ModuleDataAttr_GetMqttCfg:
             return "GetMqttCfg";
         case ModuleDataAttr_SetMqttCfg:
             return "SetMqttCfg";
+        case ModuleDataAttr_ReportMqttCfg:
+            return "ReportMqttCfg";
         case ModuleDataAttr_PtSend:
             return "PtSend";
         case ModuleDataAttr_PtRecv:
@@ -88,118 +116,124 @@ const char *toEnumString(ModuleDataAttr attr) {
             return "SetScanTimeout";
         case ModuleDataAttr_GetScanTimeout:
             return "GetScanTimeout";
+        case ModuleDataAttr_ReportScanTimeout:
+            return "ReportScanTimeout";
         default:return "Ack";
     }
 }
 
-const char *toAckEnumString(ModuleDataAttr attr) {
-    switch (attr) {
-        case ModuleDataAttr_ReportData:
-            return "ReportDataAck";
-        case ModuleDataAttr_Update:
-            return "UpdateAck";
-        case ModuleDataAttr_GetTemperature:
-            return "GetTemperatureAck";
-        case ModuleDataAttr_GetModuleVersion:
-            return "GetModuleVersionAck";
-        case ModuleDataAttr_GetModuleInfo:
-            return "GetModuleInfoAck";
-        case ModuleDataAttr_SetModuleInfo:
-            return "SetModuleInfoAck";
-        case ModuleDataAttr_GetPower:
-            return "GetPowerAck";
-        case ModuleDataAttr_Reboot:
-            return "RebootAck";
-        case ModuleDataAttr_NetState:
-            return "NetStateAck";
-        case ModuleDataAttr_GetWifiCfg:
-            return "GetWifiCfgAck";
-        case ModuleDataAttr_SetWifiCfg:
-            return "SetWifiCfgAck";
-        case ModuleDataAttr_GetEthCfg:
-            return "GetEthCfgAck";
-        case ModuleDataAttr_SetEthCfg:
-            return "SetEthCfgAck";
-        case ModuleDataAttr_GetMqttCfg:
-            return "GetMqttCfgAck";
-        case ModuleDataAttr_SetMqttCfg:
-            return "SetMqttCfgAck";
-        case ModuleDataAttr_PtSend:
-            return "PtSendAck";
-        case ModuleDataAttr_PtRecv:
-            return "PtRecvAck";
-        case ModuleDataAttr_SetScanTimeout:
-            return "SetScanTimeoutAck";
-        case ModuleDataAttr_GetScanTimeout:
-            return "GetScanTimeoutAck";
-        default:return "Ack";
-    }
-}
+/*
+ * const char *toAckEnumString(ModuleDataAttr attr) {
+ *     switch (attr) {
+ *         case ModuleDataAttr_ReportData:
+ *             return "ReportDataAck";
+ *         case ModuleDataAttr_Update:
+ *             return "UpdateAck";
+ *         case ModuleDataAttr_GetTemperature:
+ *             return "GetTemperatureAck";
+ *         case ModuleDataAttr_GetModuleVersion:
+ *             return "GetModuleVersionAck";
+ *         case ModuleDataAttr_GetModuleInfo:
+ *             return "GetModuleInfoAck";
+ *         case ModuleDataAttr_SetModuleInfo:
+ *             return "SetModuleInfoAck";
+ *         case ModuleDataAttr_GetPower:
+ *             return "GetPowerAck";
+ *         case ModuleDataAttr_Reboot:
+ *             return "RebootAck";
+ *         case ModuleDataAttr_NetState:
+ *             return "NetStateAck";
+ *         case ModuleDataAttr_GetWifiCfg:
+ *             return "GetWifiCfgAck";
+ *         case ModuleDataAttr_SetWifiCfg:
+ *             return "SetWifiCfgAck";
+ *         case ModuleDataAttr_GetEthCfg:
+ *             return "GetEthCfgAck";
+ *         case ModuleDataAttr_SetEthCfg:
+ *             return "SetEthCfgAck";
+ *         case ModuleDataAttr_GetMqttCfg:
+ *             return "GetMqttCfgAck";
+ *         case ModuleDataAttr_SetMqttCfg:
+ *             return "SetMqttCfgAck";
+ *         case ModuleDataAttr_PtSend:
+ *             return "PtSendAck";
+ *         case ModuleDataAttr_PtRecv:
+ *             return "PtRecvAck";
+ *         case ModuleDataAttr_SetScanTimeout:
+ *             return "SetScanTimeoutAck";
+ *         case ModuleDataAttr_GetScanTimeout:
+ *             return "GetScanTimeoutAck";
+ *         default:return "Ack";
+ *     }
+ * }
+ */
 
-ModuleDataAttr toAckStringEnum(const char *strings) {
-    if (strstr(strings, "UpdateAck")) {
-        return ModuleDataAttr_Update;
-    }
-    else if (strstr(strings, "ReportDataAck")) {
-        return ModuleDataAttr_ReportData;
-    }
-    else if (strstr(strings, "GetTemperatureAck")) {
-        return ModuleDataAttr_GetTemperature;
-    }
-    else if (strstr(strings, "GetModuleVersionAck")) {
-        return ModuleDataAttr_GetModuleVersion;
-    }
-    else if (strstr(strings, "GetModuleInfoAck")) {
-        return ModuleDataAttr_GetModuleInfo;
-    }
-    else if (strstr(strings, "SetModuleInfoAck")) {
-        return ModuleDataAttr_SetModuleInfo;
-    }
-    else if (strstr(strings, "GetPowerAck")) {
-        return ModuleDataAttr_GetPower;
-    }
-    else if (strstr(strings, "RebootAck")) {
-        return ModuleDataAttr_Reboot;
-    }
-    else if (strstr(strings, "NetStateAck")) {
-        return ModuleDataAttr_NetState;
-    }
-    else if (strstr(strings, "GetWifiCfgAck")) {
-        return ModuleDataAttr_GetWifiCfg;
-    }
-    else if (strstr(strings, "SetWifiCfgAck")) {
-        return ModuleDataAttr_SetWifiCfg;
-    }
-    else if (strstr(strings, "GetEthCfgAck")) {
-        return ModuleDataAttr_GetEthCfg;
-    }
-    else if (strstr(strings, "SetEthCfgAck")) {
-        return ModuleDataAttr_SetEthCfg;
-    }
-    else if (strstr(strings, "GetMqttCfgAck")) {
-        return ModuleDataAttr_GetMqttCfg;
-    }
-    else if (strstr(strings, "SetMqttCfgAck")) {
-        return ModuleDataAttr_SetMqttCfg;
-    }
-    else if (strstr(strings, "PtSendAck")) {
-        return ModuleDataAttr_PtSend;
-    }
-    else if (strstr(strings, "PtRecvAck")) {
-        return ModuleDataAttr_PtRecv;
-    }
-    else if (strstr(strings, "SetScanTimeoutAck")) {
-        return ModuleDataAttr_SetScanTimeout;
-    }
-    else if (strstr(strings, "GetScanTimeoutAck")) {
-        return ModuleDataAttr_GetScanTimeout;
-    }
-    else {
-        return ModuleDataAttr_Cnt;
-    }
-
-    return ModuleDataAttr_Cnt;
-}
+/*
+ * ModuleDataAttr toAckStringEnum(const char *strings) {
+ *     if (strstr(strings, "UpdateAck")) {
+ *         return ModuleDataAttr_Update;
+ *     }
+ *     else if (strstr(strings, "ReportDataAck")) {
+ *         return ModuleDataAttr_ReportData;
+ *     }
+ *     else if (strstr(strings, "GetTemperatureAck")) {
+ *         return ModuleDataAttr_GetTemperature;
+ *     }
+ *     else if (strstr(strings, "GetModuleVersionAck")) {
+ *         return ModuleDataAttr_GetModuleVersion;
+ *     }
+ *     else if (strstr(strings, "GetModuleInfoAck")) {
+ *         return ModuleDataAttr_GetModuleInfo;
+ *     }
+ *     else if (strstr(strings, "SetModuleInfoAck")) {
+ *         return ModuleDataAttr_SetModuleInfo;
+ *     }
+ *     else if (strstr(strings, "GetPowerAck")) {
+ *         return ModuleDataAttr_GetPower;
+ *     }
+ *     else if (strstr(strings, "RebootAck")) {
+ *         return ModuleDataAttr_Reboot;
+ *     }
+ *     else if (strstr(strings, "NetStateAck")) {
+ *         return ModuleDataAttr_NetState;
+ *     }
+ *     else if (strstr(strings, "GetWifiCfgAck")) {
+ *         return ModuleDataAttr_GetWifiCfg;
+ *     }
+ *     else if (strstr(strings, "SetWifiCfgAck")) {
+ *         return ModuleDataAttr_SetWifiCfg;
+ *     }
+ *     else if (strstr(strings, "GetEthCfgAck")) {
+ *         return ModuleDataAttr_GetEthCfg;
+ *     }
+ *     else if (strstr(strings, "SetEthCfgAck")) {
+ *         return ModuleDataAttr_SetEthCfg;
+ *     }
+ *     else if (strstr(strings, "GetMqttCfgAck")) {
+ *         return ModuleDataAttr_GetMqttCfg;
+ *     }
+ *     else if (strstr(strings, "SetMqttCfgAck")) {
+ *         return ModuleDataAttr_SetMqttCfg;
+ *     }
+ *     else if (strstr(strings, "PtSendAck")) {
+ *         return ModuleDataAttr_PtSend;
+ *     }
+ *     else if (strstr(strings, "PtRecvAck")) {
+ *         return ModuleDataAttr_PtRecv;
+ *     }
+ *     else if (strstr(strings, "SetScanTimeoutAck")) {
+ *         return ModuleDataAttr_SetScanTimeout;
+ *     }
+ *     else if (strstr(strings, "GetScanTimeoutAck")) {
+ *         return ModuleDataAttr_GetScanTimeout;
+ *     }
+ *     else {
+ *         return ModuleDataAttr_Cnt;
+ *     }
+ * 
+ *     return ModuleDataAttr_Cnt;
+ * }
+ */
 
 ModuleDataAttr toChineseStringEnum(const char *strings) {
     if (strstr(strings, "升级系统")) {
@@ -257,70 +291,72 @@ ModuleDataAttr toChineseStringEnum(const char *strings) {
     return ModuleDataAttr_Cnt;
 }
 
-ModuleDataAttr toStringEnum(const char *strings) {
-    if (strstr(strings, "Update")) {
-        return ModuleDataAttr_Update;
-    }
-    else if (strstr(strings, "ReportData")) {
-        return ModuleDataAttr_ReportData;
-    }
-    else if (strstr(strings, "GetTemperature")) {
-        return ModuleDataAttr_GetTemperature;
-    }
-    else if (strstr(strings, "GetModuleVersion")) {
-        return ModuleDataAttr_GetModuleVersion;
-    }
-    else if (strstr(strings, "GetModuleInfo")) {
-        return ModuleDataAttr_GetModuleInfo;
-    }
-    else if (strstr(strings, "SetModuleInfo")) {
-        return ModuleDataAttr_SetModuleInfo;
-    }
-    else if (strstr(strings, "GetPower")) {
-        return ModuleDataAttr_GetPower;
-    }
-    else if (strstr(strings, "Reboot")) {
-        return ModuleDataAttr_Reboot;
-    }
-    else if (strstr(strings, "NetState")) {
-        return ModuleDataAttr_NetState;
-    }
-    else if (strstr(strings, "GetWifiCfg")) {
-        return ModuleDataAttr_GetWifiCfg;
-    }
-    else if (strstr(strings, "SetMqttCfg")) {
-        return ModuleDataAttr_SetMqttCfg;
-    }
-    else if (strstr(strings, "GetMqttCfg")) {
-        return ModuleDataAttr_GetMqttCfg;
-    }
-    else if (strstr(strings, "SetWifiCfg")) {
-        return ModuleDataAttr_SetWifiCfg;
-    }
-    else if (strstr(strings, "GetEthCfg")) {
-        return ModuleDataAttr_GetEthCfg;
-    }
-    else if (strstr(strings, "SetEthCfg")) {
-        return ModuleDataAttr_SetEthCfg;
-    }
-    else if (strstr(strings, "PtSend")) {
-        return ModuleDataAttr_PtSend;
-    }
-    else if (strstr(strings, "PtRecv")) {
-        return ModuleDataAttr_PtRecv;
-    }
-    else if (strstr(strings, "SetScanTimeout")) {
-        return ModuleDataAttr_SetScanTimeout;
-    }
-    else if (strstr(strings, "GetScanTimeout")) {
-        return ModuleDataAttr_GetScanTimeout;
-    }
-    else {
-        return ModuleDataAttr_Cnt;
-    }
-
-    return ModuleDataAttr_Cnt;
-}
+/*
+ * ModuleDataAttr toStringEnum(const char *strings) {
+ *     if (strstr(strings, "Update")) {
+ *         return ModuleDataAttr_Update;
+ *     }
+ *     else if (strstr(strings, "ReportData")) {
+ *         return ModuleDataAttr_ReportData;
+ *     }
+ *     else if (strstr(strings, "GetTemperature")) {
+ *         return ModuleDataAttr_GetTemperature;
+ *     }
+ *     else if (strstr(strings, "GetModuleVersion")) {
+ *         return ModuleDataAttr_GetModuleVersion;
+ *     }
+ *     else if (strstr(strings, "GetModuleInfo")) {
+ *         return ModuleDataAttr_GetModuleInfo;
+ *     }
+ *     else if (strstr(strings, "SetModuleInfo")) {
+ *         return ModuleDataAttr_SetModuleInfo;
+ *     }
+ *     else if (strstr(strings, "GetPower")) {
+ *         return ModuleDataAttr_GetPower;
+ *     }
+ *     else if (strstr(strings, "Reboot")) {
+ *         return ModuleDataAttr_Reboot;
+ *     }
+ *     else if (strstr(strings, "NetState")) {
+ *         return ModuleDataAttr_NetState;
+ *     }
+ *     else if (strstr(strings, "GetWifiCfg")) {
+ *         return ModuleDataAttr_GetWifiCfg;
+ *     }
+ *     else if (strstr(strings, "SetMqttCfg")) {
+ *         return ModuleDataAttr_SetMqttCfg;
+ *     }
+ *     else if (strstr(strings, "GetMqttCfg")) {
+ *         return ModuleDataAttr_GetMqttCfg;
+ *     }
+ *     else if (strstr(strings, "SetWifiCfg")) {
+ *         return ModuleDataAttr_SetWifiCfg;
+ *     }
+ *     else if (strstr(strings, "GetEthCfg")) {
+ *         return ModuleDataAttr_GetEthCfg;
+ *     }
+ *     else if (strstr(strings, "SetEthCfg")) {
+ *         return ModuleDataAttr_SetEthCfg;
+ *     }
+ *     else if (strstr(strings, "PtSend")) {
+ *         return ModuleDataAttr_PtSend;
+ *     }
+ *     else if (strstr(strings, "PtRecv")) {
+ *         return ModuleDataAttr_PtRecv;
+ *     }
+ *     else if (strstr(strings, "SetScanTimeout")) {
+ *         return ModuleDataAttr_SetScanTimeout;
+ *     }
+ *     else if (strstr(strings, "GetScanTimeout")) {
+ *         return ModuleDataAttr_GetScanTimeout;
+ *     }
+ *     else {
+ *         return ModuleDataAttr_Cnt;
+ *     }
+ * 
+ *     return ModuleDataAttr_Cnt;
+ * }
+ */
 
 const char *toNetStateEnumString(NetState state) {
     switch (state) {

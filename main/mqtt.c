@@ -312,26 +312,25 @@ int32_t MQTTMessageRecvUartRebootHandler(MQTT *mqtt, char *info) {
 }
 
 
-int32_t MQTTMessageRecvUartSetScanTimeoutHandle(MQTT *mqtt, char *info, int32_t isUp) {
+int32_t MQTTMessageRecvUartSetScanTimeoutHandle(MQTT *mqtt, char *info, int32_t report) {
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     int sec                 = 0;
 
     printf ("info:%s\n", info);
-    char *sptr = strchr(info, '<');
+    char *sptr = info;//strchr(info, '<');
     if (sptr) {
-        char *ptr = strchr(sptr + 1, '>');
-        if (ptr) {
-            *ptr = '\0';
-            sec = atoi(sptr + 1);
-        }
+        sec = atoi(sptr);
     }
 
     root = cJSON_CreateArray();
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_SetScanTimeout));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportScanTimeout));
+            else
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetScanTimeout));
             cJSON_AddNumberToObject(sub, "sec", sec);
             cJSON_AddItemToArray(root, sub);
             char *json = cJSON_Print(root);
@@ -376,27 +375,26 @@ int32_t MQTTMessageRecvUartPtRecvHandler(MQTT *mqtt, char *info, ModuleDataAttr 
     char *state             = NULL;
 
     printf ("info:%s\n", info);
-    char *sptr = strchr(info, '<');
+    //mac,seq,data
+    char *sptr = info;//strchr(info, '<');
     if (sptr) {
-        char *ptr = strchr(sptr + 1, '>');
+        char *ptr = strchr(sptr, ',');
         if (ptr) {
+            //ptr = ,seq,data
             *ptr = '\0';
-            mac = sptr + 1;
-
-            sptr = strchr(ptr + 1, '<');
-            if (ptr) {
-                ptr = strchr(sptr + 1, '>');
+            mac = sptr;
+            sptr = ptr + 1;
+            //sptr = seq,data
+            if (sptr) {
+                ptr = strchr(sptr, ',');
                 if (ptr) {
+                    //ptr = ,data
                     *ptr = '\0';
-                    seq = (uint32_t)atoi(sptr + 1);
-
-                    sptr = strchr(ptr + 1, '<');
-                    if (ptr) {
-                        ptr = strchr(sptr + 1, '>');
-                        if (ptr) {
-                            *ptr = '\0';
-                            state = sptr + 1;
-                        }
+                    seq = atoi(sptr);
+                    sptr = ptr + 1;
+                    //sptr = data
+                    if (sptr) {
+                        state = sptr;
                     }
                 }
             }
@@ -407,10 +405,10 @@ int32_t MQTTMessageRecvUartPtRecvHandler(MQTT *mqtt, char *info, ModuleDataAttr 
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetMqttCfg));
+            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_PtRecv));
             cJSON_AddStringToObject(sub, "mac", mac);
             cJSON_AddNumberToObject(sub, "seq", (float)seq);
-            cJSON_AddStringToObject(sub, "url", state);
+            cJSON_AddStringToObject(sub, "state", state);
             cJSON_AddItemToArray(root, sub);
             char *json = cJSON_Print(root);
             if (json) {
@@ -446,7 +444,72 @@ int32_t MQTTMessageRecvUartPtRecvHandler(MQTT *mqtt, char *info, ModuleDataAttr 
     return 0;
 }
 
-int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp) {
+int32_t MQTTMessageRecvUartPTUpdateHandle(MQTT *mqtt, char *info) {
+    cJSON *root             = NULL;
+    cJSON *sub              = NULL;
+    char *mac               = NULL;
+    char *data             = NULL;
+
+    printf ("info:%s\n", info);
+    //mac,data
+    char *sptr = info;//strchr(info, '<');
+    if (sptr) {
+        char *ptr = strchr(sptr, ',');
+        if (ptr) {
+            //ptr = ,data
+            *ptr = '\0';
+            mac = sptr;
+            sptr = ptr + 1;
+            //sptr = data
+            if (sptr) {
+                data = sptr;
+            }
+        }
+    }
+
+    root = cJSON_CreateArray();
+    if (root) {
+        sub = cJSON_CreateObject();
+        if (sub) {
+            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportTransmitData));
+            cJSON_AddStringToObject(sub, "mac", mac);
+            cJSON_AddStringToObject(sub, "data", data);
+            cJSON_AddItemToArray(root, sub);
+            char *json = cJSON_Print(root);
+            if (json) {
+                LogPrintf(LogMQTT_Info, "json:\r\n%s\n", json);
+#ifndef USE_BSON
+                if (mqtt->connect)
+                    if (mqtt->connect)
+                        esp_mqtt_client_publish(mqtt->client, 
+                                mqtt->topicack, //toEnumString(ModuleDataAttr_GetMqttCfg), 
+                                (const char *)json,
+                                strlen(json),
+                                mqtt->msgQos, 0);
+#else 
+                bson_error_t error;
+                bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
+                if (bson) {
+                    const uint8_t *bsons = bson_get_data(bson);
+                    if (mqtt->connect)
+                        if (mqtt->connect)
+                            esp_mqtt_client_publish(mqtt->client, 
+                                    mqtt->topicack, //toEnumString(ModuleDataAttr_GetMqttCfg), 
+                                    (const char *)bsons,
+                                    bson->len,
+                                    mqtt->msgQos, 0);
+                }
+#endif
+                free(json);
+            }
+        }
+        cJSON_Delete(root);
+    }
+
+    return 0;
+}
+
+int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp, int32_t report) {
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     char *user              = NULL;
@@ -454,27 +517,26 @@ int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     char *url               = NULL;
 
     printf ("info:%s\n", info);
-    char *sptr = strchr(info, '<');
+    //url,user,password
+    char *sptr = info;//strchr(info, '<');
     if (sptr) {
-        char *ptr = strchr(sptr + 1, '>');
+        char *ptr = strchr(sptr, ',');
         if (ptr) {
+            //ptr = ,user,password
             *ptr = '\0';
-            user = sptr + 1;
-
-            sptr = strchr(ptr + 1, '<');
-            if (ptr) {
-                ptr = strchr(sptr + 1, '>');
+            url = sptr;
+            sptr = ptr + 1;
+            //sptr = user,password
+            if (sptr) {
+                ptr = strchr(sptr, ',');
                 if (ptr) {
+                    //ptr = ,password
                     *ptr = '\0';
-                    password = sptr + 1;
-
-                    sptr = strchr(ptr + 1, '<');
-                    if (ptr) {
-                        ptr = strchr(sptr + 1, '>');
-                        if (ptr) {
-                            *ptr = '\0';
-                            url = sptr + 1;
-                        }
+                    user = sptr;
+                    sptr = ptr + 1;
+                    //sptr = password
+                    if (sptr) {
+                        password = sptr;
                     }
                 }
             }
@@ -497,7 +559,10 @@ int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetMqttCfg));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportMqttCfg));
+            else
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetMqttCfg));
             cJSON_AddStringToObject(sub, "user", user);
             cJSON_AddStringToObject(sub, "password", password);
             cJSON_AddStringToObject(sub, "url", url);
@@ -536,7 +601,7 @@ int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     return 0;
 }
 
-int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp) {
+int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp, int32_t report) {
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     /* PowerSupplyMode mode    = PowerCnt; */
@@ -546,41 +611,43 @@ int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     char *netmask           = NULL;
     char *gateway           = NULL;
 
-    char *sptr = strchr(info, '<');
+    printf ("info:%s\n", info);
+    //ssid,password,address,netmask,gateway
+    char *sptr = info;//strchr(info, '<');
     if (sptr) {
-        char *ptr = strchr(sptr + 1, '>');
+        char *ptr = strchr(sptr, ',');
         if (ptr) {
+            //ptr = ,password,address,netmask,gateway
             *ptr = '\0';
-            ssid = sptr + 1;
-
-            sptr = strchr(ptr + 1, '<');
-            if (ptr) {
-                ptr = strchr(sptr + 1, '>');
+            ssid = sptr;
+            sptr = ptr + 1;
+            //sptr = password,address,netmask,gateway
+            if (sptr) {
+                ptr = strchr(sptr, ',');
                 if (ptr) {
+                    //ptr = ,address,netmask,gateway
                     *ptr = '\0';
-                    password = sptr + 1;
-
-                    sptr = strchr(ptr + 1, '<');
-                    if (ptr) {
-                        ptr = strchr(sptr + 1, '>');
+                    password = sptr;
+                    sptr = ptr + 1;
+                    //sptr = address,netmask,gateway
+                    if (sptr) {
+                        ptr = strchr(sptr, ',');
                         if (ptr) {
+                            //ptr = ,netmask,gateway
                             *ptr = '\0';
-                            address = sptr + 1;
-
-                            sptr = strchr(ptr + 1, '<');
-                            if (ptr) {
-                                ptr = strchr(sptr + 1, '>');
+                            address = sptr;
+                            sptr = ptr + 1;
+                            //netmask,gateway 
+                            if (sptr) {
+                                ptr = strchr(sptr, ',');
                                 if (ptr) {
+                                    //,gateway
                                     *ptr = '\0';
-                                    netmask = sptr + 1;
-
-                                    sptr = strchr(ptr + 1, '<');
-                                    if (ptr) {
-                                        ptr = strchr(sptr + 1, '>');
-                                        if (ptr) {
-                                            *ptr = '\0';
-                                            gateway = sptr + 1;
-                                        }
+                                    netmask = sptr;
+                                    sptr = ptr + 1;
+                                    //gateway
+                                    if (sptr) {
+                                        gateway = sptr;
                                     }
                                 }
                             }
@@ -611,7 +678,10 @@ int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetWifiCfg));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportWifiCfg));
+            else
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetWifiCfg));
             cJSON_AddStringToObject(sub, "ssid", ssid);
             cJSON_AddStringToObject(sub, "password", password);
             cJSON_AddStringToObject(sub, "address", address);
@@ -652,7 +722,7 @@ int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp) 
     return 0;
 }
 
-int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info) {
+int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info, int report) {
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     /* PowerSupplyMode mode    = PowerCnt; */
@@ -661,27 +731,27 @@ int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info) {
     char *netmask           = NULL;
     char *gateway           = NULL;
 
-    char *sptr = strchr(info, '<');
+    printf ("info:%s\n", info);
+    //address,netmask,gateway
+    char *sptr = info;//strchr(info, '<');
     if (sptr) {
-        char *ptr = strchr(sptr + 1, '>');
+        char *ptr = strchr(sptr, ',');
         if (ptr) {
+            //ptr = ,netmask,gateway
             *ptr = '\0';
-            address = sptr + 1;
-
-            sptr = strchr(ptr + 1, '<');
-            if (ptr) {
-                ptr = strchr(sptr + 1, '>');
+            address = sptr;
+            sptr = ptr + 1;
+            //sptr = netmask,gateway
+            if (sptr) {
+                ptr = strchr(sptr, ',');
                 if (ptr) {
+                    //ptr = ,gateway
                     *ptr = '\0';
-                    netmask = sptr + 1;
-
-                    sptr = strchr(ptr + 1, '<');
-                    if (ptr) {
-                        ptr = strchr(sptr + 1, '>');
-                        if (ptr) {
-                            *ptr = '\0';
-                            gateway = sptr + 1;
-                        }
+                    netmask = sptr;
+                    sptr = ptr + 1;
+                    //sptr = gateway
+                    if (sptr) {
+                        gateway = sptr;
                     }
                 }
             }
@@ -692,7 +762,10 @@ int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info) {
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetEthCfg));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportEthCfg));
+            else 
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetEthCfg));
             cJSON_AddStringToObject(sub, "address", address);
             cJSON_AddStringToObject(sub, "netmask", netmask);
             cJSON_AddStringToObject(sub, "gateway", gateway);
@@ -731,7 +804,7 @@ int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info) {
     return 0;
 }
 
-int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info) {
+int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info, int report) {
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     int32_t power           = 0;;
@@ -740,27 +813,17 @@ int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info) {
     printf ("GetPower:%s\n", info);
     /* GetPower:<DC>,<100> */
 
-    char *ptr = strchr(info, '<');
-    if (ptr) {
-        info = ptr + 1;
-        ptr = strchr(ptr + 1, '>');
+    char *sptr = info;//strchr(info, '<');
+    if (sptr) {
+        char *ptr = strchr(sptr, ',');
         if (ptr) {
+            //ptr = ,100
             *ptr = '\0';
-            printf ("info:%s\n", info);
-            /* if (!strcmp(info, "DC")) { */
-                mode = info;
-            /* } */
-            /* else if (!strcmp(info, "BAT")) { */
-                /* mode = BAT; */
-            /* } */
-            /* else { */
-                /* mode = PowerCnt; */
-            /* } */
-
-            printf ("ptr:%s\n", ptr);
-            ptr = strchr(ptr + 1, '<');
-            if (ptr) {
-                power = atoi(ptr + 1);
+            mode = sptr;
+            sptr = ptr + 1;
+            //sptr = 100
+            if (sptr) {
+                power = atoi(sptr);
             }
         }
     }
@@ -769,7 +832,10 @@ int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info) {
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetPower));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportPower));
+            else
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetPower));
             cJSON_AddStringToObject(sub, "mode", mode);
             cJSON_AddNumberToObject(sub, "battery_level", power);
             cJSON_AddItemToArray(root, sub);
@@ -807,7 +873,7 @@ int32_t MQTTMessageRecvUartGetPowerHandler(MQTT *mqtt, char *info) {
     return 0;
 }
 
-int32_t MQTTMessageRecvUartSetModuleInfoHandler(MQTT *mqtt, char *info) {
+int32_t MQTTMessageRecvUartGetModuleInfoHandler(MQTT *mqtt, char *info, int report) {
     cJSON *root = NULL;
     cJSON *sub  = NULL;
 
@@ -815,7 +881,10 @@ int32_t MQTTMessageRecvUartSetModuleInfoHandler(MQTT *mqtt, char *info) {
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_SetModuleInfo));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportModuleInfo));
+            else
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetModuleInfo));
             cJSON_AddStringToObject(sub, "info", info);
             cJSON_AddItemToArray(root, sub);
             char *json = cJSON_Print(root);
@@ -825,7 +894,7 @@ int32_t MQTTMessageRecvUartSetModuleInfoHandler(MQTT *mqtt, char *info) {
                 if (mqtt->connect)
                     if (mqtt->connect)
                         esp_mqtt_client_publish(mqtt->client, 
-                                mqtt->topicack, //toEnumString(ModuleDataAttr_SetModuleInfo), 
+                                mqtt->topicack, 
                                 (const char *)json,
                                 strlen(json),
                                 mqtt->msgQos, 0);
@@ -837,7 +906,7 @@ int32_t MQTTMessageRecvUartSetModuleInfoHandler(MQTT *mqtt, char *info) {
                     if (mqtt->connect)
                         if (mqtt->connect)
                             esp_mqtt_client_publish(mqtt->client, 
-                                    mqtt->topicack, //toEnumString(ModuleDataAttr_SetModuleInfo), 
+                                    mqtt->topicack,
                                     (const char *)bsons,
                                     bson->len,
                                     mqtt->msgQos, 0);
@@ -852,7 +921,7 @@ int32_t MQTTMessageRecvUartSetModuleInfoHandler(MQTT *mqtt, char *info) {
     return 0;
 }
 
-int32_t MQTTMessageRecvUartGetModuleInfoHandler(MQTT *mqtt, char *info) {
+int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature, int report) {
     cJSON *root = NULL;
     cJSON *sub  = NULL;
 
@@ -860,52 +929,10 @@ int32_t MQTTMessageRecvUartGetModuleInfoHandler(MQTT *mqtt, char *info) {
     if (root) {
         sub = cJSON_CreateObject();
         if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetModuleInfo));
-            cJSON_AddStringToObject(sub, "info", info);
-            cJSON_AddItemToArray(root, sub);
-            char *json = cJSON_Print(root);
-            if (json) {
-                LogPrintf(LogMQTT_Info, "json:\r\n%s\n", json);
-#ifndef USE_BSON
-                if (mqtt->connect)
-                    if (mqtt->connect)
-                        esp_mqtt_client_publish(mqtt->client, 
-                                mqtt->topicack, //toEnumString(ModuleDataAttr_GetModuleInfo), 
-                                (const char *)json,
-                                strlen(json),
-                                mqtt->msgQos, 0);
-#else 
-                bson_error_t error;
-                bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
-                if (bson) {
-                    const uint8_t *bsons = bson_get_data(bson);
-                    if (mqtt->connect)
-                        if (mqtt->connect)
-                            esp_mqtt_client_publish(mqtt->client, 
-                                    mqtt->topicack,//toEnumString(ModuleDataAttr_GetModuleInfo), 
-                                    (const char *)bsons,
-                                    bson->len,
-                                    mqtt->msgQos, 0);
-                }
-#endif
-                free(json);
-            }
-        }
-        cJSON_Delete(root);
-    }
-
-    return 0;
-}
-
-int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature) {
-    cJSON *root = NULL;
-    cJSON *sub  = NULL;
-
-    root = cJSON_CreateArray();
-    if (root) {
-        sub = cJSON_CreateObject();
-        if (sub) {
-            cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetTemperature));
+            if (report)
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportTemperature));
+            else
+                cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_GetTemperature));
             cJSON_AddNumberToObject(sub, "temperature", temperature);
             cJSON_AddItemToArray(root, sub);
             char *json = cJSON_Print(root);
@@ -915,7 +942,7 @@ int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature) 
                 if (mqtt->connect)
                     if (mqtt->connect) {
                         esp_mqtt_client_publish(mqtt->client, 
-                                mqtt->topicack, //toEnumString(ModuleDataAttr_GetTemperature), 
+                                mqtt->topicack,
                                 (const char *)json,
                                 strlen(json),
                                 mqtt->msgQos, 0);
@@ -928,7 +955,7 @@ int32_t MQTTMessageRecvUartGetTemperatureHandler(MQTT *mqtt, float temperature) 
                     if (mqtt->connect)
                         if (mqtt->connect)
                             esp_mqtt_client_publish(mqtt->client, 
-                                    mqtt->topicack,//toEnumString(ModuleDataAttr_GetTemperature), 
+                                    mqtt->topicack,
                                     (const char *)bsons,
                                     bson->len,
                                     mqtt->msgQos, 0);
@@ -999,7 +1026,7 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
                 if (root) {
                     sub = cJSON_CreateObject();
                     if (sub) {
-                        cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_ReportData));
+                        cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_TransmitData));
                         while (1) {
                             //如果实际的数据单位大于messLen
                             ERRP (messNum >= messLen, break, 0);
@@ -1022,7 +1049,7 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
 #ifndef USE_BSON
                                 if (mqtt->connect)
                                     esp_mqtt_client_publish(mqtt->client, 
-                                            mqtt->topicack, //toEnumString(ModuleDataAttr_ReportData), 
+                                            mqtt->topicack,
                                             (const char *)json,
                                             strlen(json),
                                             mqtt->msgQos, 0);
@@ -1033,7 +1060,7 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
                                     const uint8_t *bsons = bson_get_data(bson);
                                     if (mqtt->connect)
                                         esp_mqtt_client_publish(mqtt->client, 
-                                                mqtt->topicack,//toEnumString(ModuleDataAttr_ReportData), 
+                                                mqtt->topicack,
                                                 (const char *)bsons,
                                                 bson->len,
                                                 mqtt->msgQos, 0);
@@ -1092,13 +1119,13 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         /* LogPrintf(LogMQTT_Info, "uarttomqtt recv:%s\n", recv); */
                         //+TEMPERATURE:20?
                         float temperature = atof(valid);/*获取温度*/
-                        status = MQTTMessageRecvUartGetTemperatureHandler(mqtt, temperature);
+                        status = MQTTMessageRecvUartGetTemperatureHandler(mqtt, temperature, 1);
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+TEMPERATURE:")) {
                         LogPrintf(LogMQTT_Info, "uarttomqtt recv:%s\n", recv);
                         float temperature = atof(valid);/*获取温度*/
-                        status = MQTTMessageRecvUartGetTemperatureHandler(mqtt, temperature);
+                        status = MQTTMessageRecvUartGetTemperatureHandler(mqtt, temperature, 0);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1117,12 +1144,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     }
                     else if (strstr(recv, "+USERINFO:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartGetModuleInfoHandler(mqtt, info);
+                        status = MQTTMessageRecvUartGetModuleInfoHandler(mqtt, info, 0);
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+USERINFOUPDATE:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartSetModuleInfoHandler(mqtt, info);
+                        status = MQTTMessageRecvUartGetModuleInfoHandler(mqtt, info, 1);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1135,12 +1162,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     }
                     else if (strstr(recv, "+POWER:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartGetPowerHandler(mqtt, info);
+                        status = MQTTMessageRecvUartGetPowerHandler(mqtt, info, 0);
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+POWERUPDATE:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartGetPowerHandler(mqtt, info);
+                        status = MQTTMessageRecvUartGetPowerHandler(mqtt, info, 1);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1165,12 +1192,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     }
                     else if (strstr(recv, "+ETHCFG:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartEthCfgHandler(mqtt, info);
+                        status = MQTTMessageRecvUartEthCfgHandler(mqtt, info, 0);
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+ETHCFGUPDATE:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartEthCfgHandler(mqtt, info);
+                        status = MQTTMessageRecvUartEthCfgHandler(mqtt, info, 1);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1183,11 +1210,11 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     }
                     else if (strstr(recv, "+WIFICFG:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartWifiCfgHandler(mqtt, info, 0);
+                        status = MQTTMessageRecvUartWifiCfgHandler(mqtt, info, 0, 0);
                     }
                     else if (strstr(recv, "+WIFICFGUPDATE:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartWifiCfgHandler(mqtt, info, 1);
+                        status = MQTTMessageRecvUartWifiCfgHandler(mqtt, info, 1, 1);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1200,11 +1227,11 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     }
                     else if (strstr(recv, "+MQTTCFG:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartMqttCfgHandler(mqtt, info, 0);
+                        status = MQTTMessageRecvUartMqttCfgHandler(mqtt, info, 0, 0);
                     }
                     else if (strstr(recv, "+MQTTCFGUPDATE:")) {
                         char *info = valid;
-                        status = MQTTMessageRecvUartMqttCfgHandler(mqtt, info, 1);
+                        status = MQTTMessageRecvUartMqttCfgHandler(mqtt, info, 1, 1);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1221,6 +1248,18 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     }
                     else if (strstr(recv, "+PTRECV:")) {
                         status = MQTTMessageRecvUartPtRecvHandler(mqtt, valid, ModuleDataAttr_PtRecv);
+                        if (!status) {
+                            Message message;
+                            message.attr = ModuleDataAttr_Cnt;
+                            if (mqtt->send) {
+                                status = mqtt->send(gPriv, DataAttr_MqttToUart,
+                                        &message, sizeof(message), 0);
+                            }
+                        }
+                        mqtt->attr = ModuleDataAttr_Cnt;
+                    }
+                    else if (strstr(recv, "+PTUPDATE")) {
+                        status = MQTTMessageRecvUartPTUpdateHandle(mqtt, valid);
                         if (!status) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
@@ -1924,11 +1963,11 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
                     else if (!strcmp(strings, "GetModuleVersion")) {
                         /* MQTTMessageSendHandlerGetModuleVersion(mqtt, json, arraysize); */
                         ModuleMessage message;
-                        message.attr = ModuleDataAttr_GetModuleInfo;
+                        message.attr = ModuleDataAttr_GetModuleVersion;
                         if (mqtt->send) {
                             status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
                             if (!status) {
-                                mqtt->attr = ModuleDataAttr_GetModuleInfo;
+                                mqtt->attr = ModuleDataAttr_GetModuleVersion;
                             }
                         }
                     }

@@ -26,12 +26,14 @@
 #include <QHeaderView>
 #include <QComboBox>
 #include <httpserver.h>
+#include <QTimer>
 //#include <QHttpServer>
 
 enum SubWindowType {
     SubWindowType_Login,
     SubWindowType_ServerList,
     SubWindowType_MainContext,
+    SubWindowType_RealTimeRefreshContext,
     SubWindowType_Context,
     SubWindowType_Cnt
 };
@@ -50,21 +52,24 @@ enum TableItem {
     TableItem_3,
     TableItem_4,
     TableItem_5,
+    TableItem_6,
 };
 
-typedef struct {
+struct sConfigTogether {
     /*system*/
     float sTemperature;
+    float sReportTemperture;
     QString sVersion;
     QString sInfo;
-
-    /*net status*/
-    NetState sNetState;
+    QString sReportInfo;
 
     /*eth*/
     QString sEthAddress;
     QString sEthNetmask;
     QString sEthGateway;
+    QString sReportEthAddress;
+    QString sReportEthNetmask;
+    QString sReportEthGateway;
 
     /*wifi*/
     QString sWifiSsid;
@@ -72,17 +77,37 @@ typedef struct {
     QString sWifiAddress;
     QString sWifiNetmask;
     QString sWifiGateway;
+    QString sReportWifiSsid;
+    QString sReportWifiPassword;
+    QString sReportWifiAddress;
+    QString sReportWifiNetmask;
+    QString sReportWifiGateway;
 
     /*mqtt*/
     QString sMqttUser;
     QString sMqttPassword;
     QString sMqttUrl;
+    QString sReportMqttUser;
+    QString sReportMqttPassword;
+    QString sReportMqttUrl;
 
     int sScanTimeout;
+    int sReportScanTimeout;
+
+    QString sReportPtRecvMac;
+    int sReportPtRecvSeq;
+    QString sReportPtRecvState;
+
+    QString sReportTransmitMac;
+    QString sReportTransmitData;
+
+    QString sTransmitData;
 
     /*power mode*/
     QString sMode;
     int sLevel;
+    QString sReportMode;
+    int sReportLevel;
 
     SignalSync signalSync;
 
@@ -98,7 +123,39 @@ typedef struct {
     QString topicack;//订阅
 
     int seq;
-} sConfigTogether;
+
+    QTimer *timer;
+
+    sConfigTogether() {
+        signalSync = SignalSync_Init;
+        sReportTemperture = 30.0;
+        sReportInfo = "default";
+        sReportEthAddress = "xx.xx.xx.xx";
+        sReportEthGateway = "xx.xx.xx.xx";
+        sReportEthNetmask = "xx.xx.xx.xx";
+        sReportWifiSsid = "xxxxx";
+        sReportWifiPassword = "xxxxxxxx";
+        sReportWifiAddress = "xx.xx.xx.xx";
+        sReportWifiGateway = "xx.xx.xx.xx";
+        sReportWifiNetmask = "xx.xx.xx.xx";
+        sReportMqttUser = "xxxxx";
+        sReportMqttPassword = "xxxxxxxx";
+        sReportMqttUrl = "mqtt://xx.xx.xx.xx:1883";
+
+        sReportScanTimeout = 30;
+        sReportPtRecvMac = "xx.xx.xx.xx.xx.xx";
+        sReportPtRecvSeq = 1;
+        sReportPtRecvState = "CONNECT_SUCCESS";
+        sReportTransmitMac = "xx.xx.xx.xx.xx.xx";
+        sReportTransmitData = "xxxxxxxxx";
+        sReportMode = "DC";
+        sReportLevel = 50;
+
+        sTransmitData = "xxxxxxxxxxxxxxxxxxxxx";
+
+        timer = new QTimer(NULL);
+    }
+};
 
 #define SEQMAX (255)
 
@@ -134,6 +191,7 @@ public:
     int32_t JumpWindowToMainContext(sConfigTogether *config, const QString &topic);
     int32_t JumpWindowToContext(QString &match, sConfigTogether *config, const QString &topic);
     int32_t JumpWindowToContextTransmit(int32_t number, sConfigTogether *config, const QString &topics);
+    int32_t JumpWindowToRealTimeRefreshContext(sConfigTogether *config, const QString &topic);
     int32_t SetCurrentIndex(int32_t number);
     int32_t JumpMainWindow(void);
     int32_t JumpWindowToLogin();

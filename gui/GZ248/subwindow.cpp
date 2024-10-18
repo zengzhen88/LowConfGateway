@@ -383,49 +383,6 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
     {
         break;
     }
-    case ModuleDataAttr_NetState:
-    {
-        QJsonObject likeObject;
-        likeObject.insert("htype", toEnumString(ModuleDataAttr_NetState));
-        QJsonArray likeArray;
-        likeArray.append(likeObject);
-        QJsonDocument doc;
-        doc.setArray(likeArray);
-        QMqttTopicName topic;
-        topic.setName(topics);
-        printf ("topic:%s\n", topic.name().toStdString().c_str());
-        config->client->publish(topic, doc.toJson(), 0, 0);
-        QJsonObject object;
-        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
-        QJsonArray roots = doc1.array();
-        for (int32_t index = 0; index < roots.size(); index++) {
-            QJsonObject root = roots.at(index).toObject();
-            QString name = root.value("htype").toString();
-        }
-
-        QProgressDialog dialog(tr("获取服务器连接状态中..."), tr("取消"), 0, 200000, this);
-        dialog.setWindowTitle(tr("进度条对话框"));
-        dialog.setWindowModality(Qt::WindowModal);
-        dialog.show();
-        for (int32_t index = 0; index < 200000; index++) {
-            dialog.setValue(index);
-            QCoreApplication::processEvents();
-            if (dialog.wasCanceled()) {
-                config->signalSync = SignalSync_FAILURE;
-                break;
-            }
-            if (config->signalSync) break;
-            QThread::usleep(10);
-        }
-        QString retval((QString)("服务连接状态:") + (QString(NetState2Name[config->sNetState])));
-        QMessageBox::information(this,
-                                 tr("系统提示"),
-                                 tr(config->signalSync == SignalSync_OK ? retval.toStdString().c_str() : "服务器连接失败"),
-                                 QMessageBox::Ok);
-
-        config->signalSync = SignalSync_Init;
-        break;
-    }
     case ModuleDataAttr_GetEthCfg:
     {
         QJsonObject likeObject;
@@ -738,7 +695,7 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
         config->signalSync = SignalSync_Init;
         break;
     }
-    case ModuleDataAttr_ReportData:
+    case ModuleDataAttr_TransmitData:
     {
         break;
     }
@@ -752,7 +709,8 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
         doc.setArray(likeArray);
         QMqttTopicName topic;
         topic.setName(topics);
-        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        printf ("signalSync:%d config:%p topic:%s\n",
+                config->signalSync, config, topic.name().toStdString().c_str());
         config->client->publish(topic, doc.toJson(), 0, 0);
         QJsonObject object;
         QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
@@ -776,7 +734,7 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
             if (config->signalSync) break;
             QThread::usleep(10);
         }
-        QString retval((QString)("获取下发数据超时时间:") + (QString)config->sScanTimeout);
+        QString retval((QString)("获取下发数据超时时间:") + (QString::number(config->sScanTimeout)));
         QMessageBox::information(this,
                                  tr("系统提示"),
                                  tr(config->signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取下发数据超时时间失败"),
@@ -907,7 +865,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         contextTable->selectRow(currentIndex);
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         //返回到客户端列表成员
@@ -945,7 +903,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         contextTable->selectRow(currentIndex);
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         //返回到客户端列表成员
         connect(cancel, &QPushButton::clicked, this, [=](){
@@ -981,7 +939,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         contextTable->selectRow(currentIndex);
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         //返回到客户端列表成员
@@ -1028,7 +986,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1065,7 +1023,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         break;
@@ -1101,7 +1059,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1136,7 +1094,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         break;
@@ -1172,7 +1130,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         break;
@@ -1239,7 +1197,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1275,7 +1233,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1367,7 +1325,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1402,7 +1360,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         break;
@@ -1471,7 +1429,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1513,7 +1471,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
 
 
             if (strstr(config->updateFileString.toStdString().c_str(), ".bin")) {
-                JumpWindowToContextTransmit(currentIndex, config, topic);
+                JumpWindowToContextTransmit(number, config, topic);
             }
         });
 
@@ -1535,7 +1493,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
         break;
     }
-    case ModuleDataAttr_ReportData:
+    case ModuleDataAttr_TransmitData:
     {
         break;
     }
@@ -1596,7 +1554,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1637,7 +1595,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
         break;
     }
@@ -1668,7 +1626,7 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         contextTable->selectRow(currentIndex);
 
         connect(enter, &QPushButton::clicked, this, [=](){
-            JumpWindowToContextTransmit(currentIndex, config, topic);
+            JumpWindowToContextTransmit(number, config, topic);
         });
 
         //返回到客户端列表成员
@@ -1716,12 +1674,38 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             printf ("temperature:%lf\n", config->sTemperature);
             config->signalSync = SignalSync_OK;
         }
+        else if (!strcmp(name.toStdString().c_str(), "ReportTemperature")) {
+            config->sReportTemperture = root.value("temperature").toDouble();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("reportTemperature:%lf\n", config->sReportTemperture);
+        }
+        else if (!strcmp(name.toStdString().c_str(), "TransmitData")) {
+            config->sTransmitData = root.value("data").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            //printf ("TransmitData:%s\n", config->sTransmitData.toStdString().c_str());
+        }
+        else if (!strcmp(name.toStdString().c_str(), "ReportTransmitData")) {
+            config->sReportTransmitMac = root.value("mac").toString();
+            config->sReportTransmitData = root.value("data").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("sReportTransmitMac:%s\n", config->sReportTransmitMac.toStdString().c_str());
+            printf ("sReportTransmitData:%s\n", config->sReportTransmitData.toStdString().c_str());
+        }
         else if (!strcmp(name.toStdString().c_str(), "GetModuleVersion")) {
             config->sVersion = root.value("ver").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("version:%s\n", config->sVersion.toStdString().c_str());
             config->signalSync = SignalSync_OK;
+        }
+        else if (!strcmp(name.toStdString().c_str(), "ReportModuleInfo")) {
+            config->sReportInfo = root.value("info").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("ReportInfo:%s\n", config->sReportInfo.toStdString().c_str());
         }
         else if (!strcmp(name.toStdString().c_str(), "GetModuleInfo")) {
             config->sInfo = root.value("info").toString();
@@ -1743,16 +1727,44 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
                config->signalSync = SignalSync_FAILURE;
             }
         }
+        else if (!strcmp(name.toStdString().c_str(), "ReportPower")) {
+            config->sReportMode = root.value("mode").toString();
+            config->sReportLevel = root.value("battery_level").toInt();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("reportMode:%s\n", config->sReportMode.toStdString().c_str());
+            printf ("reportBattery_level:%d\n", config->sReportLevel);
+        }
         else if (!strcmp(name.toStdString().c_str(), "GetPower")) {
             config->sMode = root.value("mode").toString();
             config->sLevel = root.value("battery_level").toInt();
 
             printf ("htype:%s\n", name.toStdString().c_str());
-            printf ("mode:%s\n", config->sMode);
+            printf ("mode:%s\n", config->sMode.toStdString().c_str());
             printf ("battery_level:%d\n", config->sLevel);
             config->signalSync = SignalSync_OK;
         }
-        else if (!strcmp(name.toStdString().c_str(), "GetWifiCfg")) {
+        else if (!strcmp(name.toStdString().c_str(), "ReportEthCfg")) {
+            config->sReportEthAddress = root.value("address").toString();
+            config->sReportEthNetmask = root.value("netmask").toString();
+            config->sReportEthGateway = root.value("gateway").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("sReportEthAddress:%s\n", config->sReportEthAddress.toStdString().c_str());
+            printf ("sReportEthNetmask:%s\n", config->sReportEthNetmask.toStdString().c_str());
+            printf ("sReportEthGateway:%s\n", config->sReportEthGateway.toStdString().c_str());
+        }
+        else if (!strcmp(name.toStdString().c_str(), "ReportEthCfg")) {
+            config->sReportEthAddress = root.value("address").toString();
+            config->sReportEthNetmask = root.value("netmask").toString();
+            config->sReportEthGateway = root.value("gateway").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("sReportEthAddress:%s\n", config->sReportEthAddress.toStdString().c_str());
+            printf ("sReportEthNetmask:%s\n", config->sReportEthNetmask.toStdString().c_str());
+            printf ("sReportEthGateway:%s\n", config->sReportEthGateway.toStdString().c_str());
+        }
+        else if (!strcmp(name.toStdString().c_str(), "GetEthCfg")) {
             config->sEthAddress = root.value("address").toString();
             config->sEthNetmask = root.value("netmask").toString();
             config->sEthGateway = root.value("gateway").toString();
@@ -1761,34 +1773,6 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             printf ("sEthAddress:%s\n", config->sEthAddress.toStdString().c_str());
             printf ("sEthNetmask:%s\n", config->sEthNetmask.toStdString().c_str());
             printf ("sEthGateway:%s\n", config->sEthGateway.toStdString().c_str());
-            config->signalSync = SignalSync_OK;
-        }
-        else if (!strcmp(name.toStdString().c_str(), "SetWifiCfg")) {
-            QString ack = root.value("status").toString();
-
-            printf ("htype:%s\n", name.toStdString().c_str());
-            printf ("status:%s\n", ack.toStdString().c_str());
-
-            if (!strcmp(ack.toStdString().c_str(), "OK")) {
-                config->signalSync = SignalSync_OK;
-            }
-            else {
-               config->signalSync = SignalSync_FAILURE;
-            }
-        }
-        else if (!strcmp(name.toStdString().c_str(), "GetEthCfg")) {
-            config->sWifiSsid = root.value("ssid").toString();
-            config->sWifiPassword = root.value("password").toString();
-            config->sWifiAddress = root.value("address").toString();
-            config->sWifiNetmask = root.value("netmask").toString();
-            config->sWifiGateway = root.value("gateway").toString();
-
-            printf ("htype:%s\n", name.toStdString().c_str());
-            printf ("sWifiSsid:%s\n", config->sWifiSsid.toStdString().c_str());
-            printf ("sWifiPassword:%s\n", config->sWifiPassword.toStdString().c_str());
-            printf ("sWifiAddress:%s\n", config->sWifiAddress.toStdString().c_str());
-            printf ("sWifiNetmask:%s\n", config->sWifiNetmask.toStdString().c_str());
-            printf ("sWifiGateway:%s\n", config->sWifiGateway.toStdString().c_str());
             config->signalSync = SignalSync_OK;
         }
         else if (!strcmp(name.toStdString().c_str(), "SetEthCfg")) {
@@ -1803,6 +1787,58 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             else {
                config->signalSync = SignalSync_FAILURE;
             }
+        }
+        else if (!strcmp(name.toStdString().c_str(), "SetWifiCfg")) {
+            QString ack = root.value("status").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("status:%s\n", ack.toStdString().c_str());
+
+            if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                config->signalSync = SignalSync_OK;
+            }
+            else {
+               config->signalSync = SignalSync_FAILURE;
+            }
+        }
+        else if (!strcmp(name.toStdString().c_str(), "ReportWifiCfg")) {
+            config->sReportWifiSsid = root.value("ssid").toString();
+            config->sReportWifiPassword = root.value("password").toString();
+            config->sReportWifiAddress = root.value("address").toString();
+            config->sReportWifiNetmask = root.value("netmask").toString();
+            config->sReportWifiGateway = root.value("gateway").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("sReportWifiSsid:%s\n", config->sReportWifiSsid.toStdString().c_str());
+            printf ("sReportWifiPassword:%s\n", config->sReportWifiPassword.toStdString().c_str());
+            printf ("sReportWifiAddress:%s\n", config->sReportWifiAddress.toStdString().c_str());
+            printf ("sReportWifiNetmask:%s\n", config->sReportWifiNetmask.toStdString().c_str());
+            printf ("sReportWifiGateway:%s\n", config->sReportWifiGateway.toStdString().c_str());
+        }
+        else if (!strcmp(name.toStdString().c_str(), "GetWifiCfg")) {
+            config->sWifiSsid = root.value("ssid").toString();
+            config->sWifiPassword = root.value("password").toString();
+            config->sWifiAddress = root.value("address").toString();
+            config->sWifiNetmask = root.value("netmask").toString();
+            config->sWifiGateway = root.value("gateway").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("sWifiSsid:%s\n", config->sWifiSsid.toStdString().c_str());
+            printf ("sWifiPassword:%s\n", config->sWifiPassword.toStdString().c_str());
+            printf ("sWifiAddress:%s\n", config->sWifiAddress.toStdString().c_str());
+            printf ("sWifiNetmask:%s\n", config->sWifiNetmask.toStdString().c_str());
+            printf ("sWifiGateway:%s\n", config->sWifiGateway.toStdString().c_str());
+            config->signalSync = SignalSync_OK;
+        }
+        else if (!strcmp(name.toStdString().c_str(), "ReportMqttCfg")) {
+            config->sReportMqttUser = root.value("user").toString();
+            config->sReportMqttPassword = root.value("password").toString();
+            config->sReportMqttUrl = root.value("url").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("sReportMqttUser:%s\n", config->sReportMqttUser.toStdString().c_str());
+            printf ("sReportMqttPassword:%s\n", config->sReportMqttPassword.toStdString().c_str());
+            printf ("sReportMqttUrl:%s\n", config->sReportMqttUrl.toStdString().c_str());
         }
         else if (!strcmp(name.toStdString().c_str(), "GetMqttCfg")) {
             config->sMqttUser = root.value("user").toString();
@@ -1828,11 +1864,17 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
                 config->signalSync = SignalSync_FAILURE;
             }
         }
+        else if (!strcmp(name.toStdString().c_str(), "ReportScanTimeout")) {
+            config->sReportScanTimeout = root.value("sec").toInt();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("config:%p sReportScanTimeout:%d\n", config, config->sReportScanTimeout);
+        }
         else if (!strcmp(name.toStdString().c_str(), "GetScanTimeout")) {
             config->sScanTimeout = root.value("sec").toInt();
 
             printf ("htype:%s\n", name.toStdString().c_str());
-            printf ("sScanTimeout:%d\n", config->sScanTimeout);
+            printf ("config:%p sScanTimeout:%d\n", config, config->sScanTimeout);
             config->signalSync = SignalSync_OK;
         }
         else if (!strcmp(name.toStdString().c_str(), "SetScanTimeout")) {
@@ -1861,7 +1903,124 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
                 config->signalSync = SignalSync_FAILURE;
             }
         }
+        else if (!strcmp(name.toStdString().c_str(), "PTRecv")) {
+            config->sReportPtRecvMac = root.value("mac").toString();
+            config->sReportPtRecvSeq = root.value("seq").toInt();
+            config->sReportPtRecvState = root.value("state").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("mac:%s\n", config->sReportPtRecvMac.toStdString().c_str());
+            printf ("seq:%d\n", config->sReportPtRecvSeq);
+            printf ("state:%s\n", config->sReportPtRecvState.toStdString().c_str());
+        }
     }
+
+    return 0;
+}
+
+int32_t SubWindow::JumpWindowToRealTimeRefreshContext(sConfigTogether *config, const QString &topic) {
+    ClearWidget();
+    //mainLayout->addWidget(contextTable);
+    mainLayout->addWidget(rightWidget);
+    rightLayout->addWidget(label, 0, Qt::AlignTop | Qt::AlignLeft);
+    rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
+    label->setText("请输入有线配置:");
+    windowType = SubWindowType_MainContext;
+
+    printf ("refresh\n");
+
+    QString labels = QString("温度:<")
+            + QString::number(config->sReportTemperture)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("模块版本信息:<")
+            + QString(config->sReportInfo)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("以太网配置:\r\n网络地址:<")
+            + QString(config->sReportEthAddress)
+            + QString(">\r\n网关地址:<")
+            + QString(config->sReportEthGateway)
+            + QString(">\r\n子网掩码:<")
+            + QString(config->sReportEthNetmask)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("Wifi配置:\r\n无线名称:<")
+            + QString(config->sReportWifiSsid)
+            + QString(">\r\n无线密码:<")
+            + QString(config->sReportWifiPassword)
+            + QString(">\r\n无线地址:<")
+            + QString(config->sReportWifiAddress)
+            + QString(">\r\n无线网关:<")
+            + QString(config->sReportWifiGateway)
+            + QString(">\r\n无线掩码:<")
+            + QString(config->sReportWifiNetmask)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("供电配置:\r\n供电模式:<")
+            + QString(config->sReportMode)
+            + QString(">\r\n供电电量:<")
+            + QString::number(config->sReportLevel)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("MQTT配置:\r\nMQTT服务器用户:<")
+            + QString(config->sReportMqttUser)
+            + QString(">\r\nMQTT服务密码:<")
+            + QString(config->sReportMqttPassword)
+            + QString(">\r\nMQTT服务器地址:<")
+            + QString(config->sReportMqttUrl)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("下发数据超时时间:<")
+            + QString::number(config->sReportScanTimeout)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("PTRecv-下发数据响应:\r\nMAC地址:<")
+            + QString(config->sReportPtRecvMac)
+            + QString(">\r\n序列号:<")
+            + QString::number(config->sReportPtRecvSeq)
+            + QString(">\r\n响应状态:<")
+            + QString(config->sReportPtRecvState)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("PTUpdate-上报数据:\r\n上报MAC地址:<")
+            + QString(config->sReportTransmitMac)
+            + QString(">\r\n上报数据:<")
+            + QString(config->sReportTransmitData)
+            + QString(">\r\n");
+
+    label->setText(labels);
+    //QFont font = label->font();
+    //int defaultPoint = font.pointSize();
+    //font.setPointSize(10);
+    //label->setFont(font);
+    label->show();
+    //font.setPointSize(defaultPoint);
+    //label->setFont(font);
+
+    setCentralWidget(mainWidget);
+    rightLayout->removeWidget(label);
+    rightLayout->removeWidget(cancel);
+    mainLayout->removeWidget(rightWidget);
+
+    int32_t left, right, top, bottom;
+    //rightLayout->setContentsMargins(2, 2, 2, 2);
+    rightLayout->getContentsMargins(&left, &top, &right, &bottom);
+    int32_t labelX = left + 2, labelY = top + 0, labelW = rightWidget->width() - 100/*COMMON_WIDTH*/, labelH = rightWidget->height() - 50 - top;//COMMON_HEIGHT;
+    label->setGeometry(labelX, labelY, labelW, labelH);
+
+    cancel->setText("返回");
+    cancel->show();
+    int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+    cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+    //返回到客户端列表成员
+    connect(cancel, &QPushButton::clicked, this, [=](){
+        config->timer->stop();
+        config->timer->disconnect();
+        ClearQnavigationWidget();
+        JumpWindowToServerList();
+    });
 
     return 0;
 }
@@ -2019,6 +2178,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         QTableWidgetItem *item = new QTableWidgetItem(userString);
 
         sConfigTogether *config = new sConfigTogether();
+        printf ("configinit:%p tempature:%f (%s)\n", config, config->sReportTemperture, QString::number(config->sReportTemperture));
 
         config->topic = topic;
         config->topicack = config->topic + (QString)"Ack";
@@ -2071,6 +2231,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         connect(config->client, &QMqttClient::messageReceived, this, [=](const QByteArray &message, const QMqttTopicName &topic) {
             sConfigTogether *sConfig = (sConfigTogether *)topicTableMap.key(topic.name());
             if (sConfig) {
+                //printf ("recvMsg config:%p\n", sConfig);
                 RecvMqttMessage(sConfig, message, topic);
             }
         });
@@ -2093,6 +2254,8 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         serverTable->setItem(rowCount, TableItem_4, item);
         item = new QTableWidgetItem(QString("进入"));
         serverTable->setItem(rowCount, TableItem_5, item);
+        item = new QTableWidgetItem(QString("进入"));
+        serverTable->setItem(rowCount, TableItem_6, item);
 
         QProgressDialog dialog(tr("添加新客户端中..."), tr("取消"), 0, 2, this);
         dialog.setWindowTitle(tr("进度条对话框"));
@@ -2166,6 +2329,19 @@ int32_t SubWindow::JumpWindowToServerList(void) {
             clickConfig = sConfig; //记录当前正在被使用的配置
             JumpWindowToMainContext(sConfig, topic);
         }
+        else if (col == TableItem_6) {
+            QTableWidgetItem *item = serverTable->item(row, TableItem_0);
+            sConfigTogether *sConfig = (sConfigTogether *)serverTableMap.value(item);
+            //QMqttClient *client = (QMqttClient *)serverTableMap.value(item);
+            item = serverTable->item(row, TableItem_4); //获取topic
+            const QString topic = item->text();
+            clickConfig = sConfig; //记录当前正在被使用的配置
+            connect(sConfig->timer, &QTimer::timeout, this, [=]() {
+                JumpWindowToRealTimeRefreshContext(sConfig, topic);
+            });
+            sConfig->timer->start(500);
+        JumpWindowToRealTimeRefreshContext(sConfig, topic);
+        }
     });
     return 0;
 }
@@ -2218,8 +2394,8 @@ int32_t SubWindow::JumpWindowToLogin(void) {
             //printf ("enter\n");
             //创建客户端列表
             serverTable->setRowCount(0); // 初始不设置行，动态添加
-            serverTable->setColumnCount(6);
-            serverTable->setHorizontalHeaderLabels(QStringList() << "用户账号" << "用户密码" << "主机地址" << "主机端口" << "主题字段" << "操作方式");
+            serverTable->setColumnCount(7);
+            serverTable->setHorizontalHeaderLabels(QStringList() << "用户账号" << "用户密码" << "主机地址" << "主机端口" << "主题字段" << "配置操作" << "实时刷新");
             // 启用拖拽
             serverTable->setDragEnabled(true);
             serverTable->setAcceptDrops(true);

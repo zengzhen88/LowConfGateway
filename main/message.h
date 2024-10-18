@@ -18,26 +18,6 @@ typedef struct {
     ModuleDataAttr attr;
 } ModuleMessageTriggerRecv; 
 
-// //ModuleDataAttr_SetWifiConfig
-// //ModuleDataAttr_GetWifiConfig
-// typedef struct {
-    // ModuleDataAttr attr;
-    // char ssid[32];
-    // char passwd[32];
-    // uint32_t ip;
-    // uint32_t netmask;
-    // uint32_t gateway;
-// } ModuleMessageWifiConfig; 
-
-// //ModuleDataAttr_SetEthConfig
-// //ModuleDataAttr_GetEthConfig
-// typedef struct {
-    // ModuleDataAttr attr;
-    // uint32_t ip;
-    // uint32_t netmask;
-    // uint32_t gateway;
-// } ModuleMessageEthConfig; 
-
 //ModuleDataAttr_Update
 typedef struct {
     ModuleDataAttr attr;
@@ -74,15 +54,6 @@ typedef struct {
     PowerSupplyMode mode;
     int level;
 } ModuleMessageGetPower;
-
-/*
- * //ModuleDataAttr_GetPower
- * typedef struct {
- *     ModuleDataAttr attr;
- *     PowerSupplyMode mode;
- *     int level;
- * } ModuleMessageGetPower;
- */
 
 //ModuleDataAttr_NetState
 typedef struct {
@@ -142,16 +113,6 @@ typedef struct {
     char password[32];
     char url[64];
 } ModuleMessageSetMqttCfg;
-
-/*
- * //ModuleDataAttr_SendData
- * typedef struct {
- *     ModuleDataAttr attr;
- *     char user[32];
- *     char password[32];
- *     char url[64];
- * } ModuleMessageSetMqttCfg;
- */
 
 //ModuleDataAttr_Ack
 typedef struct {

@@ -1,0 +1,256 @@
+
+1、被动获取上报温度
+[{
+    "htype":        "ReportTemperature",
+    "temperature":  28.5
+}]
+
+2、主动获取温度
+发送:
+[{
+    "htype": "GetTemperature"
+}]
+接收回复:
+[{
+    "htype":        "GetTemperature",
+    "temperature":  30.25
+}]
+3、主动获取模块版本
+发送：
+[{
+    "htype": "GetModuleVersion"
+}]
+接收回复:
+[{
+    "htype": "GetModuleVersion",
+    "ver": "xxxxx"
+}]
+4、主动获取模块信息
+发送：
+[{
+    "htype": "GetModuleInfo"
+}]
+接收回复:
+[{
+    "htype": "GetModuleInfo",
+    "info": "xxxx"
+}]
+5、被动获取上报模块信息
+[{
+    "htype": "ReportModuleInfo",
+    "info": "xxxx"
+}]
+6、主动设置模块信息
+发送：
+[{
+    "htype": "SetModuleInfo",
+    "info": "adasdfasdf"
+}]
+接收回复:
+[{
+    "htype":        "SetModuleInfo",
+    "status":       "OK"
+}]
+注：成功是"OK" 失败是"NO"
+7、查询供电模块
+发送:
+[{
+    "htype": "GetPower"
+}]
+接收回复:
+[{
+    "htype":        "GetPower",
+    "mode": "DC",
+    "battery_level":        50
+}]
+注：mode => "DC" "BAT"
+8、被动获取上报供电模块
+[{
+    "htype":        "ReportPower",
+    "mode": "DC",
+    "battery_level":        50
+}]
+9、重启的还没写功能，待定，你定吧
+
+10、查询有线配置
+发送：
+[{
+    "htype": "GetEthCfg"
+}]
+接收回复:
+[{
+    "htype":        "GetEthCfg",
+    "address":      "0.0.0.0",
+    "netmask":      "0.0.0.0",
+    "gateway":      "0.0.0.0"
+}]
+11、上报有线配置
+[{
+    "htype":        "ReportEthCfg",
+    "address":      "0.0.0.0",
+    "netmask":      "0.0.0.0",
+    "gateway":      "0.0.0.0"
+}]
+12、设置有线配置
+发送:[{
+    "htype":        "SetEthCfg",
+    "address":      "0.0.0.0",
+    "netmask":      "0.0.0.0",
+    "gateway":      "0.0.0.0"
+}]
+接收回复:
+[{
+    "htype":        "SetEthCfg",
+    "status":       "OK"
+}]
+注：成功是"OK" 失败是"NO"
+13、查询无线配置
+发送:
+[{
+    "htype": "GetWifiCfg"
+}]
+接收回复:
+[{
+    "htype":        "GetWifiCfg",
+    "ssid": "2203",
+    "password":     "Jace123456789",
+    "address":      "0.0.0.0",
+    "netmask":      "0.0.0.0",
+    "gateway":      "0.0.0.0"
+}]
+14、上报无线配置
+[{
+    "htype":        "ReportWifiCfg",
+    "ssid": "2203",
+    "password":     "Jace123456789",
+    "address":      "0.0.0.0",
+    "netmask":      "0.0.0.0",
+    "gateway":      "0.0.0.0"
+}]
+15、设置无线配置
+发送:[{
+    "htype":        "SetWifiCfg",
+    "ssid": "2203",
+    "password":     "Jace123456789",
+    "address":      "0.0.0.0",
+    "netmask":      "0.0.0.0",
+    "gateway":      "0.0.0.0"
+}]
+接收回复:
+[{
+    "htype":        "SetWifiCfg",
+    "status":       "OK"
+}]
+16、查询MQTT配置
+发送：
+[{
+    "htype": "GetMqttCfg"
+}]
+接收回复:
+[{
+    "htype": "GetMqttCfg",
+    "user": "username",
+    "password":     "passwd",
+    "url":  "192.168.1.3:1883"
+}]
+17、上报MQTT配置
+[{
+    "htype": "ReportMqttCfg",
+    "user": "username",
+    "password":     "passwd",
+    "url":  "192.168.1.3:1883"
+}]
+18、设置MQTT配置
+发送:
+[{
+    "htype": "SetMqttCfg",
+    "user": "username",
+    "password":     "passwd",
+    "url":  "192.168.1.3:1883"
+}]
+接收回复:
+[{
+    "htype":        "SetMqttCfg",
+    "status":       "OK"
+}]
+19、升级系统
+发送
+[{
+    "htype": "Update",
+    "url":  "http://192.168.1.3:1883/xxxx.bin"
+}]
+接收回复:
+//因为升级会重启，这里暂时没有对接这个回复，看后面如何添加一下，形成一个闭环
+[{
+    "htype":        "Update",
+    "status":       "OK"
+}]
+20、发送下发数据 (注该消息还未通,测试发现)
+[{
+    "htype": "PtSend",
+    "mac": "xx.xx.xx.xx.xx.xx",
+    "seq": 0
+    "data": "asdfasdf",
+}]
+
+[{
+    "htype":        "PtSend",
+    "status":       "OK"
+}]
+21、接收下发数据响应(上报消息)
+[{
+    "htype": "PtRecv",
+    "mac": "xx.xx.xx.xx.xx.xx",
+    "seq": 0
+    "state": "CONNECT_SUCCESS",
+}]
+#CONNECT_SUCCESS:发送成功
+#CONNECT_TIMEOUT:发送超时
+#CONNECT_REPEAD:发送重复
+22、设置下发数据超时时间
+[{
+    "htype": "SetScanTimeout",
+    "sec": "34"
+}]
+
+[{
+    "htype":        "SetScanTimeout",
+    "status":       "OK"
+}]
+
+23、获取下发数据超时时间
+[{
+    "htype": "GetScanTimeout"
+}]
+
+[{
+    "htype":        "GetScanTimeout",
+    "sec":  30
+}]
+
+24、上报SPI广播数据
+[{
+    "htype":        "TransmitData",
+    "data":  [xxx,xxx,xxx,xxx,]
+}]
+25、上报Uart数据
+[{
+    "htype": "ReportTransmitData",
+    "mac": "xx.xx.xx.xx.xx.xx",
+    "data":  "xxxxxxx"
+}]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
