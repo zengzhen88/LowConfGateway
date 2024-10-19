@@ -23,17 +23,104 @@ but not all the files it references.
     endif()
 endmacro()
 
+function(_qt5_Mqtt_process_prl_file prl_file_location Configuration lib_deps link_flags)
+    set(_lib_deps)
+    set(_link_flags)
+
+    set(_qt5_install_libs "${_qt5Mqtt_install_prefix}/lib/")
+
+    if(EXISTS "${prl_file_location}")
+        file(STRINGS "${prl_file_location}" _prl_strings REGEX "QMAKE_PRL_LIBS_FOR_CMAKE[ \t]*=")
+
+        # file(STRINGS) replaces all semicolons read from the file with backslash semicolons.
+        # We need to do a reverse transformation in CMake. For that we replace all backslash
+        # semicolons with just semicolons, but due to the qmake substitution feature
+        # creating this file, we need to double the amount of backslashes, so the final file
+        # should have three backslashes and one semicolon.
+        string(REGEX REPLACE "\\\;" ";" _prl_strings "${_prl_strings}")
+
+        string(REGEX REPLACE "QMAKE_PRL_LIBS_FOR_CMAKE[ \t]*=[ \t]*([^\n]*)" "\\1" _static_depends "${_prl_strings}")
+        string(REGEX REPLACE "[ \t]+" ";" _standard_libraries "${CMAKE_CXX_STANDARD_LIBRARIES}")
+        set(_search_paths)
+        set(_fw_search_paths)
+        set(_framework_flag)
+        string(REPLACE "\$\$[QT_INSTALL_LIBS]" "${_qt5_install_libs}" _static_depends "${_static_depends}")
+        foreach(_flag ${_static_depends})
+            string(REPLACE "\"" "" _flag ${_flag})
+            if(_flag MATCHES "^-framework$")
+                # Handle the next flag as framework name
+                set(_framework_flag 1)
+            elseif(_flag MATCHES "^-F(.*)$")
+                # Handle -F/foo/bar flags by recording the framework search paths to be used
+                # by find_library.
+                list(APPEND _fw_search_paths "${CMAKE_MATCH_1}")
+            elseif(_framework_flag OR _flag MATCHES "^-l(.*)$")
+                if(_framework_flag)
+                    # Handle Darwin framework bundles passed as -framework Foo
+                    set(_lib ${_flag})
+                else()
+                    # Handle normal libraries passed as -lfoo
+                    set(_lib "${CMAKE_MATCH_1}")
+                    foreach(_standard_library ${_standard_libraries})
+                        if(_standard_library MATCHES "^${_lib}(\\.lib)?$")
+                            set(_lib_is_default_linked TRUE)
+                            break()
+                        endif()
+                    endforeach()
+                endif()
+                if (_lib_is_default_linked)
+                    unset(_lib_is_default_linked)
+                elseif(_lib MATCHES "^pthread$")
+                    find_package(Threads REQUIRED)
+                    list(APPEND _lib_deps Threads::Threads)
+                else()
+                    set(current_search_paths "${_search_paths}")
+                    if(_framework_flag)
+                        set(current_search_paths "${_fw_search_paths}")
+                    endif()
+                    if(current_search_paths)
+                        find_library(_Qt5Mqtt_${Configuration}_${_lib}_PATH ${_lib} HINTS ${current_search_paths} NO_DEFAULT_PATH)
+                    endif()
+                    find_library(_Qt5Mqtt_${Configuration}_${_lib}_PATH ${_lib} HINTS ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES})
+                    mark_as_advanced(_Qt5Mqtt_${Configuration}_${_lib}_PATH)
+                    if(_Qt5Mqtt_${Configuration}_${_lib}_PATH)
+                        list(APPEND _lib_deps
+                            ${_Qt5Mqtt_${Configuration}_${_lib}_PATH}
+                        )
+                    else()
+                        message(FATAL_ERROR "Library not found: ${_lib}")
+                    endif()
+                    unset(_framework_flag)
+                endif()
+            elseif(EXISTS "${_flag}")
+                # The flag is an absolute path to an existing library
+                list(APPEND _lib_deps "${_flag}")
+            elseif(_flag MATCHES "^-L(.*)$")
+                # Handle -Lfoo flags by putting their paths in the search path used by find_library above
+                list(APPEND _search_paths "${CMAKE_MATCH_1}")
+            else()
+                # Handle all remaining flags by simply passing them to the linker
+                list(APPEND _link_flags ${_flag})
+            endif()
+        endforeach()
+    endif()
+
+    string(REPLACE ";" " " _link_flags "${_link_flags}")
+    set(${lib_deps} ${_lib_deps} PARENT_SCOPE)
+    set(${link_flags} "SHELL:${_link_flags}" PARENT_SCOPE)
+endfunction()
 
 macro(_populate_Mqtt_target_properties Configuration LIB_LOCATION IMPLIB_LOCATION
       IsDebugAndRelease)
     set_property(TARGET Qt5::Mqtt APPEND PROPERTY IMPORTED_CONFIGURATIONS ${Configuration})
 
-    set(imported_location "${_qt5Mqtt_install_prefix}/bin/${LIB_LOCATION}")
+    set(imported_location "${_qt5Mqtt_install_prefix}/lib/${LIB_LOCATION}")
     _qt5_Mqtt_check_file_exists(${imported_location})
     set(_deps
         ${_Qt5Mqtt_LIB_DEPENDENCIES}
     )
     set(_static_deps
+        ${_Qt5Mqtt_STATIC_${Configuration}_LIB_DEPENDENCIES}
     )
 
     set_target_properties(Qt5::Mqtt PROPERTIES
@@ -45,6 +132,39 @@ macro(_populate_Mqtt_target_properties Configuration LIB_LOCATION IMPLIB_LOCATIO
                  "${_deps}"
     )
 
+    if(NOT ${IsDebugAndRelease})
+        set(_genex_condition "1")
+    else()
+        if(${Configuration} STREQUAL DEBUG)
+            set(_genex_condition "$<CONFIG:Debug>")
+        else()
+            set(_genex_condition "$<NOT:$<CONFIG:Debug>>")
+        endif()
+    endif()
+
+    if(_static_deps)
+        set(_static_deps_genex "$<${_genex_condition}:${_static_deps}>")
+        set_property(TARGET Qt5::Mqtt APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+                     "${_static_deps_genex}"
+        )
+    endif()
+
+    set(_static_link_flags "${_Qt5Mqtt_STATIC_${Configuration}_LINK_FLAGS}")
+    if(_static_link_flags)
+        set(_static_link_flags_genex "$<${_genex_condition}:${_static_link_flags}>")
+        if(NOT CMAKE_VERSION VERSION_LESS "3.13")
+            set_property(TARGET Qt5::Mqtt APPEND PROPERTY INTERFACE_LINK_OPTIONS
+                "${_static_link_flags_genex}"
+            )
+        else()
+            # Abuse INTERFACE_LINK_LIBRARIES to add link flags when CMake version is too low.
+            # Strip out SHELL:, because it is not supported in this property. And hope for the best.
+            string(REPLACE "SHELL:" "" _static_link_flags_genex "${_static_link_flags_genex}")
+            set_property(TARGET Qt5::Mqtt APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+                "${_static_link_flags_genex}"
+            )
+        endif()
+    endif()
 
     set(imported_implib "${_qt5Mqtt_install_prefix}/lib/${IMPLIB_LOCATION}")
     _qt5_Mqtt_check_file_exists(${imported_implib})
@@ -144,7 +264,22 @@ if (NOT TARGET Qt5::Mqtt)
     set(_Qt5Mqtt_LIB_DEPENDENCIES "Qt5::Network;Qt5::Core")
 
 
-    add_library(Qt5::Mqtt SHARED IMPORTED)
+    if(NOT Qt5_EXCLUDE_STATIC_DEPENDENCIES)
+        _qt5_Mqtt_process_prl_file(
+            "${_qt5Mqtt_install_prefix}/lib/Qt5Mqttd.prl" DEBUG
+            _Qt5Mqtt_STATIC_DEBUG_LIB_DEPENDENCIES
+            _Qt5Mqtt_STATIC_DEBUG_LINK_FLAGS
+        )
+
+        _qt5_Mqtt_process_prl_file(
+            "${_qt5Mqtt_install_prefix}/lib/Qt5Mqtt.prl" RELEASE
+            _Qt5Mqtt_STATIC_RELEASE_LIB_DEPENDENCIES
+            _Qt5Mqtt_STATIC_RELEASE_LINK_FLAGS
+        )
+    endif()
+
+    add_library(Qt5::Mqtt STATIC IMPORTED)
+    set_property(TARGET Qt5::Mqtt PROPERTY IMPORTED_LINK_INTERFACE_LANGUAGES CXX)
 
 
     set_property(TARGET Qt5::Mqtt PROPERTY
@@ -202,14 +337,11 @@ if (NOT TARGET Qt5::Mqtt)
         endif()
     endif()
 
-    _populate_Mqtt_target_properties(RELEASE "Qt5Mqtt.dll" "libQt5Mqtt.dll.a" FALSE)
+    _populate_Mqtt_target_properties(RELEASE "libQt5Mqtt.a" "" TRUE)
 
-    if (EXISTS
-        "${_qt5Mqtt_install_prefix}/bin/Qt5Mqtt.dll"
-      AND EXISTS
-        "${_qt5Mqtt_install_prefix}/lib/libQt5Mqtt.dll.a" )
-        _populate_Mqtt_target_properties(DEBUG "Qt5Mqtt.dll" "libQt5Mqtt.dll.a" FALSE)
-    endif()
+
+
+    _populate_Mqtt_target_properties(DEBUG "libQt5Mqttd.a" "" TRUE)
 
 
 
@@ -231,6 +363,42 @@ if (NOT TARGET Qt5::Mqtt)
             "IMPORTED_LOCATION_${Configuration}" ${imported_location}
         )
 
+        set(_static_deps
+            ${_Qt5${Plugin}_STATIC_${Configuration}_LIB_DEPENDENCIES}
+        )
+
+        if(NOT ${IsDebugAndRelease})
+            set(_genex_condition "1")
+        else()
+            if(${Configuration} STREQUAL DEBUG)
+                set(_genex_condition "$<CONFIG:Debug>")
+            else()
+                set(_genex_condition "$<NOT:$<CONFIG:Debug>>")
+            endif()
+        endif()
+        if(_static_deps)
+            set(_static_deps_genex "$<${_genex_condition}:${_static_deps}>")
+            set_property(TARGET Qt5::${Plugin} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+                         "${_static_deps_genex}"
+            )
+        endif()
+
+        set(_static_link_flags "${_Qt5${Plugin}_STATIC_${Configuration}_LINK_FLAGS}")
+        if(_static_link_flags)
+            set(_static_link_flags_genex "$<${_genex_condition}:${_static_link_flags}>")
+            if(NOT CMAKE_VERSION VERSION_LESS "3.13")
+                set_property(TARGET Qt5::${Plugin} APPEND PROPERTY INTERFACE_LINK_OPTIONS
+                    "${_static_link_flags_genex}"
+                )
+            else()
+                # Abuse INTERFACE_LINK_LIBRARIES to add link flags when CMake version is too low.
+                # Strip out SHELL:, because it is not supported in this property. And hope for the best.
+                string(REPLACE "SHELL:" "" _static_link_flags_genex "${_static_link_flags_genex}")
+                set_property(TARGET Qt5::${Plugin} APPEND PROPERTY INTERFACE_LINK_LIBRARIES
+                    "${_static_link_flags_genex}"
+                )
+            endif()
+        endif()
     endmacro()
 
     if (pluginTargets)

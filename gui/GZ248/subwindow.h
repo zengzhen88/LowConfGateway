@@ -239,6 +239,12 @@ public:
 
     SubWindowType windowType;
 
+    int sRow;
+    int sCol;
+
+    int sContextRow;
+    int sContextCol;
+
     //QMqttClient *client;
 #if 0
     /*system*/

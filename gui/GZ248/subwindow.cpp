@@ -72,12 +72,42 @@ void SubWindow::resizeEvent(QResizeEvent * resizeEvent) {
     }
     case SubWindowType_MainContext:
     {
-        //JumpWindowToMainContext();
+        if (sCol == TableItem_5) {//只有第3列需要有点击响应
+            QTableWidgetItem *item = serverTable->item(sRow, TableItem_0);
+            sConfigTogether *sConfig = (sConfigTogether *)serverTableMap.value(item);
+            item = serverTable->item(sRow, TableItem_4); //获取topic
+            const QString topic = item->text();
+            clickConfig = sConfig; //记录当前正在被使用的配置
+            JumpWindowToMainContext(sConfig, topic);
+        }
+        else if (sCol == TableItem_6) {
+            QTableWidgetItem *item = serverTable->item(sRow, TableItem_0);
+            sConfigTogether *sConfig = (sConfigTogether *)serverTableMap.value(item);
+            item = serverTable->item(sRow, TableItem_4); //获取topic
+            const QString topic = item->text();
+            clickConfig = sConfig; //记录当前正在被使用的配置
+            sConfig->timer->disconnect();
+            connect(sConfig->timer, &QTimer::timeout, this, [=]() {
+                JumpWindowToRealTimeRefreshContext(sConfig, topic);
+            });
+            sConfig->timer->start(500);
+            JumpWindowToRealTimeRefreshContext(sConfig, topic);
+        }
         break;
     }
     case SubWindowType_Context:
     {
-        //JumpWindowToContext(currentIndex);
+        QTableWidgetItem *serItem = serverTable->item(sRow, TableItem_0);
+        sConfigTogether *config = (sConfigTogether *)serverTableMap.value(serItem);
+        const QString topic = serItem->text();
+        QTableWidgetItem *item = contextTable->item(sContextRow, sContextCol);
+        QString match = item->text();
+        printf ("mach:%s\n", match.toStdString().c_str());
+        SetCurrentIndex(sContextRow);
+        //rightWidget->setFocus();
+        contextTable->setFocusPolicy(Qt::NoFocus);
+        JumpWindowToContext(match, config, topic);
+        contextTable->selectRow(sContextRow);
         break;
     }
     default:break;
@@ -992,8 +1022,6 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
     }
     case ModuleDataAttr_GetPower:
     {
-        PowerSupplyMode mode;
-        int level;
         ClearWidget();
         mainLayout->addWidget(contextTable);
         rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
@@ -1457,12 +1485,6 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
                 return;
 
             QString ip = this->getLocalIP();
-            //QString configFileName=":/webapp.ini";
-            //QSettings* listenerSettings=new QSettings(configFileName, QSettings::IniFormat, this);
-            //listenerSettings->beginGroup("listener");
-            //quint16 port=listenerSettings->value("port").toUInt() & 0xFFFF;
-            //printf (".......port:%d\n", port);
-
             QFileInfo files = config->sFileSystemMode->fileInfo(index);
             config->updateFileString = (QString)("http://") + ip + (QString)(":") + QString::number(8080) + (QString)("/") + files.fileName();
             //updateFileString = (QString)("http://192.168.0.107:8080/whttpserver/downloadFile/hello_world.bin");
@@ -1990,21 +2012,13 @@ int32_t SubWindow::JumpWindowToRealTimeRefreshContext(sConfigTogether *config, c
             + QString(">\r\n");
 
     label->setText(labels);
-    //QFont font = label->font();
-    //int defaultPoint = font.pointSize();
-    //font.setPointSize(10);
-    //label->setFont(font);
     label->show();
-    //font.setPointSize(defaultPoint);
-    //label->setFont(font);
-
     setCentralWidget(mainWidget);
     rightLayout->removeWidget(label);
     rightLayout->removeWidget(cancel);
     mainLayout->removeWidget(rightWidget);
 
     int32_t left, right, top, bottom;
-    //rightLayout->setContentsMargins(2, 2, 2, 2);
     rightLayout->getContentsMargins(&left, &top, &right, &bottom);
     int32_t labelX = left + 2, labelY = top + 0, labelW = rightWidget->width() - 100/*COMMON_WIDTH*/, labelH = rightWidget->height() - 50 - top;//COMMON_HEIGHT;
     label->setGeometry(labelX, labelY, labelW, labelH);
@@ -2029,15 +2043,32 @@ int32_t SubWindow::JumpWindowToMainContext(sConfigTogether *config, const QStrin
     ClearWidget();
     mainLayout->addWidget(contextTable);
     mainLayout->addWidget(rightWidget);
+    rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
     windowType = SubWindowType_MainContext;
 
     setCentralWidget(mainWidget);
     contextTable->show();
+    cancel->setText("返回");
+    cancel->show();
+    rightLayout->removeWidget(cancel);
     mainLayout->removeWidget(rightWidget);
     mainLayout->removeWidget(contextTable);
 
+    int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+    enter->setGeometry(labelX, labelY, labelW, labelH);
+    int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+    cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+    //返回到客户端列表成员
+    connect(cancel, &QPushButton::clicked, this, [=](){
+        ClearQnavigationWidget();
+        JumpWindowToServerList();
+    });
+
     //单元格被点击处理
     connect(contextTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
+        sContextRow = row;
+        sContextCol = col;
         QTableWidgetItem *item = contextTable->item(row, col);
         QString match = item->text();
         printf ("mach:%s\n", match.toStdString().c_str());
@@ -2046,7 +2077,6 @@ int32_t SubWindow::JumpWindowToMainContext(sConfigTogether *config, const QStrin
         contextTable->setFocusPolicy(Qt::NoFocus);
         JumpWindowToContext(match, config, topic);
         contextTable->selectRow(row);
-        //contextTable->setFocusPolicy(Qt::WheelFocus);
     });
 
     return 0;
@@ -2215,19 +2245,14 @@ int32_t SubWindow::JumpWindowToServerList(void) {
         connect(config->client, &QMqttClient::disconnected, this, [=](){
             printf ("config->client->disconnect\n");
         });
-#if 0
-        int a = 0;
-        connect(config->client, &QMqttClient::connected, [&a](){
-            printf ("config->client->connect:%d\n", a);
-        });
-#else
+
         connect(config->client, &QMqttClient::connected, this, [=](){
             QMqttTopicFilter topics;
             topics.setFilter(config->topicack);
             printf ("config->client->connect(%s)\n", topics.filter().toStdString().c_str());
             config->client->subscribe(topics, 0);
         });
-#endif
+
         connect(config->client, &QMqttClient::messageReceived, this, [=](const QByteArray &message, const QMqttTopicName &topic) {
             sConfigTogether *sConfig = (sConfigTogether *)topicTableMap.key(topic.name());
             if (sConfig) {
@@ -2235,6 +2260,7 @@ int32_t SubWindow::JumpWindowToServerList(void) {
                 RecvMqttMessage(sConfig, message, topic);
             }
         });
+
         connect(config->client, &QMqttClient::pingResponseReceived, this, [=](){
             printf ("config->client->ping server trigger\n");
         });
@@ -2320,6 +2346,9 @@ int32_t SubWindow::JumpWindowToServerList(void) {
     });
     //单元格被点击处理
     connect(serverTable, &QTableWidget::cellClicked, this, [=](int32_t row, int32_t col){
+        sRow = row;
+        sCol = col;
+
         if (col == TableItem_5) {//只有第3列需要有点击响应
             QTableWidgetItem *item = serverTable->item(row, TableItem_0);
             sConfigTogether *sConfig = (sConfigTogether *)serverTableMap.value(item);
@@ -2355,7 +2384,7 @@ int32_t SubWindow::JumpWindowToLogin(void) {
     rightLayout->addWidget(cancel, 0, Qt::AlignTop | Qt::AlignLeft);
 
     enter->setText("确定");
-    cancel->setText("取消:");
+    cancel->setText("取消");
     lineEdit0->setPlaceholderText("用户账号");
     lineEdit0->setClearButtonEnabled(true);
     lineEdit1->setPlaceholderText("用户密码");
@@ -2414,8 +2443,7 @@ int32_t subWindowPrintf(void *oObj, const char *strings) {
 }
 
 SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
-{
-    printf ("w:%d h:%d\n", minimumSize(), maximumSize());
+{;
     setMinimumSize(0, 0);
     setMaximumSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
     resize(800, 600);
@@ -2462,7 +2490,6 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     contextTable->setAcceptDrops(true);
     contextTable->setDropIndicatorShown(true);
 
-    printf (".................row:%d col:%d\n", contextTable->rowCount(), contextTable->columnCount());
     for (int32_t index = 0; index < ModuleDataAttr_Cnt; index++) {
         if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
         int32_t rowCount = contextTable->rowCount();
@@ -2473,15 +2500,9 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
     }
 
     clickConfig = NULL;
-    //sHttpServer = NULL;
-printf ("%s %d\n", __func__, __LINE__);
-    //signalSync = SignalSync_Init;
 
-    //runHttpServer("/home/zeng/share/whttp-server-master/whttp-server-core/whttpserver/downloadFile/");
-printf ("%s %d\n", __func__, __LINE__);
     //跳转到登陆界面
     JumpWindowToLogin();
-printf ("%s %d\n", __func__, __LINE__);
 }
 
 SubWindow::~SubWindow()

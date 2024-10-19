@@ -19,6 +19,7 @@ SOURCES += \
     main.cpp \
     subwindow.cpp
 
+
 HEADERS += \
     ../../main/common.h \
     ../../main/message.h \
@@ -31,7 +32,7 @@ HEADERS += \
     httpserver/mongoose.h \
     subwindow.h
 
-QMAKE_CXXFLAGS += -fpermissive
+QMAKE_CXXFLAGS += -fpermissive 
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -76,6 +77,7 @@ else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../.
 win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../thirdlib/pre_build/windows/lib/release/ -lcjson.dll
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../thirdlib/pre_build/windows/lib/debug/ -lcjson.dll
 
+
 INCLUDEPATH += $$PWD/../../thirdlib/pre_build/windows/inc
 DEPENDPATH += $$PWD/../../thirdlib/pre_build/windows/inc
 
@@ -83,21 +85,6 @@ win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../../thirdlib
 else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/windows/lib/debug/libcjson.dll.a
 else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/windows/lib/release/libcjson.dll.lib
 else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/../../thirdlib/pre_build/windows/lib/debug/libcjson.dll.lib
-
-
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/ -lQt5Mqtt.dll  -lpthread libwsock32 libws2_32 -lcrypt32
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/ -lQt5Mqtt.dll  -lpthread libwsock32 libws2_32 -lcrypt32
-
-
-INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/include
-DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/include
-
-win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/libQt5Mqtt.dll.a
-else:win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/libQt5Mqtt.dll.a
-else:win32:!win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/release/libQt5Mqtt.dll.lib
-else:win32:!win32-g++:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/debug/libQt5Mqtt.dll.lib
-
-
 
 unix:!macx: LIBS += -L$$PWD/../../thirdlib/pre_build/ubuntu/lib/release/ -lcjson
 
@@ -125,4 +112,13 @@ unix:!macx: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/ -lQt5Mqtt
 INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/src/mqtt/
 DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/src/mqtt/
 
-unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/libQt5Mqtt.a
+unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/libQt5Mqtt.a -lpthread libwsock32 libws2_32 -lcrypt32
+
+
+win32: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/ -lQt5Mqtt
+
+INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/include
+DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/include
+
+win32:!win32-g++: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/Qt5Mqtt.lib
+else:win32-g++: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/libQt5Mqtt.a

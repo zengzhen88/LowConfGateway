@@ -1,0 +1,35 @@
+/home/zeng/share/gateway/gateway/LowConfGateway/main/mqtt.c: In function 'MQTTMessageSubscribeList':
+/home/zeng/share/gateway/gateway/LowConfGateway/main/mqtt.c:1996:13: warning: unused variable 'index' [-Wunused-variable]
+ 1996 |     int32_t index = 0;
+      |             ^~~~~
+/home/zeng/share/gateway/gateway/LowConfGateway/main/mqtt.c: In function 'MQTTSpiTriggerRecv':
+/home/zeng/share/gateway/gateway/LowConfGateway/main/mqtt.c:2145:11: warning: unused variable 'mqtt' [-Wunused-variable]
+ 2145 |     MQTT *mqtt = (MQTT *)arg;
+      |           ^~~~
+/home/zeng/share/gateway/gateway/LowConfGateway/main/mqtt.c: At top level:
+/home/zeng/share/gateway/gateway/LowConfGateway/main/mqtt.c:979:28: warning: 'trace_record' defined but not used [-Wunused-variable]
+  979 | static heap_trace_record_t trace_record[NUM_RECORDS]; // This buffer must be in internal RAM
+      |                            ^~~~~~~~~~~~
+/home/zeng/share/gateway/gateway/LowConfGateway/main/wifi.c: In function 'WifiEventHandler':
+/home/zeng/share/gateway/gateway/LowConfGateway/main/wifi.c:199:15: warning: variable 'status' set but not used [-Wunused-but-set-variable]
+  199 |     esp_err_t status                = ESP_FAIL;
+      |               ^~~~~~
+/home/zeng/share/gateway/gateway/LowConfGateway/main/uart.c: In function 'UartSelectTask':
+/home/zeng/share/gateway/gateway/LowConfGateway/main/uart.c:705:11: warning: unused variable 'bbuffer' [-Wunused-variable]
+  705 |     char *bbuffer   = NULL;
+      |           ^~~~~~~
+/home/zeng/share/gateway/gateway/LowConfGateway/main/eth.c: In function 'EthEventHandler':
+/home/zeng/share/gateway/gateway/LowConfGateway/main/eth.c:190:15: warning: variable 'status' set but not used [-Wunused-but-set-variable]
+  190 |     esp_err_t status                = ESP_FAIL;
+      |               ^~~~~~
+CMake Error at run_serial_tool.cmake:66 (message):
+  
+  /home/zeng/.espressif/python_env/idf5.2_py3.8_env/bin/python;;/home/zeng/share/5.22esp32/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32
+  failed.
+
+
+
+make[3]: *** [CMakeFiles/flash.dir/build.make:57: CMakeFiles/flash] Error 1
+make[2]: *** [CMakeFiles/Makefile2:2313: CMakeFiles/flash.dir/all] Error 2
+make[1]: *** [CMakeFiles/Makefile2:2320: CMakeFiles/flash.dir/rule] Error 2
+make: *** [Makefile:333: flash] Error 2
