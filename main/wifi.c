@@ -95,6 +95,8 @@ typedef struct {
     esp_timer_handle_t timer;
     /* TaskHandle_t wifiTask; */
 
+    int checkStatus;
+
     WifiSigSend send;
     WifiSigRecv recv;
 } Wifi;
@@ -129,6 +131,7 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleInternalMessage *message) {
                         /*主要是设置Wifi信号*/
                         switch (message.attr) {
                             case ModuleDataAttr_SetWifiCfg:
+                            case ModuleDataAttr_ReportDebug:
                                 {
                                     status = 0;
                                     if (strcmp((const char *)wifi->config.sta.ssid, message.setWifiCfg.ssid)
@@ -176,8 +179,13 @@ int32_t WifiEventRecvHandler(Wifi *wifi, ModuleInternalMessage *message) {
                                         }
                                     }
 
-                                    if (wifi->send) {
-                                        wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                                    if (message.attr == ModuleDataAttr_SetWifiCfg) {
+                                        if (wifi->send) {
+                                            wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                                        }
+                                    }
+                                    else if (message.attr == ModuleDataAttr_ReportDebug) {
+                                        wifi->checkStatus = 1;
                                     }
                                     break;
                                 }
@@ -241,6 +249,17 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
+        if (wifi->send) {
+            if (wifi->checkStatus == 1) {
+                wifi->checkStatus = 0;
+                ModuleMessage message;
+                message.reportDebug.attr = ModuleDataAttr_ReportDebug;
+                strcpy(message.reportDebug.data, "checkwifi:OK");
+                if (wifi->send) {
+                    status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                }
+            }
+        }
         if (wifi->send) {
             ModuleMessage message;
             message.attr = ModuleDataAttr_NetState;

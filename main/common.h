@@ -68,6 +68,10 @@ typedef enum {
     ModuleDataAttr_ReportMqttCfg,
     ModuleDataAttr_ReportTransmitData,
     ModuleDataAttr_ReportScanTimeout,
+    ModuleDataAttr_SetREGEX,
+    ModuleDataAttr_GetREGEX,
+    ModuleDataAttr_ReportREGEX,
+    ModuleDataAttr_ReportDebug,
     ModuleDataAttr_Ack,
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;

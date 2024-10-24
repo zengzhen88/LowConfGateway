@@ -38,6 +38,12 @@ const char *toEnumChineseString(ModuleDataAttr attr) {
             return "查询下发数据超时时间";
         case ModuleDataAttr_PtSend:
             return "发送下发数据";
+        case ModuleDataAttr_SetREGEX:
+            return "设置正则表达式";
+        case ModuleDataAttr_GetREGEX:
+            return "获取正则表达式";
+        case ModuleDataAttr_ReportREGEX:
+            /* return "上报正则表达式"; */
         case ModuleDataAttr_NetState:
             /* return "查询网络状态"; */
         case ModuleDataAttr_TransmitData:
@@ -118,6 +124,12 @@ const char *toEnumString(ModuleDataAttr attr) {
             return "GetScanTimeout";
         case ModuleDataAttr_ReportScanTimeout:
             return "ReportScanTimeout";
+        case ModuleDataAttr_SetREGEX:
+            return "SetREGEX";
+        case ModuleDataAttr_GetREGEX:
+            return "GetREGEX";
+        case ModuleDataAttr_ReportREGEX:
+            return "ReportREGEX";
         default:return "Ack";
     }
 }
@@ -283,6 +295,12 @@ ModuleDataAttr toChineseStringEnum(const char *strings) {
     }
     else if (strstr(strings, "查询下发数据超时时间")) {
         return ModuleDataAttr_GetScanTimeout;
+    }
+    else if (strstr(strings, "设置正则表达式")) {
+        return ModuleDataAttr_SetREGEX;
+    }
+    else if (strstr(strings, "获取正则表达式")) {
+        return ModuleDataAttr_GetREGEX;
     }
     else {
         return ModuleDataAttr_Cnt;

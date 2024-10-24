@@ -72,7 +72,7 @@ typedef struct {
     char gateway[32];
 } ModuleMessageGetWifiCfg;
 
-//ModuleDataAttr_SetWifiCfg
+//ModuleDataAttr_SetWifiCfg 
 typedef struct {
     ModuleDataAttr attr;
     char ssid[32];
@@ -141,6 +141,24 @@ typedef struct {
     int sec;
 } ModuleMessageSetScanTimeout;
 
+//ModuleDataAttr_SetREGEX
+typedef struct {
+    ModuleDataAttr attr;
+    char data[128];
+} ModuleMessageSetREGEX;
+
+//ModuleDataAttr_GetREGEX
+typedef struct {
+    ModuleDataAttr attr;
+    char data[128];
+} ModuleMessageGetREGEX;
+
+//ModuleDataAttr_ReportDebug
+typedef struct {
+    ModuleDataAttr attr;
+    char data[128];
+} ModuleMessageReportDebug;
+
 typedef union {
     ModuleDataAttr attr;
     ModuleMessageTriggerRecv triggerRecv;
@@ -160,6 +178,9 @@ typedef union {
     ModuleMessagePtSend ptSend;
     ModuleMessageGetScanTimeout getScanTimeout;
     ModuleMessageSetScanTimeout setScanTimeout;
+    ModuleMessageSetREGEX setREGEX;
+    ModuleMessageGetREGEX getREGEX;
+    ModuleMessageReportDebug reportDebug;
     ModuleMessageAck ack;
 } ModuleMessage;
 

@@ -94,6 +94,8 @@ typedef struct {
     char netmask[32];
     char gateway[32];
 
+    int checkStatus;
+
     EthSigSend send;
     EthSigRecv recv;
 } Eth;
@@ -125,47 +127,58 @@ int32_t EthEventRecvHandler(Eth *net, ModuleInternalMessage *message) {
                         LogPrintf(LogEth_Info, "start test recv getEthConfig\n");
                         /*主要是设置Eth信号*/
                         switch (message.attr) {
-/*
- *                             case ModuleDataAttr_GetEthConfig:
- *                                 {
- *                                     if (net->send) {
- *                                         LogPrintf(LogEth_Info, "start test ack getEthConfig\n");
- *                                         net->send(gPriv, DataAttr_EthToMqtt, 
- *                                                 &net->message, sizeof(net->message), 0);
- *                                     }
- *                                     break;
- *                                 }
- *                             case ModuleDataAttr_SetEthConfig:
- *                                 {
- *                                     if (0 == ((uint8_t *)message.ethConfig.ip)[0]
- *                                             && 0 == ((int8_t *)message.ethConfig.ip)[1]
- *                                             && 0 == ((int8_t *)message.ethConfig.ip)[2]
- *                                             && 0 == ((int8_t *)message.ethConfig.ip)[3]) {
- *                                         if (ESP_OK == esp_netif_dhcps_stop(net->ethif)) {
- *                                             char ip[32];
- *                                             esp_netif_ip_info_t info;
- *                                             memset(&info, 0x0, sizeof(info));
- *                                             IpUInt32ToString(message.ethConfig.ip, ip, sizeof(ip));
- *                                             ipaddr_aton((const char *)ip, (ip_addr_t *)&info.ip);
- *                                             IpUInt32ToString(message.ethConfig.netmask, ip, sizeof(ip));
- *                                             ipaddr_aton((const char *)ip, (ip_addr_t *)&info.netmask);
- *                                             IpUInt32ToString(message.ethConfig.gateway, ip, sizeof(ip));
- *                                             ipaddr_aton((const char *)ip, (ip_addr_t *)&info.gw);
- *                                             esp_netif_set_ip_info(net->ethif, &info);
- *                                         }
- *                                         else {
- *                                             LogPrintf(LogEth_Error, "eth esp_netif_dhcps_stop failure\n");
- *                                         }
- *                                     }
- *                                     else {
- *                                         if (ESP_OK != esp_netif_dhcps_start(net->ethif)) {
- *                                             LogPrintf(LogEth_Error, "eth esp_netif_dhcps_start failure\n");
- *                                         }
- *                                     }
- * 
- *                                     break;
- *                                 }
- */
+                            case ModuleDataAttr_SetEthCfg:
+                            case ModuleDataAttr_ReportDebug:
+                                {
+                                    if (strcmp(message.setEthCfg.address, "0.0.0.0")) {
+                                        esp_netif_dhcp_status_t dhcpcStatus;
+                                        if (ESP_OK == esp_netif_dhcpc_get_status(net->ethif, &dhcpcStatus)) {
+                                            if (dhcpcStatus == ESP_NETIF_DHCP_STARTED) {
+                                                if (ESP_OK == esp_netif_dhcpc_stop(net->ethif)) {
+                                                    esp_netif_ip_info_t info;
+                                                    memset(&info, 0x0, sizeof(info));
+                                                    ipaddr_aton((const char *)message.setEthCfg.address, (ip_addr_t *)&info.ip);
+                                                    ipaddr_aton((const char *)message.setEthCfg.netmask, (ip_addr_t *)&info.netmask);
+                                                    ipaddr_aton((const char *)message.setEthCfg.gateway, (ip_addr_t *)&info.gw);
+                                                    status = esp_netif_set_ip_info(net->ethif, &info);
+                                                }
+                                                else {
+                                                    LogPrintf(LogEth_Error, "eth esp_netif_dhcps_stop failure\n");
+                                                    status = -1;
+                                                }
+                                            }
+                                            else {
+                                                esp_netif_ip_info_t info;
+                                                memset(&info, 0x0, sizeof(info));
+                                                ipaddr_aton((const char *)message.setEthCfg.address, (ip_addr_t *)&info.ip);
+                                                ipaddr_aton((const char *)message.setEthCfg.netmask, (ip_addr_t *)&info.netmask);
+                                                ipaddr_aton((const char *)message.setEthCfg.gateway, (ip_addr_t *)&info.gw);
+                                                status = esp_netif_set_ip_info(net->ethif, &info);
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        esp_netif_dhcp_status_t dhcpcStatus;
+                                        if (ESP_OK == esp_netif_dhcpc_get_status(net->ethif, &dhcpcStatus)) {
+                                            if (dhcpcStatus == ESP_NETIF_DHCP_STOPPED) {
+                                                if (ESP_OK != esp_netif_dhcpc_start(net->ethif)) {
+                                                    LogPrintf(LogEth_Error, "eth esp_netif_dhcps_start failure\n");
+                                                    status = -1;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (message.attr == ModuleDataAttr_SetEthCfg) {
+                                        if (net->send) {
+                                            net->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
+                                        }
+                                    }
+                                    else if (message.attr == ModuleDataAttr_ReportDebug) {
+                                        net->checkStatus = 1;
+                                    }
+                                    break;
+                                }
                             default:break;
                         }
                     }
@@ -205,37 +218,6 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                     LogPrintf(LogEth_Info, "Ethernet HW Addr %02x:%02x:%02x:%02x:%02x:%02x\n",
                             macAddr[0], macAddr[1], macAddr[2],
                             macAddr[3], macAddr[4], macAddr[5]);
-
-/*
- *                     esp_err_t status                = ESP_FAIL;        
- *                     esp_netif_dhcp_status_t dhcpcStatus;
- *                     if (ESP_OK == esp_netif_dhcpc_get_status(eth->ethif, &dhcpcStatus)) {
- *                         printf ("%s %d status:%d dhcpcStatus:%d\n", __func__, __LINE__, status, dhcpcStatus);
- *                         if (dhcpcStatus == ESP_NETIF_DHCP_STARTED) {
- *                             printf ("%s %d\n", __func__, __LINE__);
- *                             if (ESP_OK == esp_netif_dhcpc_stop(eth->ethif)) {
- *                                 printf ("%s %d\n", __func__, __LINE__);
- *                                 esp_netif_ip_info_t info;
- *                                 memset(&info, 0x0, sizeof(info));
- *                                 ipaddr_aton((const char *)"192.168.0.104", (ip_addr_t *)&info.ip);
- *                                 ipaddr_aton((const char *)"255.255.255.0", (ip_addr_t *)&info.netmask);
- *                                 ipaddr_aton((const char *)"192.168.0.1", (ip_addr_t *)&info.gw);
- *                                 status = esp_netif_set_ip_info(eth->ethif, &info);
- *                                 if (ESP_OK != status) {
- *                                     LogPrintf(LogEth_Info, "eth esp_netif_dhcps_static failure\n");
- *                                     printf ("%s %d\n", __func__, __LINE__);
- *                                 }
- *                             }
- *                             else {
- *                                 LogPrintf(LogEth_Info, "eth esp_netif_dhcps_stop failure\n");
- *                                 status = -1;
- *                             }
- *                         }
- *                         else {
- * 
- *                         }
- *                     }
- */
                     break;
                 }
             case ETHERNET_EVENT_DISCONNECTED:
@@ -277,6 +259,17 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         /* eth->ethSok = 1; */
         LogPrintf(LogEth_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
+        if (eth->send) {
+            if (eth->checkStatus == 1) {
+                eth->checkStatus = 0;
+                ModuleMessage message;
+                message.reportDebug.attr = ModuleDataAttr_ReportDebug;
+                strcpy(message.reportDebug.data, "checketh:OK");
+                if (eth->send) {
+                    status = eth->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
+                }
+            }
+        }
         if (eth->send) {
             ModuleMessage message;
             message.attr = ModuleDataAttr_NetState;

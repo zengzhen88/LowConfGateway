@@ -182,6 +182,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || (strstr(strings, "+MQTTCFG:"))
                             || (strstr(strings, "+PTSEND:"))
                             || (strstr(strings, "+SCANTIMEOUT:"))
+                            || (strstr(strings, "+REGEX"))
                             || (strstr(strings, "+OK"))) {
                             uart->mark[DataAttr_MqttToUart] = RECV;
                         }
@@ -197,6 +198,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || (strstr(strings, "+SCANTIMEOUT:"))
                             || (strstr(strings, "+MQTTCFG:"))
                             || (strstr(strings, "+PTSEND:"))
+                            || (strstr(strings, "+REGEX"))
                             || (strstr(strings, "+OK"))) {
                             uart->mark[DataAttr_EthToUart] = RECV;
                         }
@@ -211,6 +213,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || (strstr(strings, "+SCANTIMEOUT:"))
                             || (strstr(strings, "+WIFICFG:"))
                             || (strstr(strings, "+MQTTCFG:"))
+                            || (strstr(strings, "+REGEX"))
                             || (strstr(strings, "+PTSEND:"))
                             || (strstr(strings, "+OK"))) {
                             uart->mark[DataAttr_WifiToUart] = RECV;
@@ -490,6 +493,20 @@ int32_t UartMessageRecvHandler(Uart *uart) {
 #endif
                             break;
                         }
+                    case ModuleDataAttr_SetREGEX:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, 
+                                    "AT+REGEX=%s\r\n", 
+                                    mess->setREGEX.data); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            break;
+                        }
+                    case ModuleDataAttr_GetREGEX:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+REGEX?\r\n"); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            break;
+                        }
                     case ModuleDataAttr_GetScanTimeout:
                         {
                             snprintf (uart->buffer, uart->bufSize, "AT+SCANTIMEOUT?\r\n"); 
@@ -506,6 +523,14 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                             strcpy(uart->uartAck, "+OK\r\n");
                             uart->ackSize = strlen("+OK\r\n") + 1;
 #endif
+                            break;
+                        }
+                    case ModuleDataAttr_ReportDebug:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, 
+                                    "AT+DEBUG=%s\r\n", 
+                                    mess->reportDebug.data); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
                             break;
                         }
                     case ModuleDataAttr_Cnt:
@@ -557,6 +582,14 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                     case ModuleDataAttr_NetState:
                         {
                             UartMessageNetStateX(uart, mess);
+                            break;
+                        }
+                    case ModuleDataAttr_ReportDebug:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, 
+                                    "AT+DEBUG=%s\r\n", 
+                                    mess->reportDebug.data); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
                             break;
                         }
                     default:break;
@@ -618,6 +651,14 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                             strcpy(uart->uartAck, "+OK\r\n");
                             uart->ackSize = strlen("+OK\r\n") + 1;
 #endif
+                            break;
+                        }
+                    case ModuleDataAttr_ReportDebug:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, 
+                                    "AT+DEBUG=%s\r\n", 
+                                    mess->reportDebug.data); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
                             break;
                         }
                     case ModuleDataAttr_Cnt:
