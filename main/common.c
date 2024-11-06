@@ -73,11 +73,11 @@ const char *toEnumChineseString(ModuleDataAttr attr) {
 const char *toEnumString(ModuleDataAttr attr) {
     switch (attr) {
         case ModuleDataAttr_TransmitData:
-            return "TransmitData";
+            return "ReportAdv";
         case ModuleDataAttr_ReportTransmitData:
-            return "ReportTransmitData";
+            return "ReportMsg";
         case ModuleDataAttr_Update:
-            return "Update";
+            return "CpuUpdate";
         case ModuleDataAttr_GetTemperature:
             return "GetTemperature";
         case ModuleDataAttr_ReportTemperature:
@@ -85,11 +85,11 @@ const char *toEnumString(ModuleDataAttr attr) {
         case ModuleDataAttr_GetModuleVersion:
             return "GetModuleVersion";
         case ModuleDataAttr_GetModuleInfo:
-            return "GetModuleInfo";
+            return "GetUserInfo";
         case ModuleDataAttr_SetModuleInfo:
-            return "SetModuleInfo";
+            return "SetUserInfo";
         case ModuleDataAttr_ReportModuleInfo:
-            return "ReportModuleInfo";
+            return "ReportUserInfo";
         case ModuleDataAttr_GetPower:
             return "GetPower";
         case ModuleDataAttr_ReportPower:
@@ -125,11 +125,11 @@ const char *toEnumString(ModuleDataAttr attr) {
         case ModuleDataAttr_ReportScanTimeout:
             return "ReportScanTimeout";
         case ModuleDataAttr_SetREGEX:
-            return "SetREGEX";
+            return "SetRegex";
         case ModuleDataAttr_GetREGEX:
-            return "GetREGEX";
+            return "GetRegex";
         case ModuleDataAttr_ReportREGEX:
-            return "ReportREGEX";
+            return "ReportRegex";
         default:return "Ack";
     }
 }

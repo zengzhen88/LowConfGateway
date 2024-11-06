@@ -40,7 +40,13 @@ typedef struct {
 
     float temperature;
 
-    char version[32];
+    /* char version[32]; */
+    char module[32];
+    char hardwareVer[32];
+    char firmwareVer[32];
+    char mac[32];
+
+
     char info[32];
 
     PowerSupplyMode mode;
@@ -62,6 +68,7 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
+    char clientid[64];
 
 /* #define USE_RING_BUFFER */
 
@@ -420,8 +427,44 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                 }
                 else if (strstr(recv, "+DEVINFO:")) {
                     char *version = valid;
-                    strcpy(gateway->version, version);
-                    printf ("===> moduleVersion:%s\n", version);
+                    char *sptr = version;//strchr(info, '<');
+                    if (sptr) {
+                        //sptr = module,hardwareVer,firmwareVer,mac
+                        char *ptr = strchr(sptr, ',');
+                        if (ptr) {
+                            //ptr = ,hardwareVer,firmwareVer,mac
+                            *ptr = '\0';
+                            strcpy(gateway->module, sptr);
+                            sptr = ptr + 1;
+                            //sptr = hardwareVer,firmwareVer,mac
+                            if (sptr) {
+                                ptr = strchr(sptr, ',');
+                                if (ptr) {
+                                    *ptr = '\0';
+                                    //ptr = ,firmwareVer,mac
+                                    strcpy(gateway->hardwareVer, sptr);
+                                    sptr = ptr + 1;
+                                    //sptr firmwareVer,mac
+                                    if (sptr) {
+                                        ptr = strchr(sptr, ',');
+                                        if (ptr) {
+                                            *ptr = '\0';
+                                            //ptr = ,mac
+                                            strcpy(gateway->firmwareVer, sptr);
+                                            sptr = ptr + 1;
+                                            if (sptr) {
+                                                strcpy(gateway->mac, sptr);
+                                            }
+                                        }
+                                        printf ("===> moduleInfo>module:%s\n", gateway->module);
+                                        printf ("===> moduleInfo>hardwareVer:%s\n", gateway->hardwareVer);
+                                        printf ("===> moduleInfo>firmwareVer:%s\n", gateway->firmwareVer);
+                                        printf ("===> moduleInfo>mac:%s\n", gateway->mac);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 else if (strstr(recv, "+USERINFO:")) {
                     char *info = valid;
@@ -564,33 +607,41 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                     char *user              = NULL;
                     char *password          = NULL;
                     char *url               = NULL;
+                    char *clientid          = NULL;
 
-                    char *sptr = strchr(info, '<');
+                    printf ("info:%s\n", info);
+                    //url,user,password,clientid
+                    char *sptr = info;//strchr(info, '<');
                     if (sptr) {
-                        char *ptr = strchr(sptr + 1, '>');
+                        char *ptr = strchr(sptr, ',');
                         if (ptr) {
+                            //ptr = ,user,password,clientid
                             *ptr = '\0';
-                            user = sptr + 1;
-
-                            sptr = strchr(ptr + 1, '<');
-                            if (ptr) {
-                                ptr = strchr(sptr + 1, '>');
+                            url = sptr;
+                            sptr = ptr + 1;
+                            //sptr = user,password,clientid
+                            if (sptr) {
+                                ptr = strchr(sptr, ',');
                                 if (ptr) {
+                                    //ptr = ,password,clientid
                                     *ptr = '\0';
-                                    password = sptr + 1;
-
-                                    sptr = strchr(ptr + 1, '<');
-                                    if (ptr) {
-                                        ptr = strchr(sptr + 1, '>');
+                                    user = sptr;
+                                    sptr = ptr + 1;
+                                    //sptr = password,clientid
+                                    if (sptr) {
+                                        ptr = strchr(sptr, ',');
                                         if (ptr) {
+                                            //ptr = ,clientid
                                             *ptr = '\0';
-                                            url = sptr + 1;
-                                            strcpy(gateway->user, user);
-                                            strcpy(gateway->password, password);
-                                            strcpy(gateway->url, url);
-                                            printf ("===> MqttConfig "
-                                                    "user:%s password:%s url:%s\n", 
-                                                    user, password, url); 
+                                            password = sptr;
+                                            sptr = ptr + 1;
+                                            if (sptr) {
+                                                clientid = sptr;
+                                                strcpy(gateway->user, user);
+                                                strcpy(gateway->password, password);
+                                                strcpy(gateway->url, url);
+                                                strcpy(gateway->clientid, clientid);
+                                            }
                                         }
                                     }
                                 }
@@ -613,7 +664,7 @@ void app_main(void) {
     if (gateway) {
         memset(gateway, 0x0, sizeof(*gateway));
 
-        strcpy(gateway->ethAddress, "192.168.0.106");
+        strcpy(gateway->ethAddress, "192.168.0.105");
         strcpy(gateway->ethNetmask, "255.255.255.0");
         strcpy(gateway->ethGateway, "192.168.0.1");
 
@@ -627,9 +678,13 @@ void app_main(void) {
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://203.3.112.47:1883");
+        strcpy(gateway->url, "mqtt://192.168.1.7:1883");
 
-        strcpy(gateway->version, "1.0");
+        strcpy(gateway->module, "GZ248");
+        strcpy(gateway->hardwareVer, "1.0");
+        strcpy(gateway->firmwareVer, "1.0");
+        strcpy(gateway->mac, "00:00:00:00:00:00");
+
         strcpy(gateway->info, "first");
 
         gateway->mode   = DC;
@@ -673,6 +728,31 @@ void app_main(void) {
             gateway->uart = UartInit(&config);
         }
 
+/*
+ *         {
+ *             ModuleMessage message;
+ *             message.attr = ModuleDataAttr_GetTemperature;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleVersion;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetModuleInfo;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetPower;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetWifiCfg;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetEthCfg;
+ *             appSearchConfig(gateway, &message);
+ * 
+ *             message.attr = ModuleDataAttr_GetMqttCfg;
+ *             appSearchConfig(gateway, &message);
+ *         }
+ */
 
         {
             /*wifi*/
@@ -695,35 +775,29 @@ void app_main(void) {
             gateway->wifi = WifiInit(&config);
         }
 
-/*
- *         {
- *             [>ethernet<]
- *             EthConfig config;
- *             memset(&config, 0x0, sizeof(config));
- * 
- *             strcpy(config.address, gateway->ethAddress);
- *             strcpy(config.netmask, gateway->ethNetmask);
- *             strcpy(config.gateway, gateway->ethGateway);
- * 
- *             config.send = appSend;
- *             config.recv = appRecv;
- * 
- *             EthInitLog(gateway, appPrint);
- *             EthSetLogLevel(LogEth_Info);
- * 
- *             gateway->eth = EthInit(&config);
- *         }
- */
+        {
+            /*ethernet*/
+            EthConfig config;
+            memset(&config, 0x0, sizeof(config));
+
+            strcpy(config.address, gateway->ethAddress);
+            strcpy(config.netmask, gateway->ethNetmask);
+            strcpy(config.gateway, gateway->ethGateway);
+
+            config.send = appSend;
+            config.recv = appRecv;
+
+            EthInitLog(gateway, appPrint);
+            EthSetLogLevel(LogEth_Info);
+
+            gateway->eth = EthInit(&config);
+        }
 
         {
             /*mqtt*/
             MQTTConfig config;
             memset(&config, 0x0, sizeof(config));
 
-            config.mode     = gateway->mode;
-            config.level    = gateway->level;
-            strcpy(config.version, gateway->version);
-            strcpy(config.info, gateway->info);
             strcpy(config.user, gateway->user);
             strcpy(config.password, gateway->password);
             strcpy(config.url, gateway->url);
@@ -786,55 +860,7 @@ void app_main(void) {
         }
 
         printf ("%s %d\n", __func__, __LINE__);
-        /*
-         * UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetWifiCfg);
-         * vTaskDelay(pdMS_TO_TICKS(2000));
-         * UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetMqttCfg);
-         * vTaskDelay(pdMS_TO_TICKS(2000));
-         * UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetTemperature);
-         * vTaskDelay(pdMS_TO_TICKS(2000));
-         * UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetModuleInfo);
-         * vTaskDelay(pdMS_TO_TICKS(2000));
-         * UartMaunulSendAT(gateway->uart, ModuleDataAttr_GetPower);
-         * vTaskDelay(pdMS_TO_TICKS(2000));
-         * UartMaunulSendAT(gateway->uart, ModuleDataAttr_Reboot);
-         * vTaskDelay(pdMS_TO_TICKS(2000));
-         * vTaskDelay(pdMS_TO_TICKS(10000));
-         */
         running = 1;
-
-        {
-            /*
-             * ModuleMessage message;
-             * message.attr = ModuleDataAttr_GetTemperature;
-             * appSearchConfig(gateway, &message);
-             */
-
-/*
- *             ModuleMessage message;
- *             message.attr = ModuleDataAttr_GetTemperature;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleVersion;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleInfo;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetPower;
- *             appSearchConfig(gateway, &message);
- */
-
-            /* message.attr = ModuleDataAttr_GetWifiCfg; */
-            /* appSearchConfig(gateway, &message); */
-
-            /* message.attr = ModuleDataAttr_GetEthCfg; */
-            /* appSearchConfig(gateway, &message); */
-
-            /* message.attr = ModuleDataAttr_GetMqttCfg; */
-            /* appSearchConfig(gateway, &message); */
-        }
-
 
         {
             uint8_t CPU_RunInfo[400];

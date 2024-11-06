@@ -35,12 +35,6 @@ int32_t MQTTInitLog(void *priv, MQTTPrint print);
 int32_t MQTTSetLogLevel(LogMQTT level);
 
 typedef struct {
-    char version[32];
-    char info[32];
-
-    PowerSupplyMode mode;
-    int32_t level;
-
     char user[32];
     char password[32];
 

@@ -142,6 +142,7 @@ void SpiRecvTask(void *args) {
     memset(&t, 0, sizeof(t));
 
     while (1) {
+#if 0
         if (spi->request) {
             status = spi->request(gPriv, DataAttr_SpiToMqtt, &message, SPI_DATA_LENGTH);
             if (!status) {
@@ -193,6 +194,9 @@ void SpiRecvTask(void *args) {
                 }
             }
         }
+#else 
+        vTaskDelay(pdMS_TO_TICKS(5000));
+#endif
     }
 }
 

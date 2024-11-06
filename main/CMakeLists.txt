@@ -12,6 +12,8 @@ idf_component_register(
     "eth.c"
     "update.c"
     "spi.c"
+    "regex.cpp"
+    "regexc.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bcon.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bson-md5.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bson-atomic.c" 

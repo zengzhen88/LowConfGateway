@@ -33,7 +33,9 @@ typedef struct {
 //ModuleDataAttr_GetModuleVersion
 typedef struct {
     ModuleDataAttr attr;
-    char ver[128];
+    char module[128];
+    char hardwareVer[128];
+    char firmwareVer[128];
 } ModuleMessageGetModuleVersion;
 
 //ModuleDataAttr_GetModuleInfo
@@ -104,6 +106,7 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
+    char clientid[64];
 } ModuleMessageGetMqttCfg;
 
 //ModuleDataAttr_SetMqttCfg
@@ -112,6 +115,7 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
+    char clientid[64];
 } ModuleMessageSetMqttCfg;
 
 //ModuleDataAttr_Ack
