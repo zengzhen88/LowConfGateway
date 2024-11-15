@@ -14,6 +14,7 @@ idf_component_register(
     "spi.c"
     "regex.cpp"
     "regexc.c"
+    "regex/re.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bcon.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bson-md5.c"
     # "libbson/mongo-c-driver/src/libbson/src/bson/bson-atomic.c" 
@@ -43,6 +44,7 @@ idf_component_register(
 
     INCLUDE_DIRS
     "./"
+    "./regex/"
     # "libbson/mongo-c-driver/src/libbson/src/jsonsl"
     # "libbson/mongo-c-driver/src/common/"
     # "libbson/mongo-c-driver/src/libbson/src/"

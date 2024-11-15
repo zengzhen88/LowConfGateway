@@ -17,6 +17,7 @@
 #include <mqtt.h>
 #include <wifi.h>
 #include <uart.h>
+#include "esp_log.h"
 #include <eth.h>
 #include <message.h>
 #include <update.h>
@@ -69,6 +70,7 @@ typedef struct {
     char password[32];
     char url[64];
     char clientid[64];
+    short port;
 
 /* #define USE_RING_BUFFER */
 
@@ -82,7 +84,7 @@ typedef struct {
 int32_t appPrint(void *priv, const char *strings) {
     return printf ("%s", strings);
 }
-static int32_t running = 0;
+static int32_t running = 1;
 static int32_t appTriggerRecv(void *handle, DataAttr attr) {
     Gateway *gateWay = (Gateway *)handle;
 
@@ -102,6 +104,10 @@ static int32_t appTriggerRecv(void *handle, DataAttr attr) {
         case DataAttr_EthToMqtt:
             {
                 return MQTTEthTriggerRecv(gateWay->mqtt);
+            }
+        case DataAttr_EthToWifi:
+            {
+                return WifiTriggerRecv(gateWay->wifi);
             }
         case DataAttr_WifiToUart:
             {
@@ -406,13 +412,14 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
     char recv[128];
     Gateway *gateway= (Gateway *) args;
 
-    status = appSend(gateway, DataAttr_MqttToUart,
+    status = appSend(gateway, DataAttr_mainToUart,
             message, sizeof(*message), 0);
     if (!status) {
         int32_t length = sizeof(recv);
-        status = appRecv(gateway, DataAttr_UartToMqtt, 
+        status = appRecv(gateway, DataAttr_uartToMain, 
                 recv, &length, 2000);
         if (!status) {
+                    /* printf (">>>>>>>>>>>>> :%s\n", recv); */
             /*AT命令检测*/
             /* +TEMPERATURE:20 */
             recv[length] = '\0';
@@ -471,70 +478,72 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                     strcpy(gateway->info, info);
                     printf ("===> moduleInfo:%s\n", info);
                 }
+                /* +POWER:DC,50 */
                 else if (strstr(recv, "+POWER:")) {
                     int32_t power           = 0;;
                     PowerSupplyMode mode    = PowerCnt;
                     char *info = valid;
-                    char *ptr = strchr(info, '<');
+                    char *ptr = strchr(info, ',');
                     if (ptr) {
-                        ptr = strchr(ptr + 1, '>');
-                        if (ptr) {
-                            *ptr = '\0';
-                            if (!strcmp(info, "DC")) {
-                                mode = DC;
-                            }
-                            else if (!strcmp(info + 1, "BAT")) {
-                                mode = BAT;
-                            }
-                            else {
-                                mode = PowerCnt;
-                            }
-
-                            ptr = strchr(ptr, '<');
-                            if (ptr) {
-                                power = atoi(ptr + 1);
-                                gateway->mode = mode;
-                                gateway->level= power;
-                                printf ("===> Power Mode:%s level:%ld\n", 
-                                        mode == DC ? "DC" : "BAT", 
-                                        power);
-                            }
+                        //,50
+                        *ptr = '\0';
+                        if (!strcmp(info, "DC")) {
+                            mode = DC;
                         }
+                        else if (!strcmp(info, "BAT")) {
+                            mode = BAT;
+                        }
+                        else {
+                            mode = PowerCnt;
+                        }
+
+                        power = atoi(ptr + 1);
+                        gateway->mode = mode;
+                        gateway->level= power;
+                        printf ("===> Power Mode:%s level:%ld\n", 
+                                mode == DC ? "DC" : "BAT", 
+                                power);
                     }
                 }
                 else if (strstr(recv, "+ETHCFG:")) {
-                    char *info = valid;
                     char *address           = NULL;
                     char *netmask           = NULL;
                     char *gateways          = NULL;
 
-                    char *sptr = strchr(info, '<');
+                    char *info = valid;
+                    printf ("info:%s\n", info);
+                    //address,netmask,gateway
+                    char *sptr = info;//strchr(info, '<');
                     if (sptr) {
-                        char *ptr = strchr(sptr + 1, '>');
+                        char *ptr = strchr(sptr, ',');
                         if (ptr) {
+                            //ptr = ,netmask,gateway
                             *ptr = '\0';
-                            address = sptr + 1;
-
-                            sptr = strchr(ptr + 1, '<');
-                            if (ptr) {
-                                ptr = strchr(sptr + 1, '>');
+                            address = sptr;
+                            sptr = ptr + 1;
+                            //sptr = netmask,gateway
+                            if (sptr) {
+                                ptr = strchr(sptr, ',');
                                 if (ptr) {
+                                    //ptr = ,gateway
                                     *ptr = '\0';
-                                    netmask = sptr + 1;
-
-                                    sptr = strchr(ptr + 1, '<');
-                                    if (ptr) {
-                                        ptr = strchr(sptr + 1, '>');
-                                        if (ptr) {
-                                            *ptr = '\0';
-                                            gateways = sptr + 1;
-                                            strcpy(gateway->ethAddress, address);
-                                            strcpy(gateway->ethNetmask, netmask);
-                                            strcpy(gateway->ethGateway, gateways);
-                                            printf ("===> EthConfig "
-                                                    "address:%s netmask:%s gateways:%s\n", 
-                                                    address, netmask, gateways); 
-                                        }
+                                    netmask = sptr;
+                                    sptr = ptr + 1;
+                                    //sptr = gateway
+                                    if (sptr) {
+                                        gateways = sptr;
+                                        strcpy(gateway->ethAddress, address);
+                                        strcpy(gateway->ethNetmask, netmask);
+                                        strcpy(gateway->ethGateway, gateways);
+                                        printf ("===> EthConfig "
+                                                "address:%s \n", 
+                                                address); 
+                                        printf ("===> EthConfig "
+                                                "netmask:%s\n", 
+                                                netmask); 
+                                        printf ("===> EthConfig "
+                                                "gateways:%s\n", 
+                                                gateways); 
                                     }
                                 }
                             }
@@ -542,56 +551,65 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                     }
                 }
                 else if (strstr(recv, "+WIFICFG:")) {
-                    char *info = valid;
                     char *ssid              = NULL;
                     char *password          = NULL;
                     char *address           = NULL;
                     char *netmask           = NULL;
                     char *gateways          = NULL;
 
-                    char *sptr = strchr(info, '<');
+                    char *info = valid;
+                    printf ("info:%s\n", info);
+                    //ssid,password,address,netmask,gateway
+                    char *sptr = info;//strchr(info, '<');
                     if (sptr) {
-                        char *ptr = strchr(sptr + 1, '>');
+                        char *ptr = strchr(sptr, ',');
                         if (ptr) {
+                            //ptr = ,password,address,netmask,gateway
                             *ptr = '\0';
-                            ssid = sptr + 1;
-
-                            sptr = strchr(ptr + 1, '<');
-                            if (ptr) {
-                                ptr = strchr(sptr + 1, '>');
+                            ssid = sptr;
+                            sptr = ptr + 1;
+                            //sptr = password,address,netmask,gateway
+                            if (sptr) {
+                                ptr = strchr(sptr, ',');
                                 if (ptr) {
+                                    //ptr = ,address,netmask,gateway
                                     *ptr = '\0';
-                                    password = sptr + 1;
-
-                                    sptr = strchr(ptr + 1, '<');
-                                    if (ptr) {
-                                        ptr = strchr(sptr + 1, '>');
+                                    password = sptr;
+                                    sptr = ptr + 1;
+                                    //sptr = address,netmask,gateway
+                                    if (sptr) {
+                                        ptr = strchr(sptr, ',');
                                         if (ptr) {
+                                            //ptr = ,netmask,gateway
                                             *ptr = '\0';
-                                            address = sptr + 1;
-
-                                            sptr = strchr(ptr + 1, '<');
-                                            if (ptr) {
-                                                ptr = strchr(sptr + 1, '>');
+                                            address = sptr;
+                                            sptr = ptr + 1;
+                                            //netmask,gateway 
+                                            if (sptr) {
+                                                ptr = strchr(sptr, ',');
                                                 if (ptr) {
+                                                    //,gateway
                                                     *ptr = '\0';
-                                                    netmask = sptr + 1;
-
-                                                    sptr = strchr(ptr + 1, '<');
-                                                    if (ptr) {
-                                                        ptr = strchr(sptr + 1, '>');
-                                                        if (ptr) {
-                                                            *ptr = '\0';
-                                                            gateways = sptr + 1;
-                                                            strcpy(gateway->wifiSsid, ssid);
-                                                            strcpy(gateway->wifiPassword, password);
-                                                            strcpy(gateway->wifiAddress, address);
-                                                            strcpy(gateway->wifiNetmask, netmask);
-                                                            strcpy(gateway->wifiGateway, gateways);
-                                                            printf ("===> WifiConfig ssid:%s password:%s "
-                                                                    "address:%s netmask:%s gateways:%s\n", 
-                                                                    ssid, password, address, netmask, gateways); 
-                                                        }
+                                                    netmask = sptr;
+                                                    sptr = ptr + 1;
+                                                    //gateway
+                                                    if (sptr) {
+                                                        gateways = sptr;
+                                                        strcpy(gateway->wifiSsid, ssid);
+                                                        strcpy(gateway->wifiPassword, password);
+                                                        strcpy(gateway->wifiAddress, address);
+                                                        strcpy(gateway->wifiNetmask, netmask);
+                                                        strcpy(gateway->wifiGateway, gateways);
+                                                        printf ("===> WifiConfig ssid:%s\n", 
+                                                                ssid); 
+                                                        printf ("===> WifiConfig password:%s\n", 
+                                                                password); 
+                                                        printf ("===> WifiConfig address:%s \n", 
+                                                                address); 
+                                                        printf ("===> WifiConfig netmask:%s\n", 
+                                                                netmask); 
+                                                        printf ("===> WifiConfig gateways:%s\n", 
+                                                                 gateways); 
                                                     }
                                                 }
                                             }
@@ -603,44 +621,62 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                     }
                 }
                 else if (strstr(recv, "+MQTTCFG:")) {
-                    char *info = valid;
                     char *user              = NULL;
                     char *password          = NULL;
                     char *url               = NULL;
                     char *clientid          = NULL;
+                    short port              = 0;
 
+                    char *info = valid;
                     printf ("info:%s\n", info);
-                    //url,user,password,clientid
+                    //url,port,clientid,user,password
                     char *sptr = info;//strchr(info, '<');
                     if (sptr) {
                         char *ptr = strchr(sptr, ',');
                         if (ptr) {
-                            //ptr = ,user,password,clientid
+                            //,port,clientid,user,password
                             *ptr = '\0';
                             url = sptr;
                             sptr = ptr + 1;
-                            //sptr = user,password,clientid
+                            //port,clientid,user,password
                             if (sptr) {
                                 ptr = strchr(sptr, ',');
                                 if (ptr) {
-                                    //ptr = ,password,clientid
+                                    //,clientid,user,password
                                     *ptr = '\0';
-                                    user = sptr;
+                                    port = atoi(sptr);
                                     sptr = ptr + 1;
-                                    //sptr = password,clientid
+                                    //clientid,user,password
                                     if (sptr) {
                                         ptr = strchr(sptr, ',');
                                         if (ptr) {
-                                            //ptr = ,clientid
+                                            //,user,password
                                             *ptr = '\0';
-                                            password = sptr;
+                                            clientid = sptr;
                                             sptr = ptr + 1;
+                                            //user,password
                                             if (sptr) {
-                                                clientid = sptr;
-                                                strcpy(gateway->user, user);
-                                                strcpy(gateway->password, password);
-                                                strcpy(gateway->url, url);
-                                                strcpy(gateway->clientid, clientid);
+                                                ptr = strchr(sptr, ',');
+                                                if (ptr) {
+                                                    //,password
+                                                    *ptr = '\0';
+                                                    user = sptr;
+                                                    sptr = ptr + 1;
+                                                    //password
+                                                    if (sptr) {
+                                                        password = sptr;
+                                                        strcpy(gateway->user, user);
+                                                        strcpy(gateway->password, password);
+                                                        strcpy(gateway->url, url);
+                                                        strcpy(gateway->clientid, clientid);
+                                                        gateway->port = port;
+                                                        printf ("===> MQTTConfig user:%s\n", gateway->user); 
+                                                        printf ("===> MQTTConfig password:%s\n", gateway->password); 
+                                                        printf ("===> MQTTConfig url:%s\n", gateway->url); 
+                                                        printf ("===> MQTTConfig port:%d\n", gateway->port); 
+                                                        printf ("===> MQTTConfig clientid:%s\n", gateway->clientid); 
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -678,12 +714,14 @@ void app_main(void) {
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://192.168.1.7:1883");
+        strcpy(gateway->url, "mqtt://192.168.1.10:1883");
+        /* strcpy(gateway->url, "mqtt://192.168.0.106:1883"); */
+        strcpy(gateway->clientid, "88888888");
 
         strcpy(gateway->module, "GZ248");
         strcpy(gateway->hardwareVer, "1.0");
         strcpy(gateway->firmwareVer, "1.0");
-        strcpy(gateway->mac, "00:00:00:00:00:00");
+        strcpy(gateway->mac, "000000000000");
 
         strcpy(gateway->info, "first");
 
@@ -728,31 +766,77 @@ void app_main(void) {
             gateway->uart = UartInit(&config);
         }
 
+        {
+            /* printf ("%s %d\n", __func__, __LINE__); */
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_GetTemperature;
+            appSearchConfig(gateway, &message);
+            /* printf ("%s %d\n", __func__, __LINE__); */
+
+            message.attr = ModuleDataAttr_GetModuleVersion;
+            appSearchConfig(gateway, &message);
+            /* printf ("%s %d\n", __func__, __LINE__); */
+
+            message.attr = ModuleDataAttr_GetModuleInfo;
+            appSearchConfig(gateway, &message);
+            /* printf ("%s %d\n", __func__, __LINE__); */
+
+            message.attr = ModuleDataAttr_GetPower;
+            appSearchConfig(gateway, &message);
+            /* printf ("%s %d\n", __func__, __LINE__); */
+
 /*
- *         {
- *             ModuleMessage message;
- *             message.attr = ModuleDataAttr_GetTemperature;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleVersion;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetModuleInfo;
- *             appSearchConfig(gateway, &message);
- * 
- *             message.attr = ModuleDataAttr_GetPower;
- *             appSearchConfig(gateway, &message);
- * 
  *             message.attr = ModuleDataAttr_GetWifiCfg;
  *             appSearchConfig(gateway, &message);
+ *             [> printf ("%s %d\n", __func__, __LINE__); <]
  * 
  *             message.attr = ModuleDataAttr_GetEthCfg;
  *             appSearchConfig(gateway, &message);
+ *             [> printf ("%s %d\n", __func__, __LINE__); <]
  * 
  *             message.attr = ModuleDataAttr_GetMqttCfg;
  *             appSearchConfig(gateway, &message);
- *         }
+ *             [> printf ("%s %d\n", __func__, __LINE__); <]
  */
+
+            message.attr = ModuleDataAttr_GetConfDown;
+            appSearchConfig(gateway, &message);
+            /* printf ("%s %d\n", __func__, __LINE__); */
+
+        }
+        {
+            /*mqtt*/
+            MQTTConfig config;
+            memset(&config, 0x0, sizeof(config));
+
+            strcpy(config.user, gateway->user);
+            strcpy(config.password, gateway->password);
+            strcpy(config.url, gateway->url);
+            strcpy(config.clientId, gateway->clientid);
+            strcpy(config.mac, gateway->mac);
+
+            /* char mac[12]; */
+            /* esp_read_mac((uint8_t *)mac, ESP_MAC_WIFI_STA); */
+            /* uint32_t clinetId = 88888888; */
+            
+            /* printf ("mac:%s\n", gateway->mac); */
+            /* snprintf (config.clientId, sizeof(config.clientId) - 1, "%lu", clinetId); */
+            /* snprintf (config.topic, sizeof(config.topic) - 1,  */
+                    /* "GZ248_%02x%02x%02x%02x%02x%02x_%lu",  */
+                    /* gateway->mac[0], gateway->mac[1], gateway->mac[2],  */
+                    /* gateway->mac[3], gateway->mac[4], gateway->mac[5], clinetId); */
+
+            MQTTInitLog(gateway, appPrint);
+            MQTTSetLogLevel(LogMQTT_Info);
+
+            config.send     = appSend;
+            config.recv     = appRecv;
+            config.peek     = appPeek;
+            config.request  = appDataRequest;
+            config.release  = appDataRelease;
+
+            gateway->mqtt = MQTTInit(&config);
+        }
 
         {
             /*wifi*/
@@ -793,40 +877,7 @@ void app_main(void) {
             gateway->eth = EthInit(&config);
         }
 
-        {
-            /*mqtt*/
-            MQTTConfig config;
-            memset(&config, 0x0, sizeof(config));
 
-            strcpy(config.user, gateway->user);
-            strcpy(config.password, gateway->password);
-            strcpy(config.url, gateway->url);
-
-            char mac[12];
-            esp_read_mac((uint8_t *)mac, ESP_MAC_WIFI_STA);
-            uint32_t clinetId = 88888888;
-            
-            printf ("mac:%s\n", mac);
-            snprintf (config.clientId, sizeof(config.clientId) - 1, "%lu", clinetId);
-            snprintf (config.topic, sizeof(config.topic) - 1, 
-                    "GZ248_%02x%02x%02x%02x%02x%02x_%lu", 
-                    mac[0], mac[1], mac[2], 
-                    mac[3], mac[4], mac[5], clinetId);
-
-            MQTTInitLog(gateway, appPrint);
-            MQTTSetLogLevel(LogMQTT_Info);
-
-            config.send     = appSend;
-            config.recv     = appRecv;
-            config.peek     = appPeek;
-            config.request  = appDataRequest;
-            config.release  = appDataRelease;
-
-            gateway->mqtt = MQTTInit(&config);
-        }
-
-
-        printf ("%s %d\n", __func__, __LINE__);
         {
             //if version match
             //update
@@ -842,7 +893,6 @@ void app_main(void) {
             gateway->update = UpdateInit(&config);
         }
 
-        printf ("%s %d\n", __func__, __LINE__);
         {
             /*spi*/
             SpiConfig config;
@@ -859,8 +909,6 @@ void app_main(void) {
             gateway->spi = SpiInit(&config);
         }
 
-        printf ("%s %d\n", __func__, __LINE__);
-        running = 1;
 
         {
             uint8_t CPU_RunInfo[400];

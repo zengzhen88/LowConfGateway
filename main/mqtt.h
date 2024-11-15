@@ -40,7 +40,8 @@ typedef struct {
 
     char url[64];
     char clientId[64];
-    char topic[64];
+    char mac[64];
+    // char topic[64];
     MQTTSigSend send;
     MQTTSigRecv recv;
     MQTTSigPeek peek;

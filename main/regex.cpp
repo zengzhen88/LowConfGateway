@@ -8,8 +8,7 @@ extern "C" int cpp_regexFunction(const char *inStr, const char *matchStr) {
 
     // 示例1: 匹配"Hello"
     std::regex regexStr(matchStr);
-    std::smatch match;
-    if (std::regex_search(text, regexStr)) {
+    if (std::regex_match(text, regexStr)) {
         return 0;
     }
 

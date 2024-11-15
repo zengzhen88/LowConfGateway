@@ -30,7 +30,7 @@ static LogWifi gLevel = LogWifi_Info;
 static int WifiLogPrintf(LogWifi level,
         const char *file, const char *func,
         int line, const char *format, ...) {
-    char logBuf[256];
+    char logBuf[128];
     va_list args;
     int funcLine        = 0;
 
@@ -116,86 +116,72 @@ int32_t WifiSetLogLevel(LogWifi level) {
     return 0;
 }
 
-int32_t WifiEventRecvHandler(Wifi *wifi, ModuleInternalMessage *message) {
+int32_t WifiEventRecvHandler(Wifi *wifi) {
     /* int32_t status = -1; */
 
-    switch (message->attr) {
-        case ModuleInternalDataAttr_TriggerRecv:
-            {
-                if (wifi->recv) {
-                    ModuleMessage message;
-                    int32_t length = sizeof(message);
-                    int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
-                    if (!status) {
-                        LogPrintf(LogWifi_Info, "start test recv setWifiConfig\n");
-                        /*主要是设置Wifi信号*/
-                        switch (message.attr) {
-                            case ModuleDataAttr_SetWifiCfg:
-                            case ModuleDataAttr_ReportDebug:
-                                {
-                                    status = 0;
-                                    if (strcmp((const char *)wifi->config.sta.ssid, message.setWifiCfg.ssid)
-                                            || strcmp((const char *)wifi->config.sta.password, message.setWifiCfg.password)) {
-                                        strcpy((char *)wifi->config.sta.ssid, (const char *)message.setWifiCfg.ssid);
-                                        strcpy((char *)wifi->config.sta.password, (const char *)message.setWifiCfg.password);
-                                        esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
-                                    }
-                                    if (strcmp(message.setWifiCfg.address, "0.0.0.0")) {
-                                        esp_netif_dhcp_status_t dhcpcStatus;
-                                        if (ESP_OK == esp_netif_dhcpc_get_status(wifi->staNetif, &dhcpcStatus)) {
-                                            if (dhcpcStatus == ESP_NETIF_DHCP_STARTED) {
-                                                if (ESP_OK == esp_netif_dhcpc_stop(wifi->staNetif)) {
-                                                    esp_netif_ip_info_t info;
-                                                    memset(&info, 0x0, sizeof(info));
-                                                    ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
-                                                    ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
-                                                    ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
-                                                    status = esp_netif_set_ip_info(wifi->staNetif, &info);
-                                                }
-                                                else {
-                                                    LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_stop failure\n");
-                                                    status = -1;
-                                                }
-                                            }
-                                            else {
-                                                esp_netif_ip_info_t info;
-                                                memset(&info, 0x0, sizeof(info));
-                                                ipaddr_aton((const char *)message.setWifiCfg.address, (ip_addr_t *)&info.ip);
-                                                ipaddr_aton((const char *)message.setWifiCfg.netmask, (ip_addr_t *)&info.netmask);
-                                                ipaddr_aton((const char *)message.setWifiCfg.gateway, (ip_addr_t *)&info.gw);
-                                                status = esp_netif_set_ip_info(wifi->staNetif, &info);
-                                            }
-                                        }
-                                    }
-                                    else {
-                                        esp_netif_dhcp_status_t dhcpcStatus;
-                                        if (ESP_OK == esp_netif_dhcpc_get_status(wifi->staNetif, &dhcpcStatus)) {
-                                            if (dhcpcStatus == ESP_NETIF_DHCP_STOPPED) {
-                                                if (ESP_OK != esp_netif_dhcpc_start(wifi->staNetif)) {
-                                                    LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_start failure\n");
-                                                    status = -1;
-                                                }
-                                            }
-                                        }
-                                    }
+    if (wifi->recv) {
+        ModuleMessage message;
+        int32_t length = sizeof(message);
+        int status = wifi->recv(gPriv, DataAttr_MqttToWifi, &message, &length, 0);
+        if (!status) {
+            LogPrintf(LogWifi_Info, "start test recv setWifiConfig\n");
+            /*主要是设置Wifi信号*/
+            switch (message.attr) {
+                case ModuleDataAttr_SetWifiCfg:
+                case ModuleDataAttr_ReportDebug:
+                    {
+                        status = 0;
+                        LogPrintf(LogWifi_Info, "xxxxwifi ssid by modify (%s) to (%s)\n", 
+                                wifi->config.sta.ssid, message.setWifiCfg.ssid);
+                        LogPrintf(LogWifi_Info, "xxxxwifi password by modify (%s) to (%s)\n", 
+                                wifi->config.sta.password, message.setWifiCfg.password);
+                        strcpy(wifi->ssid, message.setWifiCfg.ssid);
+                        strcpy(wifi->password, message.setWifiCfg.password);
+                        strcpy(wifi->address, message.setWifiCfg.address);
+                        strcpy(wifi->netmask, message.setWifiCfg.netmask);
+                        strcpy(wifi->gateway, message.setWifiCfg.gateway);
 
-                                    if (message.attr == ModuleDataAttr_SetWifiCfg) {
-                                        if (wifi->send) {
-                                            wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
-                                        }
-                                    }
-                                    else if (message.attr == ModuleDataAttr_ReportDebug) {
-                                        wifi->checkStatus = 1;
-                                    }
-                                    break;
-                                }
-                            default:break;
+                        strcpy((char *)wifi->config.sta.ssid, (const char *)message.setWifiCfg.ssid);
+                        strcpy((char *)wifi->config.sta.password, (const char *)message.setWifiCfg.password);
+                        /* esp_wifi_disconnect(); */
+                        /* esp_wifi_stop(); */
+                        esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
+                        esp_wifi_connect();
+                        /* esp_wifi_start(); */
+
+                        if (message.attr == ModuleDataAttr_SetWifiCfg) {
+                            if (wifi->send) {
+                                wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                            }
                         }
+                        else if (message.attr == ModuleDataAttr_ReportDebug) {
+                            wifi->checkStatus = 1;
+                        }
+                        break;
                     }
-                }
-                break;
+                default:break;
             }
-        default:break;
+        }
+        status = wifi->recv(gPriv, DataAttr_EthToWifi, &message, &length, 0);
+        if (!status) {
+            switch (message.attr) {
+                case ModuleDataAttr_DownWifi:
+                    {
+                        LogPrintf(LogWifi_Info, "start test recv Ethernet Up, wifi Down\n");
+                        esp_wifi_disconnect();
+                        esp_wifi_stop();
+                        break;
+                    }
+                case ModuleDataAttr_UpWifi:
+                    {
+                        LogPrintf(LogWifi_Info, "start test recv Ethernet Down, wifi Up\n");
+                        esp_wifi_start();
+                        esp_wifi_connect();
+                        break;
+                    }
+                default:break;
+            }
+        }
     }
 
     return 0;
@@ -207,8 +193,11 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     esp_err_t status                = ESP_FAIL;        
     Wifi *wifi = (Wifi *)arg;
 
-    LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d cpuId:%d\n", 
-            event_base, event_id, xPortGetCoreID());
+    LogPrintf(LogWifi_Info, "eventBase:%s eventId:%d(%d:%d) cpuId:%d\n", 
+            event_base, event_id, 
+            WIFI_EVENT_HOME_CHANNEL_CHANGE, 
+            WIFI_EVENT_MAX,
+            xPortGetCoreID());
 
     if (event_base == WIFI_EVENT) {
         switch (event_id) {
@@ -219,28 +208,76 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
                     wifi->wifiSok = 1; //应该Start就表示可以了
                     break;
                 }
+            case WIFI_EVENT_STA_CONNECTED:
+                {
+                    if (strcmp(wifi->address, "0.0.0.0")) {
+                        LogPrintf(LogWifi_Info, "wifi dhcp stop\n"); 
+                        LogPrintf(LogWifi_Info, "wifi address:%s\n", wifi->address); 
+                        LogPrintf(LogWifi_Info, "wifi netmask:%s\n", wifi->netmask); 
+                        LogPrintf(LogWifi_Info, "wifi gateway:%s\n", wifi->gateway); 
+                        esp_netif_dhcp_status_t dhcpcStatus;
+                        if (ESP_OK == esp_netif_dhcpc_get_status(wifi->staNetif, &dhcpcStatus)) {
+                            if (dhcpcStatus == ESP_NETIF_DHCP_STARTED) {
+                                LogPrintf(LogWifi_Info, "wifi is DHCP_STARTED\n");
+                                if (ESP_OK == esp_netif_dhcpc_stop(wifi->staNetif)) {
+                                    LogPrintf(LogWifi_Info, "wifi start DHCP_STOPED\n");
+                                    esp_netif_ip_info_t info;
+                                    memset(&info, 0x0, sizeof(info));
+                                    ipaddr_aton((const char *)wifi->address, (ip_addr_t *)&info.ip);
+                                    ipaddr_aton((const char *)wifi->netmask, (ip_addr_t *)&info.netmask);
+                                    ipaddr_aton((const char *)wifi->gateway, (ip_addr_t *)&info.gw);
+                                    status = esp_netif_set_ip_info(wifi->staNetif, &info);
+                                }
+                                else {
+                                    LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_stop failure\n");
+                                    status = -1;
+                                }
+                            }
+                            else {
+                                LogPrintf(LogWifi_Info, "wifi is DHCP_STOPED\n");
+                                esp_netif_ip_info_t info;
+                                memset(&info, 0x0, sizeof(info));
+                                ipaddr_aton((const char *)wifi->address, (ip_addr_t *)&info.ip);
+                                ipaddr_aton((const char *)wifi->netmask, (ip_addr_t *)&info.netmask);
+                                ipaddr_aton((const char *)wifi->gateway, (ip_addr_t *)&info.gw);
+                                status = esp_netif_set_ip_info(wifi->staNetif, &info);
+                            }
+                        }
+                    }
+                    else {
+                        LogPrintf(LogWifi_Info, "wifi dhcp start\n"); 
+                        esp_netif_dhcp_status_t dhcpcStatus;
+                        if (ESP_OK == esp_netif_dhcpc_get_status(wifi->staNetif, &dhcpcStatus)) {
+                            if (dhcpcStatus == ESP_NETIF_DHCP_STOPPED) {
+                                if (ESP_OK != esp_netif_dhcpc_start(wifi->staNetif)) {
+                                    LogPrintf(LogWifi_Error, "wifi esp_netif_dhcps_start failure\n");
+                                    status = -1;
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
             case WIFI_EVENT_STA_DISCONNECTED:
                 {
                     wifi->wifiSok = 0;
-                    ModuleMessage message;
-                    message.attr = ModuleDataAttr_NetState;
-                    message.netState._state = _NetState_NetUnconnect;//后面修改
                     if (wifi->send) {
+                        ModuleMessage message;
+                        message.attr = ModuleDataAttr_NetState;
+                        message.netState._state = _NetState_NetUnconnect;//后面修改
                         status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
                     }
-                    if (wifi->retryNum < EXAMPLE_ESP_MAXIMUM_RETRY) {
-                        esp_wifi_connect();
-                        wifi->retryNum++;
-                        LogPrintf(LogWifi_Warning, "retry to connect to "
-                                "the AP retryNum:% " PRIu32 "\n", wifi->retryNum);
-                    }
+                    esp_wifi_connect();
+                    wifi->retryNum++;
+                    LogPrintf(LogWifi_Warning, "retry to connect to "
+                            "the AP retryNum:% " PRIu32 "\n", wifi->retryNum);
 
                     LogPrintf(LogWifi_Error ,"connect to the AP fail retryNum:%" PRIu32 "\n", wifi->retryNum);
                     break;
                 }
             case WIFI_EVENT_MAX:
                 {
-                    WifiEventRecvHandler(wifi, (ModuleInternalMessage *)event_data);
+                    WifiEventRecvHandler(wifi);
                     break;
                 }
             default:break;
@@ -249,24 +286,47 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
         if (wifi->send) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             if (wifi->checkStatus == 1) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 wifi->checkStatus = 0;
                 ModuleMessage message;
                 message.reportDebug.attr = ModuleDataAttr_ReportDebug;
                 strcpy(message.reportDebug.data, "checkwifi:OK");
                 if (wifi->send) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                     status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 }
             }
         }
         if (wifi->send) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_NetConnect;
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+            if (wifi->send) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+                status = wifi->send(gPriv, DataAttr_WifiToMqtt, &message, sizeof(message), 0);
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+            }
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+        }
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+        if (wifi->send) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             ModuleMessage message;
             message.attr = ModuleDataAttr_NetState;
             message.netState._state = _NetState_NetConnect;//后面修改
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             if (wifi->send) {
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             }
+        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
         }
         wifi->retryNum = 0;
     }

@@ -59,7 +59,10 @@ struct sConfigTogether {
     /*system*/
     float sTemperature;
     float sReportTemperture;
-    QString sVersion;
+    QString sModule;
+    QString sHardwareVer;
+    QString sFirmwareVer;
+
     QString sInfo;
     QString sReportInfo;
 
@@ -87,9 +90,16 @@ struct sConfigTogether {
     QString sMqttUser;
     QString sMqttPassword;
     QString sMqttUrl;
+    QString sMqttPort;
+    QString sMqttClientId;
     QString sReportMqttUser;
     QString sReportMqttPassword;
     QString sReportMqttUrl;
+    QString sReportMqttPort;
+    QString sReportMqttClientId;
+
+    QString sRegex;
+    QString sReportRegex;
 
     int sScanTimeout;
     int sReportScanTimeout;

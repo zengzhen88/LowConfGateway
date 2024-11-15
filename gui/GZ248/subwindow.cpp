@@ -275,7 +275,9 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
             if (config->signalSync) break;
             QThread::usleep(10);
         }
-        QString retval((QString)("获取版本信息:") + (QString)config->sVersion);
+        QString retval((QString)("<获取版本信息>\n") + (QString)("Module:") + (QString)config->sModule + (QString)("\n")
+                       + (QString)("HardwareVer:") + (QString)config->sHardwareVer + (QString)("\n")
+                       + (QString)("FirmwareVer:") + (QString)config->sFirmwareVer);
         QMessageBox::information(this,
                                  tr("系统提示"),
                                  tr(config->signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取版本信息失败"),
@@ -625,7 +627,12 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
             if (config->signalSync) break;
             QThread::usleep(10);
         }
-        QString retval((QString)("<MQTT网络配置>\n") + "\n" + "user:" + config->sMqttUser + "\n" + "passwd:" + config->sMqttPassword + "\n" + "url:" + config->sMqttUrl + "\n");
+        QString retval((QString)("<MQTT网络配置>\n") + "\n"
+                       + "user:" + config->sMqttUser + "\n"
+                       + "passwd:" + config->sMqttPassword + "\n"
+                       + "url:" + config->sMqttUrl + "\n"
+                       + "port:" + QString(config->sMqttPort) + "\n"
+                       + "clientid:" + config->sMqttClientId + "\n");
         QMessageBox::information(this,
                                  tr("系统提示"),
                                  tr(config->signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取MQTT网络配置失败"),
@@ -641,6 +648,8 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
         likeObject.insert("user", lineEdit0->text());
         likeObject.insert("password", lineEdit1->text());
         likeObject.insert("url", lineEdit2->text());
+        likeObject.insert("port", lineEdit3->text().toInt());
+        likeObject.insert("clientid", lineEdit4->text());
         QJsonArray likeArray;
         likeArray.append(likeObject);
         QJsonDocument doc;
@@ -729,6 +738,88 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
     {
         break;
     }
+    case ModuleDataAttr_GetREGEX:
+    {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_GetREGEX));
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(topics);
+        printf ("signalSync:%d config:%p topic:%s\n",
+                config->signalSync, config, topic.name().toStdString().c_str());
+        config->client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+
+        QProgressDialog dialog(tr("获取正则表达式中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                config->signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (config->signalSync) break;
+            QThread::usleep(10);
+        }
+        QString retval((QString)("获取正则表达式:") + ((config->sRegex)));
+        QMessageBox::information(this,
+                                 tr("系统提示"),
+                                 tr(config->signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取正则表达式失败"),
+                                 QMessageBox::Ok);
+
+        config->signalSync = SignalSync_Init;
+        break;
+    }
+    case ModuleDataAttr_SetREGEX:
+    {
+        QJsonObject likeObject;
+        likeObject.insert("htype", toEnumString(ModuleDataAttr_SetREGEX));
+        likeObject.insert("date", lineEdit0->text());
+        QJsonArray likeArray;
+        likeArray.append(likeObject);
+        QJsonDocument doc;
+        doc.setArray(likeArray);
+        QMqttTopicName topic;
+        topic.setName(topics);
+        printf ("topic:%s\n", topic.name().toStdString().c_str());
+        config->client->publish(topic, doc.toJson(), 0, 0);
+        QJsonObject object;
+        QJsonDocument doc1 = QJsonDocument::fromJson(doc.toJson());
+        QJsonArray roots = doc1.array();
+        for (int32_t index = 0; index < roots.size(); index++) {
+            QJsonObject root = roots.at(index).toObject();
+            QString name = root.value("htype").toString();
+        }
+        QProgressDialog dialog(tr("设置正则表达式中..."), tr("取消"), 0, 200000, this);
+        dialog.setWindowTitle(tr("进度条对话框"));
+        dialog.setWindowModality(Qt::WindowModal);
+        dialog.show();
+        for (int32_t index = 0; index < 200000; index++) {
+            dialog.setValue(index);
+            QCoreApplication::processEvents();
+            if (dialog.wasCanceled()) {
+                config->signalSync = SignalSync_FAILURE;
+                break;
+            }
+            if (config->signalSync) break;
+            QThread::usleep(10);
+        }
+        QMessageBox::information(this, tr("系统提示"), tr(config->signalSync == SignalSync_OK ? "设置成功" : "设置失败"), QMessageBox::Ok);
+        config->signalSync = SignalSync_Init;
+        break;
+    }
     case ModuleDataAttr_GetScanTimeout:
     {
         QJsonObject likeObject;
@@ -777,7 +868,7 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
     {
         QJsonObject likeObject;
         likeObject.insert("htype", toEnumString(ModuleDataAttr_SetScanTimeout));
-        likeObject.insert("sec", lineEdit0->text());
+        likeObject.insert("sec", lineEdit0->text().toInt());
         QJsonArray likeArray;
         likeArray.append(likeObject);
         QJsonDocument doc;
@@ -1402,6 +1493,8 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(lineEdit1, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(lineEdit2, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit3, 0, Qt::AlignTop | Qt::AlignLeft);
+        rightLayout->addWidget(lineEdit4, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(enter, 0, Qt::AlignTop | Qt::AlignLeft);
         rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
         mainLayout->addWidget(rightWidget);
@@ -1410,13 +1503,19 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         lineEdit0->setPlaceholderText("用户账号");
         lineEdit1->setPlaceholderText("用户密码");
         lineEdit2->setPlaceholderText("服务地址");
+        lineEdit3->setPlaceholderText("服务端口");
+        lineEdit4->setPlaceholderText("clinetId");
         lineEdit0->clear();
         lineEdit1->clear();
         lineEdit2->clear();
+        lineEdit3->clear();
+        lineEdit4->clear();
         label->show();
         lineEdit0->show();
         lineEdit1->show();
         lineEdit2->show();
+        lineEdit3->show();
+        lineEdit4->show();
         contextTable->show();
         enter->show();
 
@@ -1426,6 +1525,8 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         rightLayout->removeWidget(lineEdit0);
         rightLayout->removeWidget(lineEdit1);
         rightLayout->removeWidget(lineEdit2);
+        rightLayout->removeWidget(lineEdit3);
+        rightLayout->removeWidget(lineEdit4);
         mainLayout->removeWidget(contextTable);
         rightLayout->removeWidget(enter);
         mainLayout->removeWidget(rightWidget);
@@ -1442,7 +1543,11 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         lineEdit1->setGeometry(lineEdit1X, lineEdit1Y, lineEdit1W, lineEdit1H);
         int32_t lineEdit2X = labelX, lineEdit2Y = lineEdit1Y + lineEdit1H, lineEdit2W = COMMON_WIDTH, lineEdit2H = COMMON_HEIGHT;
         lineEdit2->setGeometry(lineEdit2X, lineEdit2Y, lineEdit2W, lineEdit2H);
-        int32_t enterX = lineEdit2X, enterY = lineEdit2Y + lineEdit2H, enterW = 40, enterH = COMMON_HEIGHT;
+        int32_t lineEdit3X = labelX, lineEdit3Y = lineEdit2Y + lineEdit2H, lineEdit3W = COMMON_WIDTH, lineEdit3H = COMMON_HEIGHT;
+        lineEdit3->setGeometry(lineEdit3X, lineEdit3Y, lineEdit3W, lineEdit3H);
+        int32_t lineEdit4X = labelX, lineEdit4Y = lineEdit3Y + lineEdit3H, lineEdit4W = COMMON_WIDTH, lineEdit4H = COMMON_HEIGHT;
+        lineEdit4->setGeometry(lineEdit4X, lineEdit4Y, lineEdit4W, lineEdit4H);
+        int32_t enterX = lineEdit4X, enterY = lineEdit4Y + lineEdit4H, enterW = 40, enterH = COMMON_HEIGHT;
         enter->setGeometry(enterX, enterY, enterW, enterH);
 
         cancel->setText("返回");
@@ -1658,6 +1763,84 @@ int32_t SubWindow::JumpWindowToContext(QString &match, sConfigTogether *config, 
         });
         break;
     }
+    case ModuleDataAttr_SetREGEX:
+    {
+        ClearWidget();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(lineEdit0, 0, Qt::AlignTop);
+        rightLayout->addWidget(enter, 0, Qt::AlignTop);
+        rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
+        enter->setText("确定");
+        lineEdit0->setPlaceholderText("请输入正则表达式:");
+        lineEdit0->clear();
+        lineEdit0->show();
+        enter->show();
+        contextTable->show();
+        cancel->setText("返回");
+        cancel->show();
+        lineEdit0->setFocus(); //强制tab焦点
+        rightLayout->removeWidget(cancel);
+        rightLayout->removeWidget(lineEdit0);
+        rightLayout->removeWidget(enter);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        lineEdit0->setGeometry(labelX, labelY, labelW, labelH);
+        labelX = 2, labelY += labelH, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+        //返回到客户端列表成员
+        connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
+            JumpWindowToServerList();
+        });
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(number, config, topic);
+        });
+        break;
+    }
+    case ModuleDataAttr_GetREGEX:
+    {
+        ClearWidget();
+        mainLayout->addWidget(contextTable);
+        rightLayout->addWidget(enter, 0, Qt::AlignLeft | Qt::AlignTop);
+        rightLayout->addWidget(cancel, 0, Qt::AlignLeft | Qt::AlignTop);
+        mainLayout->addWidget(rightWidget);
+        enter->setText("获取正则表达式");
+        enter->show();
+        contextTable->show();
+        cancel->setText("返回");
+        cancel->show();
+
+        enter->setFocus();
+        rightLayout->removeWidget(cancel);
+        rightLayout->removeWidget(enter);
+        mainLayout->removeWidget(contextTable);
+        mainLayout->removeWidget(rightWidget);
+
+        int32_t labelX = 2, labelY = 0, labelW = COMMON_WIDTH, labelH = COMMON_HEIGHT;
+        enter->setGeometry(labelX, labelY, labelW, labelH);
+        int32_t returnX = rightWidget->width() - 100, returnY = rightWidget->height() - 40, returnW = 80, returnH = COMMON_HEIGHT;
+        cancel->setGeometry(returnX, returnY, returnW, returnH);
+
+        contextTable->selectRow(currentIndex);
+
+        connect(enter, &QPushButton::clicked, this, [=](){
+            JumpWindowToContextTransmit(number, config, topic);
+        });
+
+        //返回到客户端列表成员
+        connect(cancel, &QPushButton::clicked, this, [=](){
+            ClearQnavigationWidget();
+            JumpWindowToServerList();
+        });
+        break;
+    }
     default:break;
     }
 
@@ -1702,13 +1885,13 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("reportTemperature:%lf\n", config->sReportTemperture);
         }
-        else if (!strcmp(name.toStdString().c_str(), "TransmitData")) {
+        else if (!strcmp(name.toStdString().c_str(), "ReportAdv")) {
             config->sTransmitData = root.value("data").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             //printf ("TransmitData:%s\n", config->sTransmitData.toStdString().c_str());
         }
-        else if (!strcmp(name.toStdString().c_str(), "ReportTransmitData")) {
+        else if (!strcmp(name.toStdString().c_str(), "ReportMsg")) {
             config->sReportTransmitMac = root.value("mac").toString();
             config->sReportTransmitData = root.value("data").toString();
 
@@ -1717,26 +1900,30 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             printf ("sReportTransmitData:%s\n", config->sReportTransmitData.toStdString().c_str());
         }
         else if (!strcmp(name.toStdString().c_str(), "GetModuleVersion")) {
-            config->sVersion = root.value("ver").toString();
+            config->sModule = root.value("Module").toString();
+            config->sHardwareVer = root.value("HardwareVer").toString();
+            config->sFirmwareVer = root.value("FirmwareVer").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
-            printf ("version:%s\n", config->sVersion.toStdString().c_str());
+            printf ("module:%s\n", config->sModule.toStdString().c_str());
+            printf ("HardwareVer:%s\n", config->sHardwareVer.toStdString().c_str());
+            printf ("FirmwareVer:%s\n", config->sFirmwareVer.toStdString().c_str());
             config->signalSync = SignalSync_OK;
         }
-        else if (!strcmp(name.toStdString().c_str(), "ReportModuleInfo")) {
+        else if (!strcmp(name.toStdString().c_str(), "ReportUserInfo")) {
             config->sReportInfo = root.value("info").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("ReportInfo:%s\n", config->sReportInfo.toStdString().c_str());
         }
-        else if (!strcmp(name.toStdString().c_str(), "GetModuleInfo")) {
+        else if (!strcmp(name.toStdString().c_str(), "GetUserInfo")) {
             config->sInfo = root.value("info").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("info:%s\n", config->sInfo.toStdString().c_str());
             config->signalSync = SignalSync_OK;
         }
-        else if (!strcmp(name.toStdString().c_str(), "SetModuleInfo")) {
+        else if (!strcmp(name.toStdString().c_str(), "SetUserInfo")) {
             QString ack = root.value("status").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
@@ -1856,24 +2043,54 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             config->sReportMqttUser = root.value("user").toString();
             config->sReportMqttPassword = root.value("password").toString();
             config->sReportMqttUrl = root.value("url").toString();
+            config->sReportMqttClientId = root.value("clientid").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("sReportMqttUser:%s\n", config->sReportMqttUser.toStdString().c_str());
             printf ("sReportMqttPassword:%s\n", config->sReportMqttPassword.toStdString().c_str());
             printf ("sReportMqttUrl:%s\n", config->sReportMqttUrl.toStdString().c_str());
+            printf ("sReportMqttClientId:%s\n", config->sReportMqttClientId.toStdString().c_str());
         }
         else if (!strcmp(name.toStdString().c_str(), "GetMqttCfg")) {
             config->sMqttUser = root.value("user").toString();
             config->sMqttPassword = root.value("password").toString();
             config->sMqttUrl = root.value("url").toString();
+            config->sMqttClientId = root.value("clientid").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("sMqttUser:%s\n", config->sMqttUser.toStdString().c_str());
             printf ("sMqttPassword:%s\n", config->sMqttPassword.toStdString().c_str());
             printf ("sMqttUrl:%s\n", config->sMqttUrl.toStdString().c_str());
+            printf ("sMqttClientId:%s\n", config->sMqttClientId.toStdString().c_str());
             config->signalSync = SignalSync_OK;
         }
         else if (!strcmp(name.toStdString().c_str(), "SetMqttCfg")) {
+            QString ack = root.value("status").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("status:%s\n", ack.toStdString().c_str());
+
+            if (!strcmp(ack.toStdString().c_str(), "OK")) {
+                config->signalSync = SignalSync_OK;
+            }
+            else {
+                config->signalSync = SignalSync_FAILURE;
+            }
+        }
+        else if (!strcmp(name.toStdString().c_str(), "ReportRegex")) {
+            config->sReportScanTimeout = root.value("sec").toInt();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("config:%p sReportRegex:%d\n", config, config->sReportRegex);
+        }
+        else if (!strcmp(name.toStdString().c_str(), "GetRegex")) {
+            config->sRegex = root.value("data").toString();
+
+            printf ("htype:%s\n", name.toStdString().c_str());
+            printf ("config:%p sRegex:%d\n", config, config->sRegex);
+            config->signalSync = SignalSync_OK;
+        }
+        else if (!strcmp(name.toStdString().c_str(), "SetRegex")) {
             QString ack = root.value("status").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
@@ -1991,6 +2208,14 @@ int32_t SubWindow::JumpWindowToRealTimeRefreshContext(sConfigTogether *config, c
             + QString(config->sReportMqttPassword)
             + QString(">\r\nMQTT服务器地址:<")
             + QString(config->sReportMqttUrl)
+            + QString(">\r\nMQTT服务器端口:<")
+            + QString(config->sReportMqttPort)
+            + QString(">\r\nMQTT ClientId:<")
+            + QString(config->sReportMqttClientId)
+            + QString(">\r\n")
+            + QString("\r\n")
+            + QString("正则表达式:<")
+            + QString(config->sReportRegex)
             + QString(">\r\n")
             + QString("\r\n")
             + QString("下发数据超时时间:<")

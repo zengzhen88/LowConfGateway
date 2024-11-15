@@ -106,6 +106,7 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
+    short port;
     char clientid[64];
 } ModuleMessageGetMqttCfg;
 
@@ -115,6 +116,7 @@ typedef struct {
     char user[32];
     char password[32];
     char url[64];
+    short port;
     char clientid[64];
 } ModuleMessageSetMqttCfg;
 
@@ -163,6 +165,26 @@ typedef struct {
     char data[128];
 } ModuleMessageReportDebug;
 
+//ModuleDataAttr_UpWifi
+typedef struct {
+    ModuleDataAttr attr;
+} ModuleMessageUpWifi;
+
+//ModuleDataAttr_DownWifi
+typedef struct {
+    ModuleDataAttr attr;
+} ModuleMessageDownWifi;
+
+//ModuleDataAttr_NetConnect
+typedef struct {
+    ModuleDataAttr attr;
+} ModuleMessageNetConnect;
+
+//ModuleDataAttr_NetDisconnect
+typedef struct {
+    ModuleDataAttr attr;
+} ModuleMessageNetDisconnect;
+
 typedef union {
     ModuleDataAttr attr;
     ModuleMessageTriggerRecv triggerRecv;
@@ -185,6 +207,10 @@ typedef union {
     ModuleMessageSetREGEX setREGEX;
     ModuleMessageGetREGEX getREGEX;
     ModuleMessageReportDebug reportDebug;
+    ModuleMessageUpWifi upWifi;
+    ModuleMessageDownWifi downWifi;
+    ModuleMessageNetConnect netConnect;
+    ModuleMessageNetDisconnect netDisconnect;
     ModuleMessageAck ack;
 } ModuleMessage;
 

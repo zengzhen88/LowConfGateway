@@ -111,8 +111,11 @@ unix:!macx: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/ -lQt5Mqtt
 
 INCLUDEPATH += $$PWD/qmqtt/qtmqtt-5.12/src/mqtt/
 DEPENDPATH += $$PWD/qmqtt/qtmqtt-5.12/src/mqtt/
+#window
+#unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/libQt5Mqtt.a -lpthread libwsock32 libws2_32 -lcrypt32
 
-unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/libQt5Mqtt.a -lpthread libwsock32 libws2_32 -lcrypt32
+#linux
+unix:!macx: PRE_TARGETDEPS += $$PWD/qmqtt/qtmqtt-5.12/linuxbuild/lib/libQt5Mqtt.a -lpthread
 
 
 win32: LIBS += -L$$PWD/qmqtt/qtmqtt-5.12/dllbuild/lib/ -lQt5Mqtt

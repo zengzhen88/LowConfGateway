@@ -36,7 +36,10 @@ typedef enum {
     DataAttr_UartToMqtt,
     DataAttr_EthToMqtt,
     DataAttr_EthToUart,
+    DataAttr_EthToWifi,
     DataAttr_SpiToMqtt,
+    DataAttr_mainToUart,
+    DataAttr_uartToMain,
     DataAttr_Cnt,
 } DataAttr;
 
@@ -72,6 +75,11 @@ typedef enum {
     ModuleDataAttr_GetREGEX,
     ModuleDataAttr_ReportREGEX,
     ModuleDataAttr_ReportDebug,
+    ModuleDataAttr_DownWifi,
+    ModuleDataAttr_UpWifi,
+    ModuleDataAttr_NetConnect,
+    ModuleDataAttr_NetDisconnect,
+    ModuleDataAttr_GetConfDown,
     ModuleDataAttr_Ack,
     ModuleDataAttr_Cnt,
 } ModuleDataAttr;

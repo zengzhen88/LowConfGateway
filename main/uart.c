@@ -97,10 +97,13 @@ typedef struct {
     int mqttStatus;
     int netStatus;
 
+    int getConfDown;
+
     UartSigSend send;
     UartSigRecv recv;
     UartSigPeek peek;
 
+    int recover[DataAttr_Cnt];
     int mark[DataAttr_Cnt];
     uint32_t timestamp[DataAttr_Cnt];
 } Uart;
@@ -121,7 +124,8 @@ int32_t UartSetLogLevel(LogUart level) {
 #define INIT (0)
 #define PEEK (1) 
 #define RECV (2)
-#define TIMEOUT (2000)
+#define TIMEOUT (500)
+#define RECOVERNUM (3)
 char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
     int32_t msgvalid    = 0;
     char *strings       = recv;
@@ -166,11 +170,55 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
             if (msgvalid) {
                 if (uart->send) {
                     LogPrintf(LogUart_Info, "send %s to mqtt\n", strings);
-                    uart->send(gPriv, DataAttr_UartToMqtt, 
-                            strings, strlen(strings), DataTimeStatus_BLOCK);
-                    length -= strlen(strings) + 2;
-                    strings += strlen(strings) + 2; //指针偏移
+                    if (!uart->getConfDown) {
+                        if (NULL == strstr(strings, "UPDATE"))
+                            uart->send(gPriv, 
+                                    DataAttr_uartToMain, 
+                                    strings, strlen(strings), DataTimeStatus_BLOCK);
+                    }
+                    else {
+                        uart->send(gPriv, 
+                                DataAttr_UartToMqtt, 
+                                strings, strlen(strings), DataTimeStatus_BLOCK);
+                    }
 
+                    if (strstr(strings, "+TEMPERATUREUPDATE")
+                            || strstr(strings, "+USERINFOUPDATE")
+                            || strstr(strings, "+POWERUPDATE")
+                            || strstr(strings, "+OFFNOWUPDATE")
+                            || strstr(strings, "+ETHCFGUPDATE")
+                            || strstr(strings, "+WIFICFGUPDATE")
+                            || strstr(strings, "+MQTTCFGUPDATE")
+                            || strstr(strings, "+PTUPDATE")
+                            || strstr(strings, "+SCANTIMEOUTUPDATE")
+                            || strstr(strings, "+REGEXUPDATE")
+                            || strstr(strings, "+DEBUGUPDATE")) {
+                        snprintf (uart->buffer, uart->bufSize, 
+                                "+OK");
+                        uart->buffer[uart->bufSize - 1] = '\0';
+                        int status = uart_write_bytes(uart->uartIndex, 
+                                (const char *)uart->buffer, strlen(uart->buffer));
+                        if (status < 0) {
+                            LogPrintf(LogUart_Error, "uart_write_bytes failure\n");
+                        }
+                    }
+
+                    if (uart->mark[DataAttr_mainToUart] == PEEK) {
+                        //表示已经发送了需要ACK的消息
+                        if (strstr(strings, "+TEMPERATURE:")
+                            || (strstr(strings, "+DEVINFO:"))
+                            || (strstr(strings, "+USERINFO:"))
+                            || (strstr(strings, "+POWER:")) 
+                            || (strstr(strings, "+ETHCFG:"))
+                            || (strstr(strings, "+WIFICFG:"))
+                            || (strstr(strings, "+MQTTCFG:"))
+                            || (strstr(strings, "+PTSEND:"))
+                            || (strstr(strings, "+SCANTIMEOUT:"))
+                            || (strstr(strings, "+REGEX"))
+                            || (strstr(strings, "+OK"))) {
+                            uart->mark[DataAttr_mainToUart] = RECV;
+                        }
+                    }
                     if (uart->mark[DataAttr_MqttToUart] == PEEK) {
                         //表示已经发送了需要ACK的消息
                         if (strstr(strings, "+TEMPERATURE:")
@@ -187,7 +235,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             uart->mark[DataAttr_MqttToUart] = RECV;
                         }
                     }
-                    else if (uart->mark[DataAttr_EthToUart] == PEEK) {
+                    if (uart->mark[DataAttr_EthToUart] == PEEK) {
                         //表示已经发送了需要ACK的消息
                         if (strstr(strings, "+TEMPERATURE:")
                             || (strstr(strings, "+DEVINFO:"))
@@ -203,7 +251,7 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             uart->mark[DataAttr_EthToUart] = RECV;
                         }
                     }
-                    else if (uart->mark[DataAttr_WifiToUart] == PEEK) {
+                    if (uart->mark[DataAttr_WifiToUart] == PEEK) {
                         //表示已经发送了需要ACK的消息
                         if (strstr(strings, "+TEMPERATURE:")
                             || (strstr(strings, "+DEVINFO:"))
@@ -219,6 +267,9 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             uart->mark[DataAttr_WifiToUart] = RECV;
                         }
                     }
+
+                    length -= strlen(strings) + 2;
+                    strings += strlen(strings) + 2; //指针偏移
                 }
             }
         }
@@ -231,8 +282,8 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
 }
 
 int32_t UartMessageNetStateX(Uart *uart, ModuleMessage *mess) {
-    int mqttStatus = 0;
-    int netStatus = 0;
+    int mqttStatus = uart->mqttStatus;
+    int netStatus = uart->netStatus;
 
     switch (mess->netState._state) {
         case _NetState_MqttConnect:
@@ -270,32 +321,32 @@ int32_t UartMessageNetStateX(Uart *uart, ModuleMessage *mess) {
         /*发生变化就调整*/
         uart->mqttStatus = mqttStatus;
         uart->netStatus = netStatus;
-
-        if (uart->mqttStatus && uart->netStatus) {
-            //服务器及网络都有
-            mess->netState.state = NetState_CONNSER;
-        }
-        else if (!uart->mqttStatus && uart->netStatus) {
-            //服务器无及网络有
-            mess->netState.state = NetState_CONNET;
-        }
-        else if (uart->mqttStatus && !uart->netStatus) {
-            //服务器有及网络无 -- 理论不存在,可能存在不同步的问题，这种情况肯定也有网络
-            mess->netState.state = NetState_CONNSER;
-        }
-        else if (!uart->mqttStatus && !uart->netStatus) {
-            //服务器及网络都无 
-            mess->netState.state = NetState_UNNET;
-        }
-
-        snprintf (uart->buffer, uart->bufSize, "AT+NETSTATE=<%s>\r\n", 
-                toNetStateEnumString(mess->netState.state));
-        uart->buffer[uart->bufSize - 1] = '\0';
-#ifdef Uart_TEST
-        strcpy(uart->uartAck, "+OK\r\n");
-        uart->ackSize = strlen("+OK\r\n") + 1;
-#endif
     }
+    if (uart->mqttStatus && uart->netStatus) {
+        //服务器及网络都有
+        mess->netState.state = NetState_CONNSER;
+    }
+    else if (!uart->mqttStatus && uart->netStatus) {
+        //服务器无及网络有
+        mess->netState.state = NetState_CONNET;
+    }
+    else if (uart->mqttStatus && !uart->netStatus) {
+        //服务器有及网络无 -- 理论不存在,可能存在不同步的问题，这种情况肯定也有网络
+        mess->netState.state = NetState_CONNSER;
+    }
+    else if (!uart->mqttStatus && !uart->netStatus) {
+        //服务器及网络都无 
+        mess->netState.state = NetState_UNNET;
+    }
+
+    snprintf (uart->buffer, uart->bufSize - 1, "AT+NETSTATE=%s\r\n", 
+            toNetStateEnumString(mess->netState.state));
+    uart->buffer[uart->bufSize - 1] = '\0';
+    LogPrintf(LogUart_Info, "Uart AT >>> Send: %s\n", uart->buffer);
+#ifdef Uart_TEST
+    strcpy(uart->uartAck, "+OK\r\n");
+    uart->ackSize = strlen("+OK\r\n") + 1;
+#endif
 
     return 0;
 }
@@ -306,18 +357,30 @@ int32_t UartMessageRecvHandler(Uart *uart) {
     ModuleMessage message;
     ModuleMessage *mess = NULL;
 
-            /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart recv from\n"); */
+    /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart recv from\n"); */
     if (uart->recv) {
-            /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart recv from xxx\n"); */
+        /* LogPrintf(LogUart_Info, "DataAttr_MqttToUart recv from xxx\n"); */
+        /*这里主要是保证消息不会嵌套*/
+        if (uart->mark[DataAttr_MqttToUart] != INIT) goto MQTTTOUART;
+        if (uart->mark[DataAttr_EthToUart] != INIT) goto ETHTOUART;
+        if (uart->mark[DataAttr_WifiToUart] != INIT) goto WIFITOUART;
+        if (uart->mark[DataAttr_mainToUart] != INIT) goto MAINTOUART;
+
+MQTTTOUART:
         length = sizeof(message);
         if (PEEK == uart->mark[DataAttr_MqttToUart]) {
             if (esp_log_early_timestamp() - uart->timestamp[DataAttr_MqttToUart] >= TIMEOUT) {
-                //超时，不管了，丢数据
+                //超时，数据重发
                 length = uart->bufSize;
-                status = uart->recv(gPriv, 
-                        DataAttr_MqttToUart, &message, &length, 0);
+                /* status = uart->recv(gPriv,  */
+                        /* DataAttr_MqttToUart, &message, &length, 0); */
                 //理论一定成功
                 uart->mark[DataAttr_MqttToUart] = INIT;
+                if (uart->recover[DataAttr_MqttToUart]++ >= RECOVERNUM) {
+                    //多次超时，丢数据
+                    status = uart->recv(gPriv, 
+                            DataAttr_MqttToUart, &message, &length, 0);
+                }
             }
         }
         else if (RECV == uart->mark[DataAttr_MqttToUart]) {
@@ -342,7 +405,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         {
                             snprintf (uart->buffer, uart->bufSize, "AT+TEMPERATURE?\r\n");
                             uart->buffer[uart->bufSize - 1] = '\0';
-                            LogPrintf(LogUart_Info, "recv AT===>%s\n", uart->buffer);
+                            /* LogPrintf(LogUart_Info, "recv AT===>%s\n", uart->buffer); */
 #ifdef Uart_TEST
                             strcpy(uart->uartAck, "+TEMPERATURE:20\r\n");
                             uart->ackSize = strlen("+TEMPERATURE:20\r\n") + 1;
@@ -444,10 +507,12 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                     case ModuleDataAttr_SetMqttCfg:
                         {
                             snprintf (uart->buffer, uart->bufSize, 
-                                    "AT+WIFICFG=%s,%s,%s\r\n", 
-                                    mess->setMqttCfg.user, 
-                                    mess->setMqttCfg.password, 
-                                    mess->setMqttCfg.url); 
+                                    "AT+WIFICFG=%s,%d,%s,%s,%s\r\n", 
+                                    mess->setMqttCfg.url, 
+                                    mess->setMqttCfg.port, 
+                                    mess->setMqttCfg.clientid, 
+                                    mess->setMqttCfg.user,
+                                    mess->setMqttCfg.password); 
                             uart->buffer[uart->bufSize - 1] = '\0';
 #ifdef Uart_TEST
                             strcpy(uart->uartAck, "+OK\r\n");
@@ -535,15 +600,17 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         }
                     case ModuleDataAttr_Cnt:
                         {
-                            snprintf (uart->buffer, uart->bufSize, 
-                                    "+OK");
-                            uart->buffer[uart->bufSize - 1] = '\0';
+                            /*
+                             * snprintf (uart->buffer, uart->bufSize, 
+                             *         "+OK");
+                             * uart->buffer[uart->bufSize - 1] = '\0';
+                             */
                             break;
                         }
                     default:break;
                 }
                 /* strcat(uart->buffer, "\r\n"); */
-                LogPrintf(LogUart_Info, "Uart AT Send: %s\n", uart->buffer);
+                LogPrintf(LogUart_Info, "Uart AT mess->attr:%d Send: %s\n", mess->attr, uart->buffer);
 #ifndef Uart_TEST
                 status = uart_write_bytes(uart->uartIndex, 
                         (const char *)uart->buffer, strlen(uart->buffer));
@@ -553,14 +620,21 @@ int32_t UartMessageRecvHandler(Uart *uart) {
 #endif
             }
         }
+
+ETHTOUART:
         if (PEEK == uart->mark[DataAttr_EthToUart]) {
             if (esp_log_early_timestamp() - uart->timestamp[DataAttr_EthToUart] >= TIMEOUT) {
-                //超时，不管了，丢数据
+                //超时，数据重发
                 length = uart->bufSize;
-                status = uart->recv(gPriv, 
-                        DataAttr_EthToUart, &message, &length, 0);
+                /* status = uart->recv(gPriv,  */
+                        /* DataAttr_EthToUart, &message, &length, 0); */
                 //理论一定成功
                 uart->mark[DataAttr_EthToUart] = INIT;
+                if (uart->recover[DataAttr_EthToUart]++ >= RECOVERNUM) {
+                    //多次超时，丢数据
+                    status = uart->recv(gPriv, 
+                            DataAttr_EthToUart, &message, &length, 0);
+                }
             }
         }
         else if (RECV == uart->mark[DataAttr_EthToUart]) {
@@ -606,14 +680,20 @@ int32_t UartMessageRecvHandler(Uart *uart) {
             }
         }
 
+WIFITOUART:
         if (PEEK == uart->mark[DataAttr_WifiToUart]) {
             if (esp_log_early_timestamp() - uart->timestamp[DataAttr_WifiToUart] >= TIMEOUT) {
-                //超时，不管了，丢数据
+                //超时，数据重发
                 length = uart->bufSize;
-                status = uart->recv(gPriv, 
-                        DataAttr_WifiToUart, &message, &length, 0);
+                /* status = uart->recv(gPriv,  */
+                        /* DataAttr_WifiToUart, &message, &length, 0); */
                 //理论一定成功
                 uart->mark[DataAttr_WifiToUart] = INIT;
+                if (uart->recover[DataAttr_WifiToUart]++ >= RECOVERNUM) {
+                    //多次超时，丢数据
+                    status = uart->recv(gPriv, 
+                            DataAttr_WifiToUart, &message, &length, 0);
+                }
             }
         }
         else if (RECV == uart->mark[DataAttr_WifiToUart]) {
@@ -635,6 +715,7 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                     case ModuleDataAttr_NetState:
                         {
                             UartMessageNetStateX(uart, mess);
+                /* LogPrintf(LogUart_Info, "Uart AT >>> Send: %s\n", uart->buffer); */
                             break;
                         }
                     case ModuleDataAttr_SetWifiCfg:
@@ -663,10 +744,144 @@ int32_t UartMessageRecvHandler(Uart *uart) {
                         }
                     case ModuleDataAttr_Cnt:
                         {
-                            snprintf (uart->buffer, uart->bufSize, 
-                                    "+OK");
+                            /*
+                             * snprintf (uart->buffer, uart->bufSize, 
+                             *         "+OK");
+                             * uart->buffer[uart->bufSize - 1] = '\0';
+                             */
+                            break;
+                        }
+                    default:break;
+                }
+                /* strcat(uart->buffer, "\r\n"); */
+                LogPrintf(LogUart_Info, "Uart AT Send: %s\n", uart->buffer);
+#ifndef Uart_TEST
+                status = uart_write_bytes(uart->uartIndex, 
+                        (const char *)uart->buffer, strlen(uart->buffer));
+                if (status < 0) {
+                    LogPrintf(LogUart_Error, "uart_write_bytes failure\n");
+                }
+#endif
+            }
+        }
+
+MAINTOUART:
+        if (PEEK == uart->mark[DataAttr_mainToUart]) {
+            if (esp_log_early_timestamp() - uart->timestamp[DataAttr_mainToUart] >= TIMEOUT) {
+                //超时，数据重发
+                length = uart->bufSize;
+                /* status = uart->recv(gPriv,  */
+                        /* DataAttr_mainToUart, &message, &length, 0); */
+                //理论一定成功
+                uart->mark[DataAttr_mainToUart] = INIT;
+                if (uart->recover[DataAttr_mainToUart]++ >= RECOVERNUM) {
+                    //多次超时，丢数据
+                    status = uart->recv(gPriv, 
+                            DataAttr_mainToUart, &message, &length, 0);
+                }
+            }
+        }
+        else if (RECV == uart->mark[DataAttr_mainToUart]) {
+            length = uart->bufSize;
+            status = uart->recv(gPriv, 
+                    DataAttr_mainToUart, &message, &length, 0);
+            //理论一定会成功
+            uart->mark[DataAttr_mainToUart] = INIT;
+        }
+        else if (INIT == uart->mark[DataAttr_mainToUart]) {
+            length = uart->bufSize;
+            status = uart->peek(gPriv, 
+                    DataAttr_mainToUart, &message, &length, 0);
+            if (!status) {
+                uart->mark[DataAttr_mainToUart] = PEEK;
+                uart->timestamp[DataAttr_mainToUart] = esp_log_early_timestamp();
+                uart->recover[DataAttr_mainToUart] = 0;
+                mess = &message;
+                switch (mess->attr) {
+                    case ModuleDataAttr_GetTemperature:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+TEMPERATURE?\r\n");
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            /* LogPrintf(LogUart_Info, "recv AT===>%s\n", uart->buffer); */
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+TEMPERATURE:20\r\n");
+                            uart->ackSize = strlen("+TEMPERATURE:20\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetModuleVersion:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+DEVINFO?\r\n");
+                            uart->buffer[uart->bufSize - 1] = '\0';
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+DEVINFO:1.1.1\r\n");
+                            uart->ackSize = strlen("+DEVINFO:1.1.1\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetModuleInfo:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+USERINFO?\r\n");
+                            uart->buffer[uart->bufSize - 1] = '\0';
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+USERINFO:abcd\r\n");
+                            uart->ackSize = strlen("+USERINFO:abcd\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetPower:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+POWER?\r\n");
+                            uart->buffer[uart->bufSize - 1] = '\0';
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+POWER:DC,100\r\n");
+                            uart->ackSize = strlen("+POWER:DC,100\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetWifiCfg:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+WIFICFG?\r\n"); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            /* printf ("AT+WIFICFG ============> %s\n", uart->buffer); */
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+WIFICFG:TP-LINK_342B,88888888,192.168.0.102,255.255.255.0,102.168.0.1\r\n");
+                            uart->ackSize = strlen("+WIFICFG:TP-LINK_342B,88888888,192.168.0.102,255.255.255.0,102.168.0.1\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetMqttCfg:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+MQTTCFG?\r\n"); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            /* printf ("AT+MQTTCFG ============> %s\n", uart->buffer); */
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n");
+                            uart->ackSize = strlen("+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetEthCfg:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+ETHCFG?\r\n"); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            /* printf ("AT+ETHCFG ============> %s\n", uart->buffer); */
+#ifdef Uart_TEST
+                            strcpy(uart->uartAck, "+ETHCFG:192.168.0.102,255.255.255.0,192.168.0.1\r\n");
+                            uart->ackSize = strlen("+ETHCFG:192.168.0.102,255.255.255.0,192.168.0.1\r\n") + 1;
+#endif
+                            break;
+                        }
+                    case ModuleDataAttr_GetScanTimeout:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+SCANTIMEOUT?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
                             break;
+                        }
+                    case ModuleDataAttr_GetConfDown:
+                        {
+                            uart->getConfDown = 1;
+                            return 0;
                         }
                     default:break;
                 }
@@ -753,7 +968,7 @@ void UartSelectTask(void *args) {
 
 #ifndef Uart_TEST
         status = uart_read_bytes(uart->uartIndex, 
-                sbuffer, ((uart->bufSize >> 1) - 1), 20 / portTICK_PERIOD_MS);
+                sbuffer, ((uart->bufSize >> 1) - 1), pdMS_TO_TICKS(20));
 #else
         if (uart->ackSize) {
             strcpy(sbuffer, uart->uartAck);
@@ -767,7 +982,7 @@ void UartSelectTask(void *args) {
 #endif
         if (status > 0) {
             sbuffer[status] = '\0';
-            LogPrintf(LogUart_Debug, "read(%d) cpuId(%d)AT===:%s\n", status, xPortGetCoreID(), sbuffer);
+            LogPrintf(LogUart_Info, "read(%d) cpuId(%d)AT===:%s\n", status, xPortGetCoreID(), sbuffer);
             /* bbuffer =  */UartRecvParse(uart, sbuffer, status);
             /* if (NULL != bbuffer) { */
                 /* LogPrintf(LogUart_Info, "Uart AT Recv :%s\n", bbuffer); */
@@ -802,6 +1017,8 @@ void *UartInit(UartConfig *config) {
     LogPrintf(LogUart_Info, "flow_ctrl     :%d\n", config->flowCtrl);
     LogPrintf(LogUart_Info, "source_clk    :%d\n", config->sourceClk);
 
+    uart->mqttStatus= -1;
+    uart->netStatus = -1;
     uart->baudRate  = config->baudRate;
     uart->dataBits  = config->dataBits;
     uart->parity    = config->parity;

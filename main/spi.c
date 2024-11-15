@@ -142,7 +142,7 @@ void SpiRecvTask(void *args) {
     memset(&t, 0, sizeof(t));
 
     while (1) {
-#if 0
+#if 1
         if (spi->request) {
             status = spi->request(gPriv, DataAttr_SpiToMqtt, &message, SPI_DATA_LENGTH);
             if (!status) {
@@ -155,6 +155,8 @@ void SpiRecvTask(void *args) {
                 t.length = SPI_DATA_LENGTH * 8;
                 t.tx_buffer = sendbuf;
                 t.rx_buffer = (char *)message->data;//recvbuf;
+                message->size = SPI_DATA_LENGTH;
+                message->length = SPI_DATA_LENGTH;
                 /* This call enables the SPI slave interface to send/receive to the sendbuf and recvbuf. The transaction is
                    initialized by the SPI master, however, so it will not actually happen until the master starts a hardware transaction
                    by pulling CS low and pulsing the clock etc. In this specific example, we use the handshake line, pulled up by the
