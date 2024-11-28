@@ -714,8 +714,10 @@ void app_main(void) {
 
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
-        strcpy(gateway->url, "mqtt://192.168.1.10:1883");
-        /* strcpy(gateway->url, "mqtt://192.168.0.106:1883"); */
+        /* strcpy(gateway->url, "mqtt://broker.emqx.io:1883"); */
+        strcpy(gateway->url, "mqtt://175.12.109.90:1883");
+        /* strcpy(gateway->url, "mqtt://192.168.1.9:1883"); */
+        /* strcpy(gateway->clientid, "99999999"); */
         strcpy(gateway->clientid, "88888888");
 
         strcpy(gateway->module, "GZ248");
@@ -797,11 +799,9 @@ void app_main(void) {
  *             message.attr = ModuleDataAttr_GetMqttCfg;
  *             appSearchConfig(gateway, &message);
  *             [> printf ("%s %d\n", __func__, __LINE__); <]
+ * 
+ *             [> printf ("%s %d\n", __func__, __LINE__); <]
  */
-
-            message.attr = ModuleDataAttr_GetConfDown;
-            appSearchConfig(gateway, &message);
-            /* printf ("%s %d\n", __func__, __LINE__); */
 
         }
         {
@@ -836,6 +836,12 @@ void app_main(void) {
             config.release  = appDataRelease;
 
             gateway->mqtt = MQTTInit(&config);
+        }
+
+        {
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_GetConfDown;
+            appSearchConfig(gateway, &message);
         }
 
         {

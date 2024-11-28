@@ -265,7 +265,7 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
         dialog.setWindowTitle(tr("进度条对话框"));
         dialog.setWindowModality(Qt::WindowModal);
         dialog.show();
-        for (int32_t index = 0; index < 5000; index++) {
+        for (int32_t index = 0; index < 200000; index++) {
             dialog.setValue(index);
             QCoreApplication::processEvents();
             if (dialog.wasCanceled()) {
@@ -277,7 +277,8 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
         }
         QString retval((QString)("<获取版本信息>\n") + (QString)("Module:") + (QString)config->sModule + (QString)("\n")
                        + (QString)("HardwareVer:") + (QString)config->sHardwareVer + (QString)("\n")
-                       + (QString)("FirmwareVer:") + (QString)config->sFirmwareVer);
+                       + (QString)("FirmwareVer:") + (QString)config->sFirmwareVer + (QString)("\n")
+                       + (QString)("Mac:") + (QString)config->sMac);
         QMessageBox::information(this,
                                  tr("系统提示"),
                                  tr(config->signalSync == SignalSync_OK ? retval.toStdString().c_str() : "获取版本信息失败"),
@@ -1903,11 +1904,13 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
             config->sModule = root.value("Module").toString();
             config->sHardwareVer = root.value("HardwareVer").toString();
             config->sFirmwareVer = root.value("FirmwareVer").toString();
+            config->sMac = root.value("mac").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
             printf ("module:%s\n", config->sModule.toStdString().c_str());
             printf ("HardwareVer:%s\n", config->sHardwareVer.toStdString().c_str());
             printf ("FirmwareVer:%s\n", config->sFirmwareVer.toStdString().c_str());
+            printf ("Mac:%s\n", config->sMac.toStdString().c_str());
             config->signalSync = SignalSync_OK;
         }
         else if (!strcmp(name.toStdString().c_str(), "ReportUserInfo")) {
@@ -2719,6 +2722,7 @@ SubWindow::SubWindow(QWidget *parent) : QMainWindow(parent)
         if (!strcmp(toEnumChineseString((ModuleDataAttr)index), "Ack")) continue;
         int32_t rowCount = contextTable->rowCount();
         contextTable->insertRow(rowCount);
+        printf ("index:%d strings:%s\n", index, toEnumChineseString((ModuleDataAttr)index));
         QTableWidgetItem *item = new QTableWidgetItem(QString::fromUtf8(toEnumChineseString((ModuleDataAttr)index)));
         contextTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
         contextTable->setItem(rowCount, 0, item);

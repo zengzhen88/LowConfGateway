@@ -202,10 +202,13 @@ void SpiRecvTask(void *args) {
     }
 }
 
+#include <esp_rom_sys.h>
 static void timer_cb(void *arg) {
     Spi *spi = (Spi *)arg;
 
-    gpio_set_level(GPIO_TRIGGER, !spi->signals);
+    gpio_set_level(GPIO_TRIGGER, spi->signals);
+    esp_rom_delay_us(10);
+    LogPrintf(LogSpi_Info, "signal:%d\n", gpio_get_level(GPIO_TRIGGER));
     spi->signals = !spi->signals;
 }
 
@@ -257,12 +260,20 @@ void *SpiInit(SpiConfig *config) {
     gpio_set_pull_mode(GPIO_CS, GPIO_PULLUP_ONLY);
 
     /* gpio_set_pull_mode(GPIO_INIT, GPIO_PULLUP_ONLY); */
-    gpio_set_pull_mode(GPIO_TRIGGER, GPIO_PULLUP_PULLDOWN);
+    /* gpio_set_pull_mode(GPIO_TRIGGER, GPIO_PULLUP_PULLDOWN); */
+    gpio_config_t gpio_cfg = {
+        .pin_bit_mask = (1ULL << GPIO_TRIGGER),
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = 0,
+        .pull_down_en = 0,
+    };
+    gpio_config(&gpio_cfg);
 
     /* gpio_set_direction(GPIO_INIT, GPIO_MODE_INPUT); */
     /* gpio_set_level(GPIO_INIT, 1); */
 
-    gpio_set_direction(GPIO_TRIGGER, GPIO_MODE_INPUT);
+    /* gpio_set_direction(GPIO_TRIGGER, GPIO_MODE_OUTPUT); */
 
     //Initialize SPI slave interface
     status = spi_slave_initialize(RCV_HOST, &buscfg, &slvcfg, SPI_DMA_CH_AUTO);
@@ -276,7 +287,7 @@ void *SpiInit(SpiConfig *config) {
         true,
     };
     esp_timer_create(&timer_args, &spi->timer);
-    esp_timer_start_periodic(spi->timer, 1000000);//10000);//10ms
+    esp_timer_start_periodic(spi->timer, 1000000);//10ms
 #endif
 
     baseType = xTaskCreate(SpiRecvTask, 

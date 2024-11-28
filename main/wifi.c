@@ -75,6 +75,9 @@ static int WifiLogPrintf(LogWifi level,
 
 #define WIFI_UPDATE_USERPASSWORD BIT0
 
+#define DISCONNECT (0)
+#define CONNECT (1)
+
 typedef struct {
     int32_t isRunning;
     int32_t retryNum;
@@ -96,6 +99,9 @@ typedef struct {
     /* TaskHandle_t wifiTask; */
 
     int checkStatus;
+
+    int isConnect;
+    int isDown;
 
     WifiSigSend send;
     WifiSigRecv recv;
@@ -143,18 +149,25 @@ int32_t WifiEventRecvHandler(Wifi *wifi) {
 
                         strcpy((char *)wifi->config.sta.ssid, (const char *)message.setWifiCfg.ssid);
                         strcpy((char *)wifi->config.sta.password, (const char *)message.setWifiCfg.password);
-                        /* esp_wifi_disconnect(); */
-                        /* esp_wifi_stop(); */
-                        esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
-                        esp_wifi_connect();
-                        /* esp_wifi_start(); */
-
-                        if (message.attr == ModuleDataAttr_SetWifiCfg) {
-                            if (wifi->send) {
-                                wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                        if (!wifi->isDown) {
+                            if (wifi->isConnect) {
+                                esp_wifi_disconnect();
                             }
+                            /* esp_wifi_stop(); */
+                            esp_err_t sss = esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
+                            LogPrintf(LogWifi_Info, "esp_wifi_set_config sss :%d\n", sss);
+                            sss = esp_wifi_start();
+                            LogPrintf(LogWifi_Info, "esp_wifi_start sss :%d\n", sss);
+                            sss = esp_wifi_connect();
+                            LogPrintf(LogWifi_Info, "esp_wifi_connect sss :%d\n", sss);
                         }
-                        else if (message.attr == ModuleDataAttr_ReportDebug) {
+
+                        /* if (message.attr == ModuleDataAttr_SetWifiCfg) { */
+                            /* if (wifi->send) { */
+                                /* wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0); */
+                            /* } */
+                        /* } */
+                        /* else */ if (message.attr == ModuleDataAttr_ReportDebug) {
                             wifi->checkStatus = 1;
                         }
                         break;
@@ -170,13 +183,16 @@ int32_t WifiEventRecvHandler(Wifi *wifi) {
                         LogPrintf(LogWifi_Info, "start test recv Ethernet Up, wifi Down\n");
                         esp_wifi_disconnect();
                         esp_wifi_stop();
+                        wifi->isDown = 1;
                         break;
                     }
                 case ModuleDataAttr_UpWifi:
                     {
                         LogPrintf(LogWifi_Info, "start test recv Ethernet Down, wifi Up\n");
+                        esp_wifi_set_config(WIFI_IF_STA, &wifi->config);
                         esp_wifi_start();
                         esp_wifi_connect();
+                        wifi->isDown = 0;
                         break;
                     }
                 default:break;
@@ -260,11 +276,13 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
                 }
             case WIFI_EVENT_STA_DISCONNECTED:
                 {
+
+                    wifi->isConnect = 0;
                     wifi->wifiSok = 0;
                     if (wifi->send) {
                         ModuleMessage message;
                         message.attr = ModuleDataAttr_NetState;
-                        message.netState._state = _NetState_NetUnconnect;//后面修改
+                        message.netState._state = _NetState_WifiNetUnconnect;//后面修改
                         status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
                     }
                     esp_wifi_connect();
@@ -285,48 +303,33 @@ void WifiEventHandler(void* arg, esp_event_base_t event_base,
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        wifi->isConnect = 1;
         LogPrintf(LogWifi_Info, "got ip:" IPSTR "\n", IP2STR(&event->ip_info.ip));
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
         if (wifi->send) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             if (wifi->checkStatus == 1) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 wifi->checkStatus = 0;
                 ModuleMessage message;
                 message.reportDebug.attr = ModuleDataAttr_ReportDebug;
                 strcpy(message.reportDebug.data, "checkwifi:OK");
                 if (wifi->send) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                     status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 }
             }
         }
         if (wifi->send) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             ModuleMessage message;
             message.attr = ModuleDataAttr_NetConnect;
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             if (wifi->send) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 status = wifi->send(gPriv, DataAttr_WifiToMqtt, &message, sizeof(message), 0);
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             }
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
         }
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
         if (wifi->send) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             ModuleMessage message;
             message.attr = ModuleDataAttr_NetState;
-            message.netState._state = _NetState_NetConnect;//后面修改
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
+            message.netState._state = _NetState_WifiNetConnect;//后面修改
             if (wifi->send) {
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
                 status = wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
             }
-        LogPrintf(LogWifi_Info, "got ip: %s %d\n", __func__, __LINE__);
         }
         wifi->retryNum = 0;
     }

@@ -135,6 +135,8 @@ typedef struct {
 
     int checkStatus;
 
+    int netFirstConnect;
+
     ModuleDataAttr attr;
 
     esp_mqtt_client_config_t mqttConfig;
@@ -210,7 +212,8 @@ int32_t MQTTMessageRecvWifiHandler(MQTT *mqtt) {
             int32_t length = sizeof(message);
             int status = mqtt->recv(gPriv, DataAttr_WifiToMqtt, &message, &length, 0);
             if (!status) {
-                if (message.attr == ModuleDataAttr_NetConnect) {
+                if (!mqtt->netFirstConnect) {
+                    mqtt->netFirstConnect = 1;
                     esp_mqtt_client_start(mqtt->client);
                     LogPrintf(LogMQTT_Info, "NetConnect, Start Mqtt\n");
                 }
@@ -289,6 +292,7 @@ int32_t MQTTMessageRecvUartGetModuleVersionHandler(MQTT *mqtt, char *version) {
             cJSON_AddStringToObject(sub, "Module", module);
             cJSON_AddStringToObject(sub, "HardwareVer", hardwareVer);
             cJSON_AddStringToObject(sub, "FirmwareVer", firmwareVer);
+            cJSON_AddStringToObject(sub, "mac", mac);
             cJSON_AddItemToArray(root, sub);
             char *json = cJSON_Print(root);
             if (json) {
@@ -1012,12 +1016,7 @@ int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp, 
         strcpy(message.setWifiCfg.netmask, netmask);
         strcpy(message.setWifiCfg.gateway, gateway);
         if (mqtt->send) {
-            static int a = 0;
-            if (a++ == 0)
-            /* int32_t status =  */mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
-            /* if (!status) { */
-                /* status = MQTTMessageRecvWifiHandler(mqtt); */
-            /* } */
+            mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
         }
     }
 
@@ -1108,9 +1107,9 @@ int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info, int isUp, int r
     if (isUp) {
         ModuleMessage message;
         message.attr = ModuleDataAttr_SetEthCfg;
-        strcpy(message.setWifiCfg.address, address);
-        strcpy(message.setWifiCfg.netmask, netmask);
-        strcpy(message.setWifiCfg.gateway, gateway);
+        strcpy(message.setEthCfg.address, address);
+        strcpy(message.setEthCfg.netmask, netmask);
+        strcpy(message.setEthCfg.gateway, gateway);
         if (mqtt->send) {
             /* int32_t status =  */mqtt->send(gPriv, DataAttr_MqttToEth, &message, sizeof(message), 0);
             /* if (!status) { */
@@ -1339,8 +1338,11 @@ int32_t MQTTMessageRecvEthHandler(MQTT *mqtt) {
             int status = mqtt->recv(gPriv, DataAttr_EthToMqtt, &message, &length, 0);
             if (!status) {
                 if (message.attr == ModuleDataAttr_NetConnect) {
-                    esp_mqtt_client_start(mqtt->client);
-                    LogPrintf(LogMQTT_Info, "NetConnect, Start Mqtt\n");
+                    if (!mqtt->netFirstConnect) {
+                        mqtt->netFirstConnect = 1;
+                        esp_mqtt_client_start(mqtt->client);
+                        LogPrintf(LogMQTT_Info, "NetConnect, Start Mqtt\n");
+                    }
                 }
                 /*
                  * else if (message.ack.attr == ModuleDataAttr_Ack) {
@@ -1584,8 +1586,8 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                             Message message;
                             message.attr = ModuleDataAttr_Cnt;
                             if (mqtt->send) {
-                                status = mqtt->send(gPriv, DataAttr_MqttToUart,
-                                        &message, sizeof(message), 0);
+                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
+                                        /* &message, sizeof(message), 0); */
                             }
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
@@ -2561,11 +2563,13 @@ int32_t MQTTMessageSubscribeList(MQTT *mqtt) {
 static void timer_cb(void *arg) {
     MQTT *mqtt = (MQTT *)arg;
 
-    esp_mqtt_event_t event;
-    memset(&event, 0x0, sizeof(event));
-    event.event_id  = MQTT_USER_EVENT;
-
-    esp_mqtt_dispatch_custom_event(mqtt->client, &event);
+/*
+ *     esp_mqtt_event_t event;
+ *     memset(&event, 0x0, sizeof(event));
+ *     event.event_id  = MQTT_USER_EVENT;
+ * 
+ *     esp_mqtt_dispatch_custom_event(mqtt->client, &event);
+ */
 
 
     ModuleMessage message;

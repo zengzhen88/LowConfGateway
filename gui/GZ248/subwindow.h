@@ -62,6 +62,7 @@ struct sConfigTogether {
     QString sModule;
     QString sHardwareVer;
     QString sFirmwareVer;
+    QString sMac;
 
     QString sInfo;
     QString sReportInfo;

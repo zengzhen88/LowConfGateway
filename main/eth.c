@@ -171,12 +171,12 @@ int32_t EthEventRecvHandler(Eth *net) {
                             }
                         }
 
-                        if (message.attr == ModuleDataAttr_SetEthCfg) {
-                            if (net->send) {
-                                net->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
-                            }
-                        }
-                        else if (message.attr == ModuleDataAttr_ReportDebug) {
+                        /* if (message.attr == ModuleDataAttr_SetEthCfg) { */
+                            /* if (net->send) { */
+                                /* net->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0); */
+                            /* } */
+                        /* } */
+                        /* else  */if (message.attr == ModuleDataAttr_ReportDebug) {
                             net->checkStatus = 1;
                         }
                         break;
@@ -237,7 +237,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
                     {
                         ModuleMessage message;
                         message.attr = ModuleDataAttr_NetState;
-                        message.netState._state = _NetState_NetUnconnect;//后面修改
+                        message.netState._state = _NetState_EthNetUnconnect;//后面修改
                         if (eth->send) {
                             status = eth->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
                         }
@@ -292,7 +292,7 @@ void EthEventHandler(void* arg, esp_event_base_t event_base,
         if (eth->send) {
             ModuleMessage message;
             message.attr = ModuleDataAttr_NetState;
-            message.netState._state = _NetState_NetConnect;//后面修改
+            message.netState._state = _NetState_EthNetConnect;//后面修改
             if (eth->send) {
                 status = eth->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
             }

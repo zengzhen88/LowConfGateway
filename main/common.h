@@ -14,8 +14,10 @@ typedef enum {
 } NetState;
 
 typedef enum {
-    _NetState_NetConnect,
-    _NetState_NetUnconnect,
+    _NetState_WifiNetConnect,
+    _NetState_WifiNetUnconnect,
+    _NetState_EthNetConnect,
+    _NetState_EthNetUnconnect,
     _NetState_MqttConnect,
     _NetState_MqttUnconnect,
 } _NetState;
@@ -44,44 +46,44 @@ typedef enum {
 } DataAttr;
 
 typedef enum {
-    ModuleDataAttr_GetTemperature,
+    ModuleDataAttr_GetTemperature, //0
     ModuleDataAttr_GetModuleVersion,
     ModuleDataAttr_GetModuleInfo,
     ModuleDataAttr_SetModuleInfo,
     ModuleDataAttr_GetPower,
-    ModuleDataAttr_Reboot,
+    ModuleDataAttr_Reboot,//5
     ModuleDataAttr_GetEthCfg,
     ModuleDataAttr_SetEthCfg,
     ModuleDataAttr_GetWifiCfg,
     ModuleDataAttr_SetWifiCfg,
-    ModuleDataAttr_GetMqttCfg,
+    ModuleDataAttr_GetMqttCfg,//10
     ModuleDataAttr_SetMqttCfg,
     ModuleDataAttr_Update,
     ModuleDataAttr_PtSend,
     ModuleDataAttr_SetScanTimeout,
-    ModuleDataAttr_GetScanTimeout,
+    ModuleDataAttr_GetScanTimeout,//15
     ModuleDataAttr_NetState,
     ModuleDataAttr_PtRecv,
     ModuleDataAttr_TransmitData,
     ModuleDataAttr_ReportTemperature,
-    ModuleDataAttr_ReportModuleInfo,
+    ModuleDataAttr_ReportModuleInfo,//20
     ModuleDataAttr_ReportPower,
     ModuleDataAttr_ReportEthCfg,
     ModuleDataAttr_ReportWifiCfg,
     ModuleDataAttr_ReportMqttCfg,
-    ModuleDataAttr_ReportTransmitData,
+    ModuleDataAttr_ReportTransmitData,//25
     ModuleDataAttr_ReportScanTimeout,
     ModuleDataAttr_SetREGEX,
     ModuleDataAttr_GetREGEX,
     ModuleDataAttr_ReportREGEX,
-    ModuleDataAttr_ReportDebug,
+    ModuleDataAttr_ReportDebug,//30
     ModuleDataAttr_DownWifi,
     ModuleDataAttr_UpWifi,
     ModuleDataAttr_NetConnect,
     ModuleDataAttr_NetDisconnect,
-    ModuleDataAttr_GetConfDown,
-    ModuleDataAttr_Ack,
-    ModuleDataAttr_Cnt,
+    ModuleDataAttr_GetConfDown,//35
+    ModuleDataAttr_Ack,//36
+    ModuleDataAttr_Cnt,//37
 } ModuleDataAttr;
 
 typedef enum {
