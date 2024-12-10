@@ -787,7 +787,7 @@ int32_t SubWindow::JumpWindowToContextTransmit(int32_t number, sConfigTogether *
     {
         QJsonObject likeObject;
         likeObject.insert("htype", toEnumString(ModuleDataAttr_SetREGEX));
-        likeObject.insert("date", lineEdit0->text());
+        likeObject.insert("data", lineEdit0->text());
         QJsonArray likeArray;
         likeArray.append(likeObject);
         QJsonDocument doc;
@@ -2132,7 +2132,7 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
                 config->signalSync = SignalSync_FAILURE;
             }
         }
-        else if (!strcmp(name.toStdString().c_str(), "PTSend")) {
+        else if (!strcmp(name.toStdString().c_str(), "PtSend")) {
             QString ack = root.value("status").toString();
 
             printf ("htype:%s\n", name.toStdString().c_str());
@@ -2145,7 +2145,7 @@ int32_t SubWindow::RecvMqttMessage(sConfigTogether *config, const QByteArray mes
                 config->signalSync = SignalSync_FAILURE;
             }
         }
-        else if (!strcmp(name.toStdString().c_str(), "PTRecv")) {
+        else if (!strcmp(name.toStdString().c_str(), "PtRecv")) {
             config->sReportPtRecvMac = root.value("mac").toString();
             config->sReportPtRecvSeq = root.value("seq").toInt();
             config->sReportPtRecvState = root.value("state").toString();

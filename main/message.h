@@ -82,6 +82,7 @@ typedef struct {
     char address[32];
     char netmask[32];
     char gateway[32];
+    uint32_t flag;
 } ModuleMessageSetWifiCfg;
 
 //ModuleDataAttr_GetEthCfg
@@ -98,6 +99,7 @@ typedef struct {
     char address[32];
     char netmask[32];
     char gateway[32];
+    uint32_t flag;
 } ModuleMessageSetEthCfg;
 
 //ModuleDataAttr_GetMqttCfg

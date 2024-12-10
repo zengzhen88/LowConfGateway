@@ -30,6 +30,17 @@
 #include "freertos/task.h"
 #include <string.h>
 #include <esp_mac.h>
+#include "re.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int32_t cpp_regexFunction(const char *inStr, const char *matchStr);
+
+#ifdef __cplusplus
+}
+#endif
 
 typedef struct {
     void *wifi;
@@ -72,6 +83,8 @@ typedef struct {
     char clientid[64];
     short port;
 
+    char regex[64];
+
 /* #define USE_RING_BUFFER */
 
 #ifndef USE_RING_BUFFER
@@ -80,6 +93,12 @@ typedef struct {
     Queue bufQue[DataAttr_Cnt];
 #endif
 } Gateway;
+
+#define IPVALID "^(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)" \
+            "(?:\\." \
+            "(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)" \
+            "){3}$"
+#define MASKVALID   "^((255.255.255.(0|128|192|224|240|248|252|254|255))|(255.255.(0|128|192|224|240|248|252|254|255).0)|(255.(0|128|192|224|240|248|252|254|255).0.0)|((0|128|192|224|240|248|252|254|255).0.0.0))$"
 
 int32_t appPrint(void *priv, const char *strings) {
     return printf ("%s", strings);
@@ -532,9 +551,6 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                                     //sptr = gateway
                                     if (sptr) {
                                         gateways = sptr;
-                                        strcpy(gateway->ethAddress, address);
-                                        strcpy(gateway->ethNetmask, netmask);
-                                        strcpy(gateway->ethGateway, gateways);
                                         printf ("===> EthConfig "
                                                 "address:%s \n", 
                                                 address); 
@@ -544,6 +560,27 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                                         printf ("===> EthConfig "
                                                 "gateways:%s\n", 
                                                 gateways); 
+                                        status = is_ipv4_addr(address);
+                                        /* status = cpp_regexFunction(address, IPVALID); */
+                                        if (status) {
+                                            printf ("ETHCFG address:%s invalid\n", address);
+                                            return -1;
+                                        }
+                                        status = is_ipv4_addr(netmask);
+                                        /* status = cpp_regexFunction(netmask, MASKVALID); */
+                                        if (status) {
+                                            printf ("ETHCFG netmask:%s invalid\n", netmask);
+                                            return -1;
+                                        }
+                                        status = is_ipv4_addr(gateways);
+                                        /* status = cpp_regexFunction(gateways, IPVALID); */
+                                        if (status) {
+                                            printf ("ETHCFG gateways:%s invalid\n", gateways);
+                                            return -1;
+                                        }
+                                        strcpy(gateway->ethAddress, address);
+                                        strcpy(gateway->ethNetmask, netmask);
+                                        strcpy(gateway->ethGateway, gateways);
                                     }
                                 }
                             }
@@ -595,11 +632,6 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                                                     //gateway
                                                     if (sptr) {
                                                         gateways = sptr;
-                                                        strcpy(gateway->wifiSsid, ssid);
-                                                        strcpy(gateway->wifiPassword, password);
-                                                        strcpy(gateway->wifiAddress, address);
-                                                        strcpy(gateway->wifiNetmask, netmask);
-                                                        strcpy(gateway->wifiGateway, gateways);
                                                         printf ("===> WifiConfig ssid:%s\n", 
                                                                 ssid); 
                                                         printf ("===> WifiConfig password:%s\n", 
@@ -610,6 +642,29 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                                                                 netmask); 
                                                         printf ("===> WifiConfig gateways:%s\n", 
                                                                  gateways); 
+                                                        status = is_ipv4_addr(address);
+                                                        /* status = cpp_regexFunction(address, IPVALID); */
+                                                        if (status) {
+                                                            printf ("WIFICFG address:%s invalid\n", address);
+                                                            return -1;
+                                                        }
+                                                        /* status = cpp_regexFunction(netmask, MASKVALID); */
+                                                        status = is_ipv4_addr(netmask);
+                                                        if (status) {
+                                                            printf ("WIFICFG netmask:%s invalid\n", netmask);
+                                                            return -1;
+                                                        }
+                                                        /* status = cpp_regexFunction(gateways, IPVALID); */
+                                                        status = is_ipv4_addr(gateways);
+                                                        if (status) {
+                                                            printf ("WIFICFG gateways:%s invalid\n", gateways);
+                                                            return -1;
+                                                        }
+                                                        strcpy(gateway->wifiSsid, ssid);
+                                                        strcpy(gateway->wifiPassword, password);
+                                                        strcpy(gateway->wifiAddress, address);
+                                                        strcpy(gateway->wifiNetmask, netmask);
+                                                        strcpy(gateway->wifiGateway, gateways);
                                                     }
                                                 }
                                             }
@@ -683,6 +738,16 @@ int32_t appSearchConfig(void *args, ModuleMessage *message) {
                                 }
                             }
                         }
+                    }
+                }
+                else if (strstr(recv, "+REGEX:")) {
+                    char *regex             = NULL;
+                    printf ("info:%s\n", valid);
+                    char *sptr = valid;//strchr(info, '<');
+                    if (sptr) {
+                        regex = (sptr);
+                        strcpy(gateway->regex, regex);
+                        printf ("===> REGEX :%s\n", gateway->regex);
                     }
                 }
             }
@@ -766,6 +831,12 @@ void app_main(void) {
             UartSetLogLevel(LogUart_Info);
 
             gateway->uart = UartInit(&config);
+            if (NULL == gateway->uart) {
+                while (1) {
+                    printf ("UartInit failure\n");
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                }
+            }
         }
 
         {
@@ -787,22 +858,12 @@ void app_main(void) {
             appSearchConfig(gateway, &message);
             /* printf ("%s %d\n", __func__, __LINE__); */
 
-/*
- *             message.attr = ModuleDataAttr_GetWifiCfg;
- *             appSearchConfig(gateway, &message);
- *             [> printf ("%s %d\n", __func__, __LINE__); <]
- * 
- *             message.attr = ModuleDataAttr_GetEthCfg;
- *             appSearchConfig(gateway, &message);
- *             [> printf ("%s %d\n", __func__, __LINE__); <]
- * 
- *             message.attr = ModuleDataAttr_GetMqttCfg;
- *             appSearchConfig(gateway, &message);
- *             [> printf ("%s %d\n", __func__, __LINE__); <]
- * 
- *             [> printf ("%s %d\n", __func__, __LINE__); <]
- */
-
+            message.attr = ModuleDataAttr_GetMqttCfg;
+            appSearchConfig(gateway, &message);
+            /* printf ("%s %d\n", __func__, __LINE__); */
+            /* printf ("%s %d\n", __func__, __LINE__); */
+            message.attr = ModuleDataAttr_GetREGEX;
+            appSearchConfig(gateway, &message);
         }
         {
             /*mqtt*/
@@ -814,6 +875,7 @@ void app_main(void) {
             strcpy(config.url, gateway->url);
             strcpy(config.clientId, gateway->clientid);
             strcpy(config.mac, gateway->mac);
+            strcpy(config.regex, gateway->regex);
 
             /* char mac[12]; */
             /* esp_read_mac((uint8_t *)mac, ESP_MAC_WIFI_STA); */
@@ -836,13 +898,30 @@ void app_main(void) {
             config.release  = appDataRelease;
 
             gateway->mqtt = MQTTInit(&config);
+            if (NULL == gateway->mqtt) {
+                while (1) {
+                    printf ("MQTTInit failure\n");
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                }
+            }
         }
-
+        {
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_GetWifiCfg;
+            appSearchConfig(gateway, &message);
+        }
+        {
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_GetEthCfg;
+            appSearchConfig(gateway, &message);
+        }
         {
             ModuleMessage message;
             message.attr = ModuleDataAttr_GetConfDown;
             appSearchConfig(gateway, &message);
         }
+
+        /* printf ("%s %d\n", __func__, __LINE__); */
 
         {
             /*wifi*/
@@ -863,8 +942,15 @@ void app_main(void) {
             WifiSetLogLevel(LogWifi_Info);
 
             gateway->wifi = WifiInit(&config);
+            if (NULL == gateway->wifi) {
+                while (1) {
+                    printf ("WifiInit failure\n");
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                }
+            }
         }
 
+            /* printf ("%s %d\n", __func__, __LINE__); */
         {
             /*ethernet*/
             EthConfig config;
@@ -897,6 +983,12 @@ void app_main(void) {
             config.recv = appRecv;
 
             gateway->update = UpdateInit(&config);
+            if (NULL == gateway->update) {
+                while (1) {
+                    printf ("UpdateInit failure\n");
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                }
+            }
         }
 
         {
@@ -913,6 +1005,12 @@ void app_main(void) {
             config.release  = appDataRelease;
 
             gateway->spi = SpiInit(&config);
+            if (NULL == gateway->spi) {
+                while (1) {
+                    printf ("SpiInit failure\n");
+                    vTaskDelay(pdMS_TO_TICKS(1000));
+                }
+            }
         }
 
 

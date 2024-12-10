@@ -162,12 +162,12 @@ int32_t WifiEventRecvHandler(Wifi *wifi) {
                             LogPrintf(LogWifi_Info, "esp_wifi_connect sss :%d\n", sss);
                         }
 
-                        /* if (message.attr == ModuleDataAttr_SetWifiCfg) { */
-                            /* if (wifi->send) { */
-                                /* wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0); */
-                            /* } */
-                        /* } */
-                        /* else */ if (message.attr == ModuleDataAttr_ReportDebug) {
+                        if (message.attr == ModuleDataAttr_SetWifiCfg) {
+                            if (wifi->send) {
+                                wifi->send(gPriv, DataAttr_WifiToUart, &message, sizeof(message), 0);
+                            }
+                        }
+                        else if (message.attr == ModuleDataAttr_ReportDebug) {
                             wifi->checkStatus = 1;
                         }
                         break;

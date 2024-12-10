@@ -486,3 +486,40 @@ void MacUInt64ToStrings(uint64_t macUInt64, char *mac, int32_t macLength) {
                 (uint8_t)((uint64_t)((macUInt64 & 0xFF) >> 0)));
     mac[macLength - 1] = '\0';
 }
+
+int is_ipv4_addr(const char *ip)
+{
+	if (ip == NULL || ip[0] == '\0') {
+		return -1;
+	}
+
+	for (int i = 0, count = 0; i < strlen(ip); i++) {
+		if ((ip[i] != '.') && (ip[i] < '0' || ip[i] > '9')) {
+			return -1;
+		}
+		if (ip[i] == '.') {
+			count++;
+			if (count > 3) {
+				return -1;
+			}
+		}
+	}
+
+	int ip_num[4] = {-1, -1, -1, -1};
+	char ip_s[4][4];
+	memset(ip_s, 0, sizeof(char[4]) * 4);
+
+	sscanf(ip, "%[^.].%[^.].%[^.].%[^ ]", ip_s[0], ip_s[1], ip_s[2], ip_s[3]);
+	sscanf(ip_s[0], "%d", &ip_num[0]);
+	sscanf(ip_s[1], "%d", &ip_num[1]);
+	sscanf(ip_s[2], "%d", &ip_num[2]);
+	sscanf(ip_s[3], "%d", &ip_num[3]);
+
+	for (int i = 0; i < 4; i++) {
+		if (strlen(ip_s[i]) == 0 || (ip_s[i][0] == '0' && ip_s[i][1] != '\0') || ip_num[i] < 0 || ip_num[i] > 255) {
+			return -1;
+		}
+	}
+
+	return 0;
+}

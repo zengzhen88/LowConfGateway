@@ -77,11 +77,13 @@ int re_match(const char* pattern, const char* text, int* matchlength)
 
 int re_matchp(re_t pattern, const char* text, int* matchlength)
 {
+    printf ("text:%s\n", text);
   *matchlength = 0;
   if (pattern != 0)
   {
     if (pattern[0].type == BEGIN)
     {
+        printf ("type:is begin\n");
       return ((matchpattern(&pattern[1], text, matchlength)) ? 0 : -1);
     }
     else
@@ -111,6 +113,7 @@ re_t re_compile(const char* pattern)
   /* The sizes of the two static arrays below substantiates the static RAM usage of this module.
      MAX_REGEXP_OBJECTS is the max number of symbols in the expression.
      MAX_CHAR_CLASS_LEN determines the size of buffer for chars in all char-classes in the expression. */
+    printf ("parttern:%s\n", pattern);
   static regex_t re_compiled[MAX_REGEXP_OBJECTS];
   static unsigned char ccl_buf[MAX_CHAR_CLASS_LEN];
   int ccl_bufidx = 1;
@@ -122,6 +125,7 @@ re_t re_compile(const char* pattern)
   while (pattern[i] != '\0' && (j+1 < MAX_REGEXP_OBJECTS))
   {
     c = pattern[i];
+    printf ("c:%c\n", c);
 
     switch (c)
     {

@@ -130,8 +130,10 @@ typedef struct {
     char topicack[128];
 
     int32_t isRegex; /*正则表达式是否有效*/
-    char devType[128];  /*上报的设备类型，内部、外部 和所有  0 1 2*/
-    char regex[128];
+    int32_t devType;  /*上报的设备类型，内部、外部 和所有  1 0 2*/
+
+    int32_t regexCount;
+    char **regex;
 
     int checkStatus;
 
@@ -389,7 +391,6 @@ int32_t MQTTMessageRecvUartRebootHandler(MQTT *mqtt, char *info) {
 }
 
 int32_t MQTTMessageStopMqtt(MQTT *mqtt) {
-    ModuleDataAttr attr;
     ModuleMessage message;
     message.attr = ModuleDataAttr_SetMqttCfg;
     esp_event_post_to(mqtt->event, MYMQTT_EVENT, 
@@ -397,7 +398,6 @@ int32_t MQTTMessageStopMqtt(MQTT *mqtt) {
     return 0;
 }
 int32_t MQTTMessageStartMqtt(MQTT *mqtt) {
-    ModuleDataAttr attr;
     ModuleMessage message;
     message.attr = ModuleDataAttr_SetMqttCfg;
     esp_event_post_to(mqtt->event, MYMQTT_EVENT, 
@@ -543,10 +543,16 @@ int32_t MQTTMessageRecvUartDEBUGHandle(MQTT *mqtt, char *info, int32_t report) {
                                     clientid = sptr;
                                     /* esp_mqtt_client_config_t mqttConfig; */
                                     /* memset(&mqttConfig, 0x0, sizeof(mqttConfig)); */
-                                    strcpy(mqtt->mqttConfig.broker.address.uri, url);
-                                    strcpy(mqtt->mqttConfig.credentials.username, user);
-                                    strcpy(mqtt->mqttConfig.credentials.authentication.password, password);
-                                    strcpy(mqtt->mqttConfig.credentials.client_id, clientid);
+                                    /*
+                                     * strcpy(mqtt->mqttConfig.broker.address.uri, url);
+                                     * strcpy(mqtt->mqttConfig.credentials.username, user);
+                                     * strcpy(mqtt->mqttConfig.credentials.authentication.password, password);
+                                     * strcpy(mqtt->mqttConfig.credentials.client_id, clientid);
+                                     */
+                                    strcpy(mqtt->url, url);
+                                    strcpy(mqtt->username, user);
+                                    strcpy(mqtt->clientid, clientid);
+                                    strcpy(mqtt->password, password);
                                     esp_mqtt_client_unsubscribe(mqtt->client, mqtt->topic);
                                     mqtt->checkStatus = 1;
                                     snprintf (mqtt->topic, sizeof(mqtt->topic) - 1, 
@@ -571,7 +577,9 @@ int32_t MQTTMessageRecvUartDEBUGHandle(MQTT *mqtt, char *info, int32_t report) {
     return 0;
 }
 
-int32_t MQTTMessageRecvUartSetREGEXHandle(MQTT *mqtt, char *info, int32_t report) {
+int32_t isValidRegex(MQTT *mqtt, char *data);
+int32_t MQTTMessageRecvUartSetREGEXHandle(MQTT *mqtt, 
+        char *info, int32_t isUp, int32_t report) {
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     char *regex             = NULL;
@@ -580,6 +588,10 @@ int32_t MQTTMessageRecvUartSetREGEXHandle(MQTT *mqtt, char *info, int32_t report
     char *sptr = info;//strchr(info, '<');
     if (sptr) {
         regex = (sptr);
+    }
+
+    if (isUp) {
+        isValidRegex(mqtt, regex);
     }
 
     root = cJSON_CreateArray();
@@ -891,16 +903,22 @@ int32_t MQTTMessageRecvUartMqttCfgHandler(MQTT *mqtt, char *info, int32_t isUp, 
         combineUrl[sizeof(combineUrl) - 1] = '\0';
         /* esp_mqtt_client_config_t mqttConfig; */
         /* memset(&mqttConfig, 0x0, sizeof(mqttConfig)); */
-        strcpy(mqtt->mqttConfig.broker.address.uri, combineUrl);
-        strcpy(mqtt->mqttConfig.credentials.username, user);
-        strcpy(mqtt->mqttConfig.credentials.authentication.password, password);
-        strcpy(mqtt->mqttConfig.credentials.client_id, clientid);
+        /*
+         * strcpy(mqtt->mqttConfig.broker.address.uri, combineUrl);
+         * strcpy(mqtt->mqttConfig.credentials.username, user);
+         * strcpy(mqtt->mqttConfig.credentials.authentication.password, password);
+         * strcpy(mqtt->mqttConfig.credentials.client_id, clientid);
+         */
+        strcpy(mqtt->url, url);
+        strcpy(mqtt->username, user);
+        strcpy(mqtt->clientid, clientid);
+        strcpy(mqtt->password, password);
         esp_mqtt_client_unsubscribe(mqtt->client, mqtt->topic);
         MQTTMessageStopMqtt(mqtt);
         MQTTMessageStartMqtt(mqtt);
     }
 
-    if (0) {
+    if (1) {
         root = cJSON_CreateArray();
         if (root) {
             sub = cJSON_CreateObject();
@@ -1015,8 +1033,24 @@ int32_t MQTTMessageRecvUartWifiCfgHandler(MQTT *mqtt, char *info, int32_t isUp, 
         strcpy(message.setWifiCfg.address, address);
         strcpy(message.setWifiCfg.netmask, netmask);
         strcpy(message.setWifiCfg.gateway, gateway);
+        message.setWifiCfg.flag = 888;
         if (mqtt->send) {
-            mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
+            if (!is_ipv4_addr(address)) {
+                if (!is_ipv4_addr(netmask)) {
+                    if (!is_ipv4_addr(gateway)) {
+                        mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
+                    }
+                    else {
+                        LogPrintf(LogMQTT_Error, "gateway:%s invalid\n", gateway);
+                    }
+                }
+                else {
+                    LogPrintf(LogMQTT_Error, "netmask:%s invalid\n", netmask);
+                }
+            }
+            else {
+                LogPrintf(LogMQTT_Error, "address:%s invalid\n", address);
+            }
         }
     }
 
@@ -1110,11 +1144,24 @@ int32_t MQTTMessageRecvUartEthCfgHandler(MQTT *mqtt, char *info, int isUp, int r
         strcpy(message.setEthCfg.address, address);
         strcpy(message.setEthCfg.netmask, netmask);
         strcpy(message.setEthCfg.gateway, gateway);
+        message.setEthCfg.flag = 888;
         if (mqtt->send) {
-            /* int32_t status =  */mqtt->send(gPriv, DataAttr_MqttToEth, &message, sizeof(message), 0);
-            /* if (!status) { */
-                /* status = MQTTMessageRecvWifiHandler(mqtt); */
-            /* } */
+            if (!is_ipv4_addr(address)) {
+                if (!is_ipv4_addr(netmask)) {
+                    if (!is_ipv4_addr(gateway)) {
+                        mqtt->send(gPriv, DataAttr_MqttToEth, &message, sizeof(message), 0);
+                    }
+                    else {
+                        LogPrintf(LogMQTT_Error, "gateway:%s invalid\n", gateway);
+                    }
+                }
+                else {
+                    LogPrintf(LogMQTT_Error, "netmask:%s invalid\n", netmask);
+                }
+            }
+            else {
+                LogPrintf(LogMQTT_Error, "address:%s invalid\n", address);
+            }
         }
     }
 
@@ -1387,7 +1434,7 @@ static int c_regexFunction(const char *text, const char *pattern) {
 
 #include <esp_heap_trace.h>
 #define NUM_RECORDS 100
-static heap_trace_record_t trace_record[NUM_RECORDS]; // This buffer must be in internal RAM
+/* static heap_trace_record_t trace_record[NUM_RECORDS]; // This buffer must be in internal RAM */
 int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
 #if 1
     int status = -1;
@@ -1420,7 +1467,7 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
 
                 cJSON *root = NULL;
                 cJSON *sub  = NULL;
-                cJSON *array = NULL;
+                /* cJSON *array = NULL; */
                 allMessNum += messNum;
                 ERRP(allMessNum >= MessageNum, return -1, 0);
                 messNum = 0;
@@ -1465,22 +1512,31 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
 
                                 if (mqtt->isRegex) {
                                     //正则表达式生效中
-                                    status = c_regexFunction(devType, mqtt->devType);
-                                    if (status) {
-                                        LogPrintf(LogMQTT_Warning, "DevType:%s Match:%s failure\n", devType, mqtt->devType);
+                                    /* status = c_regexFunction(devType, mqtt->devType); */
+                                    /* status = cpp_regexFunction(devType, mqtt->devType); */
+                                    if ((atoi(devType) != mqtt->devType)) {
+                                        LogPrintf(LogMQTT_Warning, "DevType:%d Match:%d failure\n", atoi(devType), mqtt->devType);
                                         //设备类型没有匹配不成功
                                         if (mqtt->release) {
                                             status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
                                         }
                                         continue;
                                     }
-                                    status = c_regexFunction(sString, mqtt->regex);
-                                    if (status) {
-                                        LogPrintf(LogMQTT_Warning, "Message Match:%s failure\n", mqtt->regex);
-                                        //数据相关信息匹配不成功
-                                        if (mqtt->release) {
-                                            status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
+                                    /* status = cpp_regexFunction(sString, mqtt->regex); */
+                                    int32_t index = 0;
+                                    int32_t match = 0;
+                                    for (index = 0; index < mqtt->regexCount; index++) {
+                                        if (NULL == strstr(sString, mqtt->regex[index])) {
+                                            LogPrintf(LogMQTT_Warning, "Message Match[%d]:%s failure\n", index, mqtt->regex[index]);
+                                            //数据相关信息匹配不成功
+                                            if (mqtt->release) {
+                                                status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
+                                            }
+                                            match = 1;
+                                            break;
                                         }
+                                    }
+                                    if (match) {
                                         continue;
                                     }
                                 }
@@ -1512,31 +1568,33 @@ int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
                              *  }]
                              *
                              */
-                            cJSON_AddItemToArray(root, sub);
-                            char *json = cJSON_Print(root);
-                            if (json) {
-                                /* LogPrintf(LogMQTT_Info, "json(size:%d):\r\n%s\n", strlen(json), json); */
+                            if (messNum) {
+                                cJSON_AddItemToArray(root, sub);
+                                char *json = cJSON_Print(root);
+                                if (json) {
+                                    /* LogPrintf(LogMQTT_Info, "json(size:%d):\r\n%s\n", strlen(json), json); */
 #ifndef USE_BSON
-                                if (mqtt->connect)
-                                    esp_mqtt_client_publish(mqtt->client, 
-                                            mqtt->topicack,
-                                            (const char *)json,
-                                            strlen(json),
-                                            mqtt->msgQos, 0);
-#else 
-                                bson_error_t error;
-                                bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
-                                if (bson) {
-                                    const uint8_t *bsons = bson_get_data(bson);
                                     if (mqtt->connect)
                                         esp_mqtt_client_publish(mqtt->client, 
                                                 mqtt->topicack,
-                                                (const char *)bsons,
-                                                bson->len,
+                                                (const char *)json,
+                                                strlen(json),
                                                 mqtt->msgQos, 0);
-                                }
+#else 
+                                    bson_error_t error;
+                                    bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
+                                    if (bson) {
+                                        const uint8_t *bsons = bson_get_data(bson);
+                                        if (mqtt->connect)
+                                            esp_mqtt_client_publish(mqtt->client, 
+                                                    mqtt->topicack,
+                                                    (const char *)bsons,
+                                                    bson->len,
+                                                    mqtt->msgQos, 0);
+                                    }
 #endif
-                                free(json);
+                                    free(json);
+                                }
                             }
                         }
                     }
@@ -1559,7 +1617,7 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
     int status = -1;
     if (mqtt->recv) {
         while (1) {
-            char recv[128];
+            char recv[256];
             int32_t length = sizeof(recv);
             status = mqtt->recv(gPriv, DataAttr_UartToMqtt, recv, &length, 0);
             if (!status) {
@@ -1583,12 +1641,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         float temperature = atof(valid);/*获取温度*/
                         status = MQTTMessageRecvUartGetTemperatureHandler(mqtt, temperature, 0);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1607,12 +1665,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         char *info = valid;
                         status = MQTTMessageRecvUartGetModuleInfoHandler(mqtt, info, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1625,24 +1683,24 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         char *info = valid;
                         status = MQTTMessageRecvUartGetPowerHandler(mqtt, info, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                     }
                     else if (strstr(recv, "+OFFNOWUPDATE:")) {
                         char *info = valid;
                         status = MQTTMessageRecvUartRebootHandler(mqtt, info);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1655,12 +1713,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         char *info = valid;
                         status = MQTTMessageRecvUartEthCfgHandler(mqtt, info, 1, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1672,12 +1730,12 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         char *info = valid;
                         status = MQTTMessageRecvUartWifiCfgHandler(mqtt, info, 1, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1689,13 +1747,13 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         char *info = valid;
                         status = MQTTMessageRecvUartMqttCfgHandler(mqtt, info, 1, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                LogPrintf(LogMQTT_Info, "Mqtt Send Ack\n");
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* LogPrintf(LogMQTT_Info, "Mqtt Send Ack\n"); */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1706,36 +1764,36 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                     else if (strstr(recv, "+PTRECV:")) {
                         status = MQTTMessageRecvUartPtRecvHandler(mqtt, valid, ModuleDataAttr_PtRecv);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                status = mqtt->send(gPriv, DataAttr_MqttToUart,
-                                        &message, sizeof(message), 0);
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+PTUPDATE")) {
                         status = MQTTMessageRecvUartPTUpdateHandle(mqtt, valid);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+SCANTIMEOUTUPDATE:")) {
                         status = MQTTMessageRecvUartSetScanTimeoutHandle(mqtt, valid, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1744,30 +1802,30 @@ int32_t MQTTMessageRecvUartHandler(MQTT *mqtt) {
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+REGEX:")) {
-                        status = MQTTMessageRecvUartSetREGEXHandle(mqtt, valid, 0);
+                        status = MQTTMessageRecvUartSetREGEXHandle(mqtt, valid, 0, 0);
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+REGEXUPDATE:")) {
-                        status = MQTTMessageRecvUartSetREGEXHandle(mqtt, valid, 1);
+                        status = MQTTMessageRecvUartSetREGEXHandle(mqtt, valid, 1, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
                     else if (strstr(recv, "+DEBUGUPDATE:")) {
                         status = MQTTMessageRecvUartDEBUGHandle(mqtt, valid, 1);
                         if (!status) {
-                            Message message;
-                            message.attr = ModuleDataAttr_Cnt;
-                            if (mqtt->send) {
-                                /* status = mqtt->send(gPriv, DataAttr_MqttToUart, */
-                                        /* &message, sizeof(message), 0); */
-                            }
+                            /* Message message; */
+                            /* message.attr = ModuleDataAttr_Cnt; */
+                            /* if (mqtt->send) { */
+                                /* [> status = mqtt->send(gPriv, DataAttr_MqttToUart, <] */
+                                        /* [> &message, sizeof(message), 0); <] */
+                            /* } */
                         }
                         mqtt->attr = ModuleDataAttr_Cnt;
                     }
@@ -1929,37 +1987,112 @@ int32_t MQTTMessageSendHandlerGetScanTimeout(MQTT *mqtt, cJSON *root, int arrays
 
 int32_t isValidRegex(MQTT *mqtt, char *data) {
     /*GZ248:[0,2];23*/
-    char *ptr = (char *)data;
-    char *devType = NULL;
-    char *regex = NULL;
+    int32_t index = strlen(data);
+    char *newPtr = (char *) alloca (index + 1);
+    if (newPtr) {
+        strcpy(newPtr, data);
+    }
+    else {
+        memset(newPtr, 0x0, index);
+    }
+    char *ptr = (char *)newPtr;
+    /* char *devType = NULL; */
     /*GZ248:[0,2];23*/
-    char *sptr = strchr(ptr, ':');
-    if (sptr) {
+    /* char *sptr = strchr(ptr, ':'); */
+    char *sptr = NULL;
+    char *initPtr = NULL;
+    /* if (sptr) */ 
+    {
         /* :[0,2];23 */
-        *sptr = '\0';
+        /* *sptr = '\0'; */
         /*\0[0,2];23*/
-        sptr = sptr + 1;
+        /* sptr = sptr + 1; */
         /*[0,2];23*/
-        if (!strcmp(ptr, "GZ248")) {
-            /*GZ248有效*/
-            ptr = strchr(sptr, ';');
-            if (ptr) {
-                *ptr = '\0';
-                ptr = ptr + 1;
-                devType = sptr;
-                regex = ptr;
-                strcpy(mqtt->devType, devType);
-                strcpy(mqtt->regex, regex);
+        if (strstr(ptr, "GZ248")) {
+            sptr = strchr(ptr, '_');
+            if (sptr) {
+                mqtt->devType = atoi(sptr + 1);
+
+                int32_t count = 0;
+                char *delim = ";";
+                char *chrr = NULL;
+
+                initPtr = strchr(sptr, ';'); //指向第一个字段
+                chrr = initPtr + 1;
+                if (chrr) {
+                    count++;//当前有第一个
+                    while (1) {
+                        char *chr = strchr(chrr, ';');
+                        if (NULL == chr) {
+                            break;
+                        }
+                        chrr = chr + 1;
+                        //当前有新增加一个
+                        count++;
+                    }
+
+                    if (mqtt->regexCount > 0) {
+                        if (mqtt->regex) {
+                            for (index = 0; index < mqtt->regexCount; index++) {
+                                if (mqtt->regex[index] != NULL) {
+                                    free(mqtt->regex[index]);
+                                }
+                            }
+
+                            free(mqtt->regex);
+                        }
+                    }
+
+                    mqtt->regexCount = count;
+                    mqtt->regex = (char **) malloc (sizeof(char *) * mqtt->regexCount);
+                    if (mqtt->regex) {
+                        index = 0;
+                        memset(mqtt->regex, 0x0, sizeof(char *) * mqtt->regexCount);
+                        LogPrintf(LogMQTT_Info, "mqtt->regexCount:%d\n", mqtt->regexCount);
+
+                        chrr = initPtr + 1;
+                        char *tok = strtok(chrr, delim);
+                        if (NULL != tok) {
+                            LogPrintf(LogMQTT_Info, "tokxxxx:%s\n", tok);
+                            mqtt->regex[index] = strdup(tok);
+                            if (NULL != mqtt->regex[index++]) {
+                                while (tok != NULL) {
+                                    tok = strtok(NULL, delim);
+                                    if (NULL != tok) {
+                                        mqtt->regex[index] = strdup(tok);
+                                        if (NULL != mqtt->regex[index]) {
+                                            index++;
+                                        }
+                                        else {
+                                            LogPrintf(LogMQTT_Error, "strdup mqtt->regex[%d] failure\n", index);
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                LogPrintf(LogMQTT_Error, "strdup mqtt->regex[0] failure\n");
+                                mqtt->isRegex = 0;
+                                return -1;
+                            }
+                        }
+                    }
+                    else {
+                        mqtt->isRegex = 0;
+                        LogPrintf(LogMQTT_Error, "malloc mqtt->regex failure\n");
+                        return -1;
+                    }
+
+                }
+                for (index = 0; index < mqtt->regexCount; index++) {
+                    if (mqtt->regex[index]) 
+                        LogPrintf(LogMQTT_Info, "mqtt->regex[%d]:%s\n", index, mqtt->regex[index]);
+                }
+
                 mqtt->isRegex = 1;
-                LogPrintf(LogMQTT_Info, "regex isvalid(%d), initRegex:%s "
-                        "devType:%s regex:%s\n", 
-                        mqtt->isRegex, data, mqtt->devType, mqtt->regex);
-                return 0;
             }
         }
     }
 
-    mqtt->isRegex = 0;
     LogPrintf(LogMQTT_Info, "regex isvalid(%d), initRegex:%s\n", 
             mqtt->isRegex, data);
 
@@ -2258,7 +2391,7 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
                             mqtt->attr = ModuleDataAttr_Update;
                         }
                     }
-                    else if (!strcmp(strings, "PTSEND")) {
+                    else if (!strcmp(strings, "PtSend")) {
                         /* MQTTMessageSendHandlerPTSend(mqtt, json, arraysize); */
                         const char *mac = MQTTcJsonGetString(json, index, "mac");
                         const float seq = MQTTcJsonGetNumber(json, index, "seq");
@@ -2360,10 +2493,16 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
                         if (mqtt->send) {
                             /* esp_mqtt_client_config_t mqttConfig; */
                             /* memset(&mqttConfig, 0x0, sizeof(mqttConfig)); */
-                            strcpy(mqtt->mqttConfig.broker.address.uri, message.setMqttCfg.url);
-                            strcpy(mqtt->mqttConfig.credentials.username, message.setMqttCfg.user);
-                            strcpy(mqtt->mqttConfig.credentials.client_id, message.setMqttCfg.clientid);
-                            strcpy(mqtt->mqttConfig.credentials.authentication.password, message.setMqttCfg.password);
+                            strcpy(mqtt->url, message.setMqttCfg.url);
+                            strcpy(mqtt->username, message.setMqttCfg.user);
+                            strcpy(mqtt->clientid, message.setMqttCfg.clientid);
+                            strcpy(mqtt->password, message.setMqttCfg.password);
+                            /*
+                             * strcpy(mqtt->mqttConfig.broker.address.uri, message.setMqttCfg.url);
+                             * strcpy(mqtt->mqttConfig.credentials.username, message.setMqttCfg.user);
+                             * strcpy(mqtt->mqttConfig.credentials.client_id, message.setMqttCfg.clientid);
+                             * strcpy(mqtt->mqttConfig.credentials.authentication.password, message.setMqttCfg.password);
+                             */
                             esp_mqtt_client_unsubscribe(mqtt->client, mqtt->topic);
                             snprintf (mqtt->topic, sizeof(mqtt->topic) - 1, 
                                     "GZ248_%02x%02x%02x%02x%02x%02x_%s", 
@@ -2416,11 +2555,29 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
                         strcpy(message.setWifiCfg.netmask, netmask);
                         strcpy(message.setWifiCfg.gateway, gateway);
                         if (mqtt->send) {
-                            status = mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
-                            if (!status) {
-                                mqtt->attr = ModuleDataAttr_SetWifiCfg;
+                            if (!is_ipv4_addr(address)) {
+                                if (!is_ipv4_addr(netmask)) {
+                                    if (!is_ipv4_addr(gateway)) {
+                                        status = mqtt->send(gPriv, DataAttr_MqttToWifi, &message, sizeof(message), 0);
+                                        if (!status) {
+                                            mqtt->attr = ModuleDataAttr_SetWifiCfg;
+                                        }
+                                        else {
+                                            MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetWifiCfg);
+                                        }
+                                    }
+                                    else {
+                                        LogPrintf(LogMQTT_Error, "netmask:%s invalid\n", netmask);
+                                        MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetWifiCfg);
+                                    }
+                                }
+                                else {
+                                    LogPrintf(LogMQTT_Error, "netmask:%s invalid\n", netmask);
+                                    MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetWifiCfg);
+                                }
                             }
                             else {
+                                LogPrintf(LogMQTT_Error, "address:%s invalid\n", address);
                                 MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetWifiCfg);
                             }
                         }
@@ -2451,9 +2608,30 @@ int32_t MQTTMessageSendHandler(MQTT *mqtt, esp_mqtt_event_handle_t event) {
                         strcpy(message.setEthCfg.netmask, netmask);
                         strcpy(message.setEthCfg.gateway, gateway);
                         if (mqtt->send) {
-                            status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
-                            if (!status) {
-                                mqtt->attr = ModuleDataAttr_SetEthCfg;
+                            if (!is_ipv4_addr(address)) {
+                                if (!is_ipv4_addr(netmask)) {
+                                    if (!is_ipv4_addr(gateway)) {
+                                        status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
+                                        if (!status) {
+                                            mqtt->attr = ModuleDataAttr_SetEthCfg;
+                                        }
+                                        else {
+                                            MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetEthCfg);
+                                        }
+                                    }
+                                    else {
+                                        LogPrintf(LogMQTT_Error, "gateway:%s invalid\n", gateway);
+                                        MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetEthCfg);
+                                    }
+                                }
+                                else {
+                                    LogPrintf(LogMQTT_Error, "netmask:%s invalid\n", netmask);
+                                    MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetEthCfg);
+                                }
+                            }
+                            else {
+                                LogPrintf(LogMQTT_Error, "address:%s invalid\n", address);
+                                MQTTMessageRecvUartCommonOkHandler(mqtt, "NO", ModuleDataAttr_SetEthCfg);
                             }
                         }
                     }
@@ -2580,7 +2758,6 @@ static void timer_cb(void *arg) {
 
 void MQTTNetEventHandler(void *handler_args, esp_event_base_t base,
         int32_t event_id, void *event_data) {
-    esp_err_t status                = ESP_FAIL;        
     MQTT *mqtt = (MQTT *)handler_args;
 
     LogPrintf(LogMQTT_Debug, "Event dispatched from event loop base=%s, event_id=%" PRIi32 " CPUID:%d\n", base, event_id, xPortGetCoreID());
@@ -2796,7 +2973,7 @@ void *MQTTInit(MQTTConfig *config) {
     mqtt->dataQos   = 0;
     //测试
     /* mqtt->isRegex   = 1; */
-    /* strcpy(mqtt->devType, "9"); */
+    /* strcpy(mqtt->devType, "1"); */
     /* strcpy(mqtt->regex, "*"); */
     //测试结束
 
@@ -2805,15 +2982,22 @@ void *MQTTInit(MQTTConfig *config) {
     strcpy(mqtt->mac, config->mac);
 
     snprintf (mqtt->topic, sizeof(mqtt->topic) - 1, 
-            "GZ248_%02x%02x%02x%02x%02x%02x_%s", 
+            "GZ248_%c%c%c%c%c%c%c%c%c%c%c%c", 
             mqtt->mac[0], mqtt->mac[1], mqtt->mac[2], 
-            mqtt->mac[3], mqtt->mac[4], mqtt->mac[5], config->clientId);
+            mqtt->mac[3], mqtt->mac[4], mqtt->mac[5],
+            mqtt->mac[6], mqtt->mac[7], mqtt->mac[8],
+            mqtt->mac[9], mqtt->mac[10], mqtt->mac[11]);
     snprintf (mqtt->topicack, sizeof(mqtt->topicack) - 1, 
-            "GZ248_%02x%02x%02x%02x%02x%02x_%sAck", 
+            "GZ248_%c%c%c%c%c%c%c%c%c%c%c%cAck", 
             mqtt->mac[0], mqtt->mac[1], mqtt->mac[2], 
-            mqtt->mac[3], mqtt->mac[4], mqtt->mac[5], config->clientId); 
+            mqtt->mac[3], mqtt->mac[4], mqtt->mac[5],
+            mqtt->mac[6], mqtt->mac[7], mqtt->mac[8],
+            mqtt->mac[9], mqtt->mac[10], mqtt->mac[11]); 
     /* snprintf (mqtt->topic, sizeof(mqtt->topic) - 1, "%s", config->topic); */
     /* snprintf (mqtt->topicack, sizeof(mqtt->topicack) - 1, "%sAck", config->topic); */
+
+    LogPrintf(LogMQTT_Info, "mqtt regex:%s\n", config->regex);
+    isValidRegex(mqtt, config->regex);
 
     strcpy(mqtt->url, config->url);
     strcpy(mqtt->clientid, config->clientId);

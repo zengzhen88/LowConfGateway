@@ -4,11 +4,11 @@
 
 extern "C" int cpp_regexFunction(const char *inStr, const char *matchStr) {
     // C++函数实现
-    std::string text(inStr);
+    // std::string text(inStr);
+    static const std::regex regexs(inStr);
 
     // 示例1: 匹配"Hello"
-    std::regex regexStr(matchStr);
-    if (std::regex_match(text, regexStr)) {
+    if (std::regex_match(inStr, regexs)) {
         return 0;
     }
 

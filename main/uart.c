@@ -13,6 +13,8 @@
 #include <uart.h>
 #include "driver/uart.h"
 #include <message.h>
+#include "esp_timer.h"
+#include "driver/gpio.h"
 
 static void *gPriv = NULL;
 static UartPrint gPrint;
@@ -94,6 +96,9 @@ typedef struct {
     int ackSize;
 #endif
 
+    int32_t signals;
+    esp_timer_handle_t timer;
+
     int mqttStatus;
     int wifiNetStatus;
     int ethNetStatus;
@@ -108,6 +113,7 @@ typedef struct {
     int mark[DataAttr_Cnt];
     uint32_t timestamp[DataAttr_Cnt];
 } Uart;
+#define GPIO_TRIGGER        4
 
 //设置日志输出对象，主要看你想输出到哪里，就对应填充回调
 int32_t UartInitLog(void *priv, UartPrint print) {
@@ -193,7 +199,8 @@ char *UartRecvParse(Uart *uart, char *recv, int32_t length) {
                             || strstr(strings, "+PTUPDATE")
                             || strstr(strings, "+SCANTIMEOUTUPDATE")
                             || strstr(strings, "+REGEXUPDATE")
-                            || strstr(strings, "+DEBUGUPDATE")) {
+                            || strstr(strings, "+DEBUGUPDATE")
+                            || strstr(strings, "+PTRECV")) {
                         snprintf (uart->buffer, uart->bufSize, 
                                 "+OK\r\n");
                         uart->buffer[uart->bufSize - 1] = '\0';
@@ -531,6 +538,7 @@ MQTTTOUART:
                         {
                             snprintf (uart->buffer, uart->bufSize, "AT+MQTTCFG?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
+                            /* printf ("mqtttouart AT+MQTTCFG ============> %s\n", uart->buffer); */
 #ifdef Uart_TEST
                             strcpy(uart->uartAck, "+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n");
                             uart->ackSize = strlen("+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n") + 1;
@@ -901,7 +909,7 @@ MAINTOUART:
                         {
                             snprintf (uart->buffer, uart->bufSize, "AT+MQTTCFG?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
-                            /* printf ("AT+MQTTCFG ============> %s\n", uart->buffer); */
+                            /* printf ("maintouart AT+MQTTCFG ============> %s\n", uart->buffer); */
 #ifdef Uart_TEST
                             strcpy(uart->uartAck, "+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n");
                             uart->ackSize = strlen("+MQTTCFG:admin,123456,mqtt://192.168.0.101:1883\r\n") + 1;
@@ -922,6 +930,12 @@ MAINTOUART:
                     case ModuleDataAttr_GetScanTimeout:
                         {
                             snprintf (uart->buffer, uart->bufSize, "AT+SCANTIMEOUT?\r\n"); 
+                            uart->buffer[uart->bufSize - 1] = '\0';
+                            break;
+                        }
+                    case ModuleDataAttr_GetREGEX:
+                        {
+                            snprintf (uart->buffer, uart->bufSize, "AT+REGEX?\r\n"); 
                             uart->buffer[uart->bufSize - 1] = '\0';
                             break;
                         }
@@ -1041,6 +1055,16 @@ void UartSelectTask(void *args) {
     }
 }
 
+#include <esp_rom_sys.h>
+static void timer_cb(void *arg) {
+    Uart *uart = (Uart *)arg;
+
+    gpio_set_level(GPIO_TRIGGER, uart->signals);
+    esp_rom_delay_us(10);
+    /* LogPrintf(LogSpi_Info, "signal:%d\n", gpio_get_level(GPIO_TRIGGER)); */
+    uart->signals = !uart->signals;
+}
+
 void *UartInit(UartConfig *config) {
     esp_err_t status                = ESP_FAIL;        
     BaseType_t baseType             = pdFAIL;
@@ -1113,6 +1137,25 @@ void *UartInit(UartConfig *config) {
     baseType = xTaskCreate(UartSelectTask, 
             "uartSelectTask", 8192, uart, 5, &uart->uartTask);
     ERRP(pdPASS != baseType, goto ERR04, 1, "uart xTaskCreate failure\n");
+
+    gpio_config_t gpio_cfg = {
+        .pin_bit_mask = (1ULL << GPIO_TRIGGER),
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = 0,
+        .pull_down_en = 0,
+    };
+    gpio_config(&gpio_cfg);
+
+    const esp_timer_create_args_t timer_args = {
+        timer_cb,
+        uart,
+        ESP_TIMER_TASK,
+        "uart_timer",
+        true,
+    };
+    esp_timer_create(&timer_args, &uart->timer);
+    esp_timer_start_periodic(uart->timer, 1000000);//10ms
 
     return uart;
 ERR04:

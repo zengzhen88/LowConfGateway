@@ -171,12 +171,12 @@ int32_t EthEventRecvHandler(Eth *net) {
                             }
                         }
 
-                        /* if (message.attr == ModuleDataAttr_SetEthCfg) { */
-                            /* if (net->send) { */
-                                /* net->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0); */
-                            /* } */
-                        /* } */
-                        /* else  */if (message.attr == ModuleDataAttr_ReportDebug) {
+                        if (message.attr == ModuleDataAttr_SetEthCfg) {
+                            if (net->send) {
+                                net->send(gPriv, DataAttr_EthToUart, &message, sizeof(message), 0);
+                            }
+                        }
+                        else if (message.attr == ModuleDataAttr_ReportDebug) {
                             net->checkStatus = 1;
                         }
                         break;
