@@ -3,7 +3,7 @@
 
 #include <common.h>
 
-#define SPI_DATA_LENGTH (64)
+#define SPI_DATA_LENGTH (42)
 
 typedef enum {
     LogSpi_None = 0,  //关闭日志输出 
@@ -27,6 +27,8 @@ typedef int32_t (*SpiSigRecv)(void *oObj,
         int32_t *fillLength, int32_t millis);
 typedef int32_t (*SpiSigRequest)(void *oObj,
         DataAttr attr, void *data, int32_t fillLength);
+typedef int32_t (*SpiSigRequest1)(void *oObj,
+        DataAttr attr, void *data, void **subData, int32_t fillLength);
 typedef int32_t (*SpiSigRelease)(void *oObj,
         DataAttr attr, void *data);
 
@@ -34,9 +36,11 @@ int32_t SpiInitLog(void *priv, SpiPrint print);
 int32_t SpiSetLogLevel(LogSpi level);
 
 typedef struct {
+    char regex[64];
     SpiSigSend send;
     SpiSigRecv recv;
     SpiSigRequest request;
+    SpiSigRequest1 request1;
     SpiSigRelease release;
 } SpiConfig;
 

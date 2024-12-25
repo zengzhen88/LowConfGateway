@@ -144,6 +144,10 @@ static int32_t appTriggerRecv(void *handle, DataAttr attr) {
             {
                 return UpdateTriggerRecv(gateWay->update);
             }
+        case DataAttr_MqttToSpi:
+            {
+                return SpiTriggerRecv(gateWay->spi);
+            }
         case DataAttr_SpiToMqtt:
             {
                 return MQTTSpiTriggerRecv(gateWay->mqtt);
@@ -244,6 +248,28 @@ int32_t appMsgRecv(void *priv, DataAttr attr,
 
         return 0;
     }
+
+    return -1;
+}
+
+int32_t appDataRequest1(void *priv, DataAttr attr, void *data, void **subData, int32_t fillLength) {
+    Message *message = NULL;
+
+    if (!running) {
+        return -1;
+    }
+
+    message = RequestMessage1(subData, fillLength);
+    if (message) {
+        message->attr       = attr;
+        message->length     = fillLength;
+        sendNum[attr]++;
+
+        *((Message **)data) = message;
+
+        return 0;
+    }
+
 
     return -1;
 }
@@ -769,10 +795,10 @@ void app_main(void) {
         strcpy(gateway->ethNetmask, "255.255.255.0");
         strcpy(gateway->ethGateway, "192.168.0.1");
 
-        strcpy(gateway->wifiSsid, "TP-LINK_324B");
-        strcpy(gateway->wifiPassword, "88888888");
-        /* strcpy(gateway->wifiSsid, "LCZL2"); */
-        /* strcpy(gateway->wifiPassword, "June123456"); */
+        /* strcpy(gateway->wifiSsid, "TP-LINK_324B"); */
+        /* strcpy(gateway->wifiPassword, "88888888"); */
+        strcpy(gateway->wifiSsid, "LCZL2");
+        strcpy(gateway->wifiPassword, "June123456");
         strcpy(gateway->wifiAddress, "0.0.0.0");
         strcpy(gateway->wifiNetmask, "0.0.0.0");
         strcpy(gateway->wifiGateway, "0.0.0.0");
@@ -780,8 +806,8 @@ void app_main(void) {
         strcpy(gateway->user, "admin");
         strcpy(gateway->password, "123456");
         /* strcpy(gateway->url, "mqtt://broker.emqx.io:1883"); */
-        strcpy(gateway->url, "mqtt://175.12.109.90:1883");
-        /* strcpy(gateway->url, "mqtt://192.168.1.9:1883"); */
+        /* strcpy(gateway->url, "mqtt://175.12.109.90:1883"); */
+        strcpy(gateway->url, "mqtt://192.168.1.9:1883");
         /* strcpy(gateway->clientid, "99999999"); */
         strcpy(gateway->clientid, "88888888");
 
@@ -789,6 +815,8 @@ void app_main(void) {
         strcpy(gateway->hardwareVer, "1.0");
         strcpy(gateway->firmwareVer, "1.0");
         strcpy(gateway->mac, "000000000000");
+
+        strcpy(gateway->regex, "GZ248_2");
 
         strcpy(gateway->info, "first");
 
@@ -905,16 +933,18 @@ void app_main(void) {
                 }
             }
         }
-        {
-            ModuleMessage message;
-            message.attr = ModuleDataAttr_GetWifiCfg;
-            appSearchConfig(gateway, &message);
-        }
-        {
-            ModuleMessage message;
-            message.attr = ModuleDataAttr_GetEthCfg;
-            appSearchConfig(gateway, &message);
-        }
+        /*
+         * {
+         *     ModuleMessage message;
+         *     message.attr = ModuleDataAttr_GetWifiCfg;
+         *     appSearchConfig(gateway, &message);
+         * }
+         * {
+         *     ModuleMessage message;
+         *     message.attr = ModuleDataAttr_GetEthCfg;
+         *     appSearchConfig(gateway, &message);
+         * }
+         */
         {
             ModuleMessage message;
             message.attr = ModuleDataAttr_GetConfDown;
@@ -1002,7 +1032,9 @@ void app_main(void) {
             config.send     = appSend;
             config.recv     = appRecv;
             config.request  = appDataRequest;
+            config.request1  = appDataRequest1;
             config.release  = appDataRelease;
+            strcpy(config.regex, gateway->regex);
 
             gateway->spi = SpiInit(&config);
             if (NULL == gateway->spi) {

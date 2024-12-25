@@ -137,6 +137,8 @@ typedef struct {
 
     int checkStatus;
 
+    int32_t reportTime; /*默认1秒*/
+
     int netFirstConnect;
 
     ModuleDataAttr attr;
@@ -580,6 +582,7 @@ int32_t MQTTMessageRecvUartDEBUGHandle(MQTT *mqtt, char *info, int32_t report) {
 int32_t isValidRegex(MQTT *mqtt, char *data);
 int32_t MQTTMessageRecvUartSetREGEXHandle(MQTT *mqtt, 
         char *info, int32_t isUp, int32_t report) {
+    int32_t status          = -1;
     cJSON *root             = NULL;
     cJSON *sub              = NULL;
     char *regex             = NULL;
@@ -591,7 +594,13 @@ int32_t MQTTMessageRecvUartSetREGEXHandle(MQTT *mqtt,
     }
 
     if (isUp) {
-        isValidRegex(mqtt, regex);
+        /* isValidRegex(mqtt, regex); */
+        if (mqtt->send) {
+            ModuleMessage message;
+            message.attr = ModuleDataAttr_SetREGEX;
+            strcpy(message.setREGEX.data, (char *)regex);
+            status = mqtt->send(gPriv, DataAttr_MqttToSpi, &message, sizeof(message), 0);
+        }
     }
 
     root = cJSON_CreateArray();
@@ -1416,10 +1425,12 @@ int32_t MQTTMessageRecvEthHandler(MQTT *mqtt) {
 }
 
 
-unsigned char IntToHexChar(unsigned char c) {
-    if (c > 9) return (c + 55);
-    else return (c + 0x30);
-}
+/*
+ * unsigned char IntToHexChar(unsigned char c) {
+ *     if (c > 9) return (c + 55);
+ *     else return (c + 0x30);
+ * }
+ */
 
 static int c_regexFunction(const char *text, const char *pattern) {
     int match_length;
@@ -1437,169 +1448,49 @@ static int c_regexFunction(const char *text, const char *pattern) {
 /* static heap_trace_record_t trace_record[NUM_RECORDS]; // This buffer must be in internal RAM */
 int32_t MQTTMessageRecvSpiHandler(MQTT *mqtt) {
 #if 1
-    int status = -1;
-    int index = 0;
-    char *sString = (char *)alloca(81);
-    /* int num = 0; */
-    /* static int allNum = 0; */
-    /* LogPrintf(LogMQTT_Info, "%s %d\n", __func__, __LINE__); */
-
-    /* heap_trace_start(HEAP_TRACE_LEAKS); */
+    int32_t status = 0;
+    /* char *sString = (char *)alloca(81); */
 
     if (mqtt->recv) {
         if (mqtt->peek) {
             int32_t length = 0;
             Message *message = NULL;
-            /* Message **pMessage = NULL; */
-            /* char **pChar = NULL; */
-            int messLen = 0;
-            int messNum = 0;
-            int allMessNum = 0;
 
             status = mqtt->peek(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
             ERRP(status, return -1, 0);
 
-#define MessageNum (10)  //最大只发40个数据包，一次
-            messLen = MessageNum;
             while (1) {
                 status = mqtt->peek(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
                 ERRP(status, return -1, 0);
 
-                cJSON *root = NULL;
-                cJSON *sub  = NULL;
-                /* cJSON *array = NULL; */
-                allMessNum += messNum;
-                ERRP(allMessNum >= MessageNum, return -1, 0);
-                messNum = 0;
+                status = mqtt->recv(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
+                ERRP(status, break, 0);
 
-
-                root = cJSON_CreateArray();
-                if (root) {
-                    sub = cJSON_CreateObject();
-                    if (sub) {
-                        cJSON_AddStringToObject(sub, "htype", toEnumString(ModuleDataAttr_TransmitData));
-                        cJSON *psJSON = cJSON_CreateArray();
-                        if (psJSON) {
-                            while (1) {
-                                //如果实际的数据单位大于messLen
-                                ERRP (messNum >= messLen, break, 0);
-
-                                status = mqtt->recv(gPriv, DataAttr_SpiToMqtt, &message, &length, 0);
-                                ERRP(status, break, 0);
-
-                                char devType[16];
-                                snprintf (devType, sizeof(devType) - 1, "%d", ((char *)message->data)[8]);
-                                /*0x88 88 88 88*/
-                                /* memcpy(&(((char *)message->data)[8]), */
-                                        /* &(((char *)message->data)[9]), 31);//数据为31字节，2个校验数据不要 */
-                                /* (((char *)message->data)[39]) = '\0'; */
-                                {
-                                    unsigned char combine;
-                                    unsigned char *inStr = (unsigned char *)message->data;
-                                    int combineLen = 40;
-                                    for (index = 0; index < combineLen; index++) {
-                                        combine = inStr[index] & 0xf0;
-                                        sString[2 * index] = IntToHexChar(combine >> 4);
-                                        combine = inStr[index] & 0x0f;
-                                        sString[2 * index + 1] = IntToHexChar(combine);
-                                    }
-                                    sString[combineLen * 2] = '\0';
-                                    LogPrintf(LogMQTT_Detail, "before:%s\n", sString);
-                                    memcpy(&sString[8 * 2], &sString[9 * 2], 31 * 2);
-                                    sString[(combineLen - 1) * 2] = '\0';
-                                    LogPrintf(LogMQTT_Detail, "after:%s\n", sString);
-                                }
-
-                                if (mqtt->isRegex) {
-                                    //正则表达式生效中
-                                    /* status = c_regexFunction(devType, mqtt->devType); */
-                                    /* status = cpp_regexFunction(devType, mqtt->devType); */
-                                    if ((atoi(devType) != mqtt->devType)) {
-                                        LogPrintf(LogMQTT_Warning, "DevType:%d Match:%d failure\n", atoi(devType), mqtt->devType);
-                                        //设备类型没有匹配不成功
-                                        if (mqtt->release) {
-                                            status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
-                                        }
-                                        continue;
-                                    }
-                                    /* status = cpp_regexFunction(sString, mqtt->regex); */
-                                    int32_t index = 0;
-                                    int32_t match = 0;
-                                    for (index = 0; index < mqtt->regexCount; index++) {
-                                        if (NULL == strstr(sString, mqtt->regex[index])) {
-                                            LogPrintf(LogMQTT_Warning, "Message Match[%d]:%s failure\n", index, mqtt->regex[index]);
-                                            //数据相关信息匹配不成功
-                                            if (mqtt->release) {
-                                                status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
-                                            }
-                                            match = 1;
-                                            break;
-                                        }
-                                    }
-                                    if (match) {
-                                        continue;
-                                    }
-                                }
-
-                                cJSON *psQJSON = cJSON_CreateObject();
-                                if (psQJSON) {
-                                    cJSON_AddNumberToObject(psQJSON, "timestamp", esp_log_early_timestamp());
-                                    cJSON_AddStringToObject(psQJSON, "data", sString);
-                                }
-                                cJSON_AddItemToArray(psJSON, psQJSON);
-                                messNum++;
-                                if (mqtt->release) {
-                                    status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
-                                }
-                            }
-                            cJSON_AddItemToObject(sub, "dataAdv", psJSON);
-                            /*  [{
-                             *      "htype" : "reportAdv",
-                             *      "dataAdv" : [
-                             *          {
-                             *              "timestamp": 0
-                             *              "data":"alsdfkjasdf"
-                             *          },
-                             *          {
-                             *              "timestamp": 1
-                             *              "data":"alsdfslkjasdf"
-                             *          }
-                             *      ]
-                             *  }]
-                             *
-                             */
-                            if (messNum) {
-                                cJSON_AddItemToArray(root, sub);
-                                char *json = cJSON_Print(root);
-                                if (json) {
-                                    /* LogPrintf(LogMQTT_Info, "json(size:%d):\r\n%s\n", strlen(json), json); */
 #ifndef USE_BSON
-                                    if (mqtt->connect)
-                                        esp_mqtt_client_publish(mqtt->client, 
-                                                mqtt->topicack,
-                                                (const char *)json,
-                                                strlen(json),
-                                                mqtt->msgQos, 0);
+                if (mqtt->connect)
+                    esp_mqtt_client_publish(mqtt->client, 
+                            mqtt->topicack,
+                            (const char *)message->data,
+                            strlen((const char *)message->data),
+                            mqtt->msgQos, 0);
+                /* LogPrintf(LogMQTT_Info, "mqtt json:%s\n", (const char *)message->data); */
 #else 
-                                    bson_error_t error;
-                                    bson_t *bson = bson_new_from_json((const uint8_t *)json, strlen(json), &error);
-                                    if (bson) {
-                                        const uint8_t *bsons = bson_get_data(bson);
-                                        if (mqtt->connect)
-                                            esp_mqtt_client_publish(mqtt->client, 
-                                                    mqtt->topicack,
-                                                    (const char *)bsons,
-                                                    bson->len,
-                                                    mqtt->msgQos, 0);
-                                    }
-#endif
-                                    free(json);
-                                }
-                            }
-                        }
-                    }
-                    cJSON_Delete(root);
+                bson_error_t error;
+                bson_t *bson = bson_new_from_json((const uint8_t *)message->data, strlen((const char *)message->data), &error);
+                if (bson) {
+                    const uint8_t *bsons = bson_get_data(bson);
+                    if (mqtt->connect)
+                        esp_mqtt_client_publish(mqtt->client, 
+                                mqtt->topicack,
+                                (const char *)bsons,
+                                bson->len,
+                                mqtt->msgQos, 0);
                 }
+#endif
+                if (mqtt->release) {
+                    status = mqtt->release(gPriv, DataAttr_SpiToMqtt, message);
+                }
+                vTaskDelay(pdMS_TO_TICKS(1));
             }
         }
     }
@@ -2018,70 +1909,72 @@ int32_t isValidRegex(MQTT *mqtt, char *data) {
                 char *chrr = NULL;
 
                 initPtr = strchr(sptr, ';'); //指向第一个字段
-                chrr = initPtr + 1;
-                if (chrr) {
-                    count++;//当前有第一个
-                    while (1) {
-                        char *chr = strchr(chrr, ';');
-                        if (NULL == chr) {
-                            break;
-                        }
-                        chrr = chr + 1;
-                        //当前有新增加一个
-                        count++;
-                    }
-
-                    if (mqtt->regexCount > 0) {
-                        if (mqtt->regex) {
-                            for (index = 0; index < mqtt->regexCount; index++) {
-                                if (mqtt->regex[index] != NULL) {
-                                    free(mqtt->regex[index]);
-                                }
+                if (initPtr) {
+                    chrr = initPtr + 1;
+                    if (chrr) {
+                        count++;//当前有第一个
+                        while (1) {
+                            char *chr = strchr(chrr, ';');
+                            if (NULL == chr) {
+                                break;
                             }
-
-                            free(mqtt->regex);
+                            chrr = chr + 1;
+                            //当前有新增加一个
+                            count++;
                         }
-                    }
 
-                    mqtt->regexCount = count;
-                    mqtt->regex = (char **) malloc (sizeof(char *) * mqtt->regexCount);
-                    if (mqtt->regex) {
-                        index = 0;
-                        memset(mqtt->regex, 0x0, sizeof(char *) * mqtt->regexCount);
-                        LogPrintf(LogMQTT_Info, "mqtt->regexCount:%d\n", mqtt->regexCount);
+                        if (mqtt->regexCount > 0) {
+                            if (mqtt->regex) {
+                                for (index = 0; index < mqtt->regexCount; index++) {
+                                    if (mqtt->regex[index] != NULL) {
+                                        free(mqtt->regex[index]);
+                                    }
+                                }
 
-                        chrr = initPtr + 1;
-                        char *tok = strtok(chrr, delim);
-                        if (NULL != tok) {
-                            LogPrintf(LogMQTT_Info, "tokxxxx:%s\n", tok);
-                            mqtt->regex[index] = strdup(tok);
-                            if (NULL != mqtt->regex[index++]) {
-                                while (tok != NULL) {
-                                    tok = strtok(NULL, delim);
-                                    if (NULL != tok) {
-                                        mqtt->regex[index] = strdup(tok);
-                                        if (NULL != mqtt->regex[index]) {
-                                            index++;
-                                        }
-                                        else {
-                                            LogPrintf(LogMQTT_Error, "strdup mqtt->regex[%d] failure\n", index);
+                                free(mqtt->regex);
+                            }
+                        }
+
+                        mqtt->regexCount = count;
+                        mqtt->regex = (char **) malloc (sizeof(char *) * mqtt->regexCount);
+                        if (mqtt->regex) {
+                            index = 0;
+                            memset(mqtt->regex, 0x0, sizeof(char *) * mqtt->regexCount);
+                            LogPrintf(LogMQTT_Info, "mqtt->regexCount:%d\n", mqtt->regexCount);
+
+                            chrr = initPtr + 1;
+                            char *tok = strtok(chrr, delim);
+                            if (NULL != tok) {
+                                LogPrintf(LogMQTT_Info, "tokxxxx:%s\n", tok);
+                                mqtt->regex[index] = strdup(tok);
+                                if (NULL != mqtt->regex[index++]) {
+                                    while (tok != NULL) {
+                                        tok = strtok(NULL, delim);
+                                        if (NULL != tok) {
+                                            mqtt->regex[index] = strdup(tok);
+                                            if (NULL != mqtt->regex[index]) {
+                                                index++;
+                                            }
+                                            else {
+                                                LogPrintf(LogMQTT_Error, "strdup mqtt->regex[%d] failure\n", index);
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            else {
-                                LogPrintf(LogMQTT_Error, "strdup mqtt->regex[0] failure\n");
-                                mqtt->isRegex = 0;
-                                return -1;
+                                else {
+                                    LogPrintf(LogMQTT_Error, "strdup mqtt->regex[0] failure\n");
+                                    mqtt->isRegex = 0;
+                                    return -1;
+                                }
                             }
                         }
-                    }
-                    else {
-                        mqtt->isRegex = 0;
-                        LogPrintf(LogMQTT_Error, "malloc mqtt->regex failure\n");
-                        return -1;
-                    }
+                        else {
+                            mqtt->isRegex = 0;
+                            LogPrintf(LogMQTT_Error, "malloc mqtt->regex failure\n");
+                            return -1;
+                        }
 
+                    }
                 }
                 for (index = 0; index < mqtt->regexCount; index++) {
                     if (mqtt->regex[index]) 
@@ -2102,21 +1995,24 @@ int32_t isValidRegex(MQTT *mqtt, char *data) {
 int32_t MQTTMessageSendHandlerSetREGEX(MQTT *mqtt, const char *data) {
     int32_t status = -1;
     ModuleMessage message;
-    char *sString = alloca(strlen(data) + 1);
-    if (sString) {
-        strcpy(sString, data);
+    /* char *sString = alloca(strlen(data) + 1); */
+    /* if (sString) { */
+    /* strcpy(sString, data); */
 
-        isValidRegex(mqtt, sString);
-        message.attr = ModuleDataAttr_SetREGEX;
-        strcpy(message.setREGEX.data, (char *)data);
-        if (mqtt->send) {
-            status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
-            if (!status) {
-                mqtt->attr = ModuleDataAttr_SetREGEX;
-                return 0;
-            }
+    /* isValidRegex(mqtt, sString); */
+    message.attr = ModuleDataAttr_SetREGEX;
+    strcpy(message.setREGEX.data, (char *)data);
+    if (mqtt->send) {
+        status = mqtt->send(gPriv, DataAttr_MqttToSpi, &message, sizeof(message), 0);
+    }
+    if (mqtt->send) {
+        status = mqtt->send(gPriv, DataAttr_MqttToUart, &message, sizeof(message), 0);
+        if (!status) {
+            mqtt->attr = ModuleDataAttr_SetREGEX;
+            return 0;
         }
     }
+    /* } */
 
     return -1;
 }
@@ -2971,6 +2867,7 @@ void *MQTTInit(MQTTConfig *config) {
     mqtt->release   = config->release;
     mqtt->msgQos    = 0;
     mqtt->dataQos   = 0;
+    mqtt->reportTime= 1;
     //测试
     /* mqtt->isRegex   = 1; */
     /* strcpy(mqtt->devType, "1"); */
@@ -2996,8 +2893,8 @@ void *MQTTInit(MQTTConfig *config) {
     /* snprintf (mqtt->topic, sizeof(mqtt->topic) - 1, "%s", config->topic); */
     /* snprintf (mqtt->topicack, sizeof(mqtt->topicack) - 1, "%sAck", config->topic); */
 
-    LogPrintf(LogMQTT_Info, "mqtt regex:%s\n", config->regex);
-    isValidRegex(mqtt, config->regex);
+    /* LogPrintf(LogMQTT_Info, "mqtt regex:%s\n", config->regex); */
+    /* isValidRegex(mqtt, config->regex); */
 
     strcpy(mqtt->url, config->url);
     strcpy(mqtt->clientid, config->clientId);

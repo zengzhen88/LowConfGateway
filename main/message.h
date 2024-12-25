@@ -12,6 +12,7 @@ typedef struct {
 
 Message *RequestMessage(int32_t size);
 int32_t ReleaseMessage(Message *mess);
+Message *RequestMessage1(void **data, int32_t size);
 
 //ModuleDataAttr_TriggerRecv
 typedef struct {
